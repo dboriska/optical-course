@@ -1,0 +1,536 @@
+<title>Snell's Law Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: wave scene on the left, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;
+  --m1: #e1f0dc;      /* denser medium, same green as the lecture slides */
+  --m2: #dfedf7;      /* second medium, same blue as the lecture slides */
+  --pos: #d4471e;     /* field crest */
+  --neg: #1d5cc0;     /* field trough */
+  --evan: #7b3fcf;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --m1: #16281b; --m2: #13222f; --pos: #ff7c4f; --neg: #5d9fff; --evan: #b48cff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --m1: #16281b; --m2: #13222f; --pos: #ff7c4f; --neg: #5d9fff; --evan: #b48cff;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#scene { display: block; width: 100%; aspect-ratio: 16 / 10; max-width: 100%; touch-action: none; cursor: crosshair; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 5px; }
+.side { display: grid; gap: 14px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); }
+.range { position: relative; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.mark { position: absolute; top: -3px; width: 2px; height: 22px; background: var(--ray); pointer-events: none; transform: translateX(-1px); }
+.mark.b { background: var(--evan); }
+.mark span { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-family: var(--font-mono); white-space: nowrap; color: var(--muted); }
+.hint { font-size: 0.78rem; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 6px; }
+button, select { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover, select:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.readouts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.tir-badge { color: var(--ray); font-weight: 700; }
+.bars { display: grid; gap: 6px; }
+.bar { display: grid; grid-template-columns: 92px 1fr 52px; gap: 8px; align-items: center; font-size: 0.85rem; }
+.bar .track { height: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.bar .fill { height: 100%; width: 0; background: var(--ray); transition: width 0.08s linear; }
+.bar .fill.t { background: var(--accent); }
+.bar b { font-family: var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+#fresnel { display: block; width: 100%; aspect-ratio: 16 / 10; max-width: 100%; }
+.note { font-size: 0.85rem; color: var(--muted); }
+.note strong { color: var(--ink); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #scene { aspect-ratio: 16 / 9; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .bar .fill { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Snell's Law Lab</h1>
+    <p>Drag the angle of incidence and change the two refractive indices. The scene shows the wave field and the rays together. Snell's law: <span class="law">n₁ sin θ₁ = n₂ sin θ₂</span>.</p>
+  </header>
+
+  <div class="grid">
+    <div class="card scene">
+      <canvas id="scene" aria-label="Wave field and rays at the boundary between two media"></canvas>
+      <div class="scene-bar">
+        <button id="play" aria-pressed="true">Waves moving</button>
+        <button id="tWaves" aria-pressed="true">Wave field</button>
+        <button id="tRays" aria-pressed="true">Rays</button>
+        <button id="sweep">Sweep the angle</button>
+        <div class="legend"><span><i style="background:var(--pos)"></i>crest</span><span><i style="background:var(--neg)"></i>trough</span><span>Brightness shows power</span></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="th">Angle of incidence θ₁ <output id="thOut"></output></label>
+          <div class="range"><input id="th" type="range" min="0" max="89" step="0.1" value="35"><div class="mark" id="markC" hidden><span>θc</span></div><div class="mark b" id="markB"><span>θB</span></div></div>
+          <span class="hint" style="margin-top:14px">Tip: you can also drag inside the scene.</span>
+        </div>
+        <div class="ctl" style="margin-top:14px">
+          <label for="n1">n₁, incident medium (bottom) <output id="n1Out"></output></label>
+          <input id="n1" type="range" min="1" max="2.5" step="0.01" value="1.5">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="n2">n₂, second medium (top) <output id="n2Out"></output></label>
+          <input id="n2" type="range" min="1" max="2.5" step="0.01" value="1">
+        </div>
+        <div class="ctl" style="margin-top:10px">
+          <label for="pol">Polarization</label>
+          <select id="pol">
+            <option value="avg">Unpolarized (average)</option>
+            <option value="s">s (TE)</option>
+            <option value="p">p (TM)</option>
+          </select>
+        </div>
+        <p class="section-title" style="margin-top:14px">Presets</p>
+        <div class="row" id="presets">
+          <button data-n1="1.5" data-n2="1">Glass → air</button>
+          <button data-n1="1.33" data-n2="1">Water → air</button>
+          <button data-n1="2.42" data-n2="1">Diamond → air</button>
+          <button data-n1="1" data-n2="1.5">Air → glass</button>
+          <button data-n1="1.47" data-n2="1.46">Fiber core → cladding</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <dl class="readouts">
+          <dt>Refracted angle θ₂</dt><dd id="rT"></dd>
+          <dt>Critical angle θc</dt><dd id="rC"></dd>
+          <dt>Brewster angle θB</dt><dd id="rB"></dd>
+          <dt>Wavelength in n₁</dt><dd id="rL1"></dd>
+          <dt>Wavelength in n₂</dt><dd id="rL2"></dd>
+          <dt>Evanescent depth</dt><dd id="rD"></dd>
+        </dl>
+        <div class="bars" style="margin-top:12px">
+          <div class="bar"><span>Reflected R</span><div class="track"><div class="fill" id="bR"></div></div><b id="vR"></b></div>
+          <div class="bar"><span>Transmitted T</span><div class="track"><div class="fill t" id="bT"></div></div><b id="vT"></b></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Fresnel reflectance R(θ₁)</p>
+        <canvas id="fresnel" aria-label="Reflectance against angle for s and p polarization"></canvas>
+        <p class="note" id="fnote"></p>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">λ is the vacuum wavelength. The evanescent depth is where the field in the second medium falls to 1/e. Reflectance uses the Fresnel equations for a single flat boundary.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI, D2R = PI / 180, R2D = 180 / PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- physics ----------
+  const cdiv = (a, b) => { const d = b[0] * b[0] + b[1] * b[1]; return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d]; };
+  const cabs = a => Math.hypot(a[0], a[1]);
+  const carg = a => Math.atan2(a[1], a[0]);
+
+  function optics(n1, n2, thDeg, pol) {
+    const th = thDeg * D2R, ci = Math.cos(th), si = Math.sin(th);
+    const s2 = n1 * si / n2;
+    const o = { n1, n2, th, ci, si, s2 };
+    o.thc = n1 > n2 ? Math.asin(n2 / n1) : null;
+    o.thB = Math.atan(n2 / n1);
+    if (s2 < 1) {
+      const ct = Math.sqrt(1 - s2 * s2);
+      const rs = (n1 * ci - n2 * ct) / (n1 * ci + n2 * ct);
+      const rp = (n2 * ci - n1 * ct) / (n2 * ci + n1 * ct);
+      Object.assign(o, { tir: false, thT: Math.asin(s2), ct, rs: [rs, 0], rp: [rp, 0], Rs: rs * rs, Rp: rp * rp });
+    } else {
+      const g = Math.sqrt(s2 * s2 - 1);                 // cos θ₂ = i·g
+      const rs = cdiv([n1 * ci, -n2 * g], [n1 * ci, n2 * g]);
+      const rp = cdiv([n2 * ci, -n1 * g], [n2 * ci, n1 * g]);
+      Object.assign(o, { tir: true, g, rs, rp, Rs: 1, Rp: 1, kappa: 2 * PI * n2 * g });
+    }
+    o.R = pol === 's' ? o.Rs : pol === 'p' ? o.Rp : (o.Rs + o.Rp) / 2;
+    o.T = 1 - o.R;
+    o.r = pol === 'p' ? o.rp : o.rs;                    // phase used for the drawing
+    return o;
+  }
+
+  // ---------- colors ----------
+  function hexRGB(h) { h = h.trim().replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', m1: '#e1f0dc', m2: '#dfedf7', pos: '#d4471e', neg: '#1d5cc0', evan: '#7b3fcf' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+
+  // ---------- scene ----------
+  const field = document.createElement('canvas');
+  const fctx = field.getContext('2d');
+  const BEAM = 2.0;          // beam half-width (1/e), in vacuum wavelengths
+  const OMEGA = 2 * PI * 0.8; // wave crests advance 0.8 periods per second
+
+  function drawField(w, h, scale, ox, oy, o, t, pal) {
+    if (field.width !== w || field.height !== h) { field.width = w; field.height = h; }
+    const img = fctx.createImageData(w, h), d = img.data;
+    const m1 = hexRGB(pal.m1), m2 = hexRGB(pal.m2), cp = hexRGB(pal.pos), cn = hexRGB(pal.neg);
+    const k1 = 2 * PI * o.n1, k2 = 2 * PI * o.n2, wt = OMEGA * t;
+    const si = o.si, ci = o.ci;
+    const Ar = Math.sqrt(o.R), phr = carg(o.r);
+    let At = 0, sT = 0, cT = 1, wT = BEAM, Ae = 0, phe = 0;
+    if (!o.tir) { At = Math.sqrt(Math.max(o.T, 0)); sT = o.s2; cT = o.ct; wT = Math.max(BEAM * cT / ci, 0.05); }
+    else { const tt = [1 + o.r[0], o.r[1]]; Ae = Math.min(cabs(tt), 2) * 0.55; phe = carg(tt); }
+    const footW = BEAM / Math.max(ci, 0.08);
+    const inv = 1 / scale;
+    for (let j = 0; j < h; j++) {
+      const y = (oy - j) * inv;
+      for (let i = 0; i < w; i++) {
+        const x = (i - ox) * inv;
+        let f, base;
+        if (y < 0) {
+          base = m1;
+          const ai = si * x + ci * y, pi = -ci * x + si * y;
+          const ar = si * x - ci * y, pr = ci * x + si * y;
+          f = Math.exp(-(pi * pi) / (BEAM * BEAM)) * Math.cos(k1 * ai - wt)
+            + Ar * Math.exp(-(pr * pr) / (BEAM * BEAM)) * Math.cos(k1 * ar - wt + phr);
+        } else {
+          base = m2;
+          if (!o.tir) {
+            const at = sT * x + cT * y, pt = -cT * x + sT * y;
+            f = At * Math.exp(-(pt * pt) / (wT * wT)) * Math.cos(k2 * at - wt);
+          } else {
+            f = Ae * Math.exp(-(x * x) / (footW * footW)) * Math.exp(-o.kappa * y) * Math.cos(k1 * si * x - wt + phe);
+          }
+        }
+        let v = f / 1.5; if (v > 1) v = 1; else if (v < -1) v = -1;
+        const c = v > 0 ? cp : cn, a = Math.abs(v) * 0.9;
+        const k = (j * w + i) * 4;
+        d[k] = base[0] + (c[0] - base[0]) * a;
+        d[k + 1] = base[1] + (c[1] - base[1]) * a;
+        d[k + 2] = base[2] + (c[2] - base[2]) * a;
+        d[k + 3] = 255;
+      }
+    }
+    fctx.putImageData(img, 0, 0);
+  }
+
+  let headAt = 120, hitX = 0, hitY = 0;
+  function arrow(ctx, x0, y0, x1, y1, color, width, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    // arrowhead at a fixed distance from the hit point (the end that touches the boundary)
+    const len = Math.hypot(x1 - x0, y1 - y0), ang = Math.atan2(y1 - y0, x1 - x0), s = 6 + width * 2.2;
+    const dist = Math.min(headAt || 120, len * 0.6);
+    const fromStart = x0 === hitX && y0 === hitY;
+    const mx = fromStart ? x0 + Math.cos(ang) * dist : x1 - Math.cos(ang) * (dist - s), my = fromStart ? y0 + Math.sin(ang) * dist : y1 - Math.sin(ang) * (dist - s);
+    ctx.beginPath(); ctx.moveTo(mx + Math.cos(ang) * s, my + Math.sin(ang) * s);
+    ctx.lineTo(mx + Math.cos(ang + 2.5) * s, my + Math.sin(ang + 2.5) * s);
+    ctx.lineTo(mx + Math.cos(ang - 2.5) * s, my + Math.sin(ang - 2.5) * s); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  function arcLabel(ctx, cx, cy, r, a0, a1, label, color, fs) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.5, fs / 10);
+    ctx.beginPath(); ctx.arc(cx, cy, r, Math.min(a0, a1), Math.max(a0, a1)); ctx.stroke();
+    const am = (a0 + a1) / 2, lr = r + fs * 1.1;
+    ctx.fillStyle = color; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(label, cx + Math.cos(am) * lr, cy + Math.sin(am) * lr);
+    ctx.restore();
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => v.toFixed(n);
+
+  // Draw the whole scene into a rectangle of ctx (CSS-pixel units).
+  function drawScene(ctx, X, Y, W, H, st, t, opts = {}) {
+    const pal = palette();
+    const o = optics(st.n1, st.n2, st.th, st.pol);
+    const lambdaPx = opts.lambdaPx || Math.max(26, W / 22);  // vacuum wavelength in px
+    const ox = W / 2, oy = H * 0.5;
+    ctx.save(); ctx.translate(X, Y);
+    ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    if (st.showWaves !== false) {
+      const q = opts.quality || 0.5;
+      const fw = Math.max(2, Math.round(W * q)), fh = Math.max(2, Math.round(H * q));
+      drawField(fw, fh, lambdaPx * q, ox * q, oy * q, o, t, pal);
+      ctx.imageSmoothingEnabled = true; ctx.drawImage(field, 0, 0, W, H);
+    } else {
+      ctx.fillStyle = pal.m2; ctx.fillRect(0, 0, W, oy); ctx.fillStyle = pal.m1; ctx.fillRect(0, oy, W, H - oy);
+    }
+    const fs = opts.fontSize || Math.max(12, Math.min(18, W / 48));
+    // boundary and normal
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.stroke();
+    ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(ox, 8); ctx.lineTo(ox, H - 8); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('normal', ox + 6, 10);
+    // media labels
+    ctx.font = `700 ${fs}px ${getFont()}`; ctx.fillStyle = pal.ink; ctx.textBaseline = 'top';
+    ctx.fillText(`n₂ = ${fmt(st.n2, 2)}${st.name2 ? '  ' + st.name2 : ''}`, 12, 10);
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`n₁ = ${fmt(st.n1, 2)}${st.name1 ? '  ' + st.name1 : ''}`, 12, H - 10);
+
+    if (st.showRays !== false) {
+      const L = Math.hypot(W, H);
+      const ix = ox - o.si * L, iy = oy + o.ci * L;
+      const rx = ox + o.si * L, ry = oy + o.ci * L;
+      // critical-angle guide
+      if (o.thc !== null && opts.showCritical !== false) {
+        ctx.save(); ctx.setLineDash([3, 7]); ctx.strokeStyle = pal.ray; ctx.globalAlpha = 0.45; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox - Math.sin(o.thc) * L, oy + Math.cos(o.thc) * L); ctx.stroke(); ctx.restore();
+      }
+      const rw = opts.rayWidth || 3;
+      headAt = Math.min(W, H) * 0.3; hitX = ox; hitY = oy;
+      arrow(ctx, ix, iy, ox, oy, pal.ray, rw, 1);
+      arrow(ctx, ox, oy, rx, ry, pal.ray, rw, 0.25 + 0.75 * Math.sqrt(o.R));
+      if (!o.tir) {
+        const tx = ox + Math.sin(o.thT) * L, ty = oy - Math.cos(o.thT) * L;
+        arrow(ctx, ox, oy, tx, ty, pal.ray, rw, 0.3 + 0.7 * Math.sqrt(o.T));
+      }
+      // angle arcs: canvas angles measured clockwise from +x
+      const R0 = Math.min(W, H) * 0.12;
+      const down = PI / 2, up = -PI / 2;
+      if (o.th > 0.01) {
+        arcLabel(ctx, ox, oy, R0, down, down + o.th, `θ₁ ${fmt(st.th)}°`, pal.ink, fs);
+      }
+      if (!o.tir && o.thT > 0.01) arcLabel(ctx, ox, oy, R0 * 1.15, up, up + o.thT, `θ₂ ${fmt(o.thT * R2D)}°`, pal.ink, fs);
+      if (o.tir) {
+        ctx.fillStyle = pal.evan; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('evanescent wave', ox + 12, oy - 8);
+        ctx.fillStyle = pal.ray; ctx.textBaseline = 'top'; ctx.textAlign = 'right';
+        ctx.fillText('total internal reflection', W - 12, oy + 8);
+      }
+      if (o.thc !== null && opts.showCritical !== false) {
+        ctx.fillStyle = pal.ray; ctx.globalAlpha = 0.85; ctx.font = `${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+        const gx = ox - Math.sin(o.thc) * R0 * 2.4, gy = oy + Math.cos(o.thc) * R0 * 2.4;
+        ctx.fillText(`θc ${fmt(o.thc * R2D)}°`, gx - 6, gy); ctx.globalAlpha = 1;
+      }
+    }
+    ctx.restore();
+    return o;
+  }
+
+  // ---------- Fresnel chart ----------
+  function drawFresnel(canvas, st) {
+    const dpr = window.devicePixelRatio || 1, W = canvas.clientWidth, H = canvas.clientHeight;
+    if (!W) return;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    const ctx = canvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const pal = palette();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const L = 34, B = 26, Rm = 8, T = 8, pw = W - L - Rm, ph = H - B - T;
+    const X = a => L + a / 90 * pw, Y = r => T + (1 - r) * ph;
+    ctx.font = `11px ${monoFont()}`; ctx.fillStyle = pal.muted; ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+    for (const r of [0, 0.25, 0.5, 0.75, 1]) { ctx.beginPath(); ctx.moveTo(L, Y(r)); ctx.lineTo(L + pw, Y(r)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(r.toFixed(2).replace(/0$/, ''), L - 4, Y(r)); }
+    for (const a of [0, 30, 60, 90]) { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(a + '°', X(a), T + ph + 6); }
+    const series = [['s', 'Rs', pal.accent], ['p', 'Rp', pal.evan], ['avg', 'R', pal.ray]];
+    for (const [key, field, color] of series) {
+      ctx.beginPath();
+      for (let a = 0; a <= 89.9; a += 0.25) { const o = optics(st.n1, st.n2, a, key); const v = field === 'R' ? o.R : o[field]; a === 0 ? ctx.moveTo(X(a), Y(v)) : ctx.lineTo(X(a), Y(v)); }
+      ctx.strokeStyle = color; ctx.lineWidth = st.pol === key ? 2.6 : 1.2; ctx.globalAlpha = st.pol === key ? 1 : 0.55; ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    const o = optics(st.n1, st.n2, st.th, st.pol);
+    ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+    if (o.thc !== null) { ctx.strokeStyle = pal.ray; ctx.beginPath(); ctx.moveTo(X(o.thc * R2D), T); ctx.lineTo(X(o.thc * R2D), T + ph); ctx.stroke(); }
+    ctx.strokeStyle = pal.evan; ctx.beginPath(); ctx.moveTo(X(o.thB * R2D), T); ctx.lineTo(X(o.thB * R2D), T + ph); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(X(st.th), Y(o.R), 4.5, 0, 2 * PI); ctx.fill();
+    ctx.font = `11px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    let lx = L + 6; for (const [key, , color] of series) { ctx.fillStyle = color; ctx.fillRect(lx, T + 4, 10, 3); ctx.fillStyle = pal.muted; const lab = key === 'avg' ? 'average' : key; ctx.fillText(lab, lx + 13, T); lx += 13 + ctx.measureText(lab).width + 12; }
+  }
+
+  // ---------- demo timeline (for the slide animation) ----------
+  const DEMO_N1 = 1.5, DEMO_N2 = 1.0, THC = Math.asin(DEMO_N2 / DEMO_N1) * R2D;
+  const KEYS = [[0, 15], [3.5, 15], [10, THC - 0.4], [13.5, THC - 0.4], [17.5, 62], [23, 62]];
+  const CAPTIONS = [
+    [0, 3.5, 'Light travels from glass into air', 'Inside the glass the waves are shorter: λ/n₁. Crests must line up along the boundary, so the wave bends.'],
+    [3.5, 10, 'A steeper angle bends the ray further', 'The refracted ray tilts toward the boundary, and a growing share of the light is reflected.'],
+    [10, 13.5, `The critical angle θc ≈ ${THC.toFixed(1)}°`, 'The refracted ray skims along the boundary: sin θ₂ = 1.'],
+    [13.5, 23, 'Total internal reflection', 'All the power is reflected. Only an evanescent wave reaches into the air, fading within about one wavelength.'],
+  ];
+  const DEMO_DURATION = 23;
+  const ease = u => u * u * (3 - 2 * u);
+  function demoTheta(t) {
+    for (let i = 0; i < KEYS.length - 1; i++) {
+      const [t0, a0] = KEYS[i], [t1, a1] = KEYS[i + 1];
+      if (t <= t1) return a0 + (a1 - a0) * ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0))));
+    }
+    return KEYS[KEYS.length - 1][1];
+  }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = { th: demoTheta(t), n1: DEMO_N1, n2: DEMO_N2, pol: 'avg', name1: '(glass)', name2: '(air)' };
+    const sw = Math.round(W * 0.64), pad = W * 0.02;
+    const o = drawScene(ctx, 0, 0, sw, H, st, t, { lambdaPx: W / 34, fontSize: W / 64, rayWidth: W / 420, quality: 0.5 });
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.08;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText("Snell's law: rays and waves", px, y); y += W / 46 * 1.7;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 52}px ${getFont()}`;
+    ctx.fillText('n₁ sin θ₁ = n₂ sin θ₂', px, y); y += W / 52 * 2.2;
+    // readouts
+    const rows = [['θ₁', `${st.th.toFixed(1)}°`], ['θ₂', o.tir ? '—  (TIR)' : `${(o.thT * R2D).toFixed(1)}°`], ['θc', `${THC.toFixed(1)}°`]];
+    ctx.font = `${W / 62}px ${getFont()}`;
+    for (const [k, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(k, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 62}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      ctx.font = `${W / 62}px ${getFont()}`; y += W / 62 * 1.7;
+    }
+    y += W / 120;
+    // R / T bars
+    for (const [lab, val, color] of [['Reflected R', o.R, pal.ray], ['Transmitted T', o.T, pal.accent]]) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 70}px ${getFont()}`; ctx.fillText(lab, px, y);
+      ctx.fillStyle = pal.ink; ctx.textAlign = 'right'; ctx.font = `600 ${W / 70}px ${monoFont()}`; ctx.fillText(`${(val * 100).toFixed(0)}%`, px + pw, y);
+      y += W / 70 * 1.45;
+      const bh = W / 110;
+      ctx.fillStyle = '#eef2f5'; ctx.fillRect(px, y, pw, bh); ctx.fillStyle = color; ctx.fillRect(px, y, pw * Math.max(0, Math.min(1, val)), bh);
+      y += bh + W / 70 * 1.1;
+    }
+    // caption
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    y += W / 80;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 70;
+    ctx.textAlign = 'left'; ctx.fillStyle = o.tir ? pal.ray : pal.accent; ctx.font = `700 ${W / 52}px ${getFont()}`;
+    y = wrapText(ctx, cap[2], px, y, pw, W / 52 * 1.25) + W / 140;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 66}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 66 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 95}px ${getFont()}`;
+    wrapText(ctx, 'Brightness shows power. Wave field drawn to scale for n₁ = 1.5, n₂ = 1.0.', px, H - H * 0.09, pw, W / 95 * 1.4);
+  }
+
+  // ---------- app wiring ----------
+  const scene = $('scene');
+  const state = { th: 35, n1: 1.5, n2: 1.0, pol: 'avg', showWaves: true, showRays: true, playing: true };
+  let simT = 0, last = performance.now(), sweep = null;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) { state.playing = false; $('play').setAttribute('aria-pressed', 'false'); $('play').textContent = 'Waves paused'; }
+
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    const o = optics(state.n1, state.n2, state.th, state.pol);
+    $('th').value = state.th; $('n1').value = state.n1; $('n2').value = state.n2;
+    $('thOut').textContent = `${state.th.toFixed(1)}°`; $('n1Out').textContent = state.n1.toFixed(2); $('n2Out').textContent = state.n2.toFixed(2);
+    $('rT').innerHTML = o.tir ? '<span class="tir-badge">none (TIR)</span>' : `${(o.thT * R2D).toFixed(1)}°`;
+    $('rC').textContent = o.thc === null ? 'none (n₁ ≤ n₂)' : `${(o.thc * R2D).toFixed(1)}°`;
+    $('rB').textContent = `${(o.thB * R2D).toFixed(1)}°`;
+    $('rL1').textContent = `${(1 / state.n1).toFixed(3)} λ`; $('rL2').textContent = `${(1 / state.n2).toFixed(3)} λ`;
+    $('rD').textContent = o.tir ? `${(1 / o.kappa).toFixed(2)} λ` : '—';
+    $('bR').style.width = (o.R * 100) + '%'; $('bT').style.width = (o.T * 100) + '%';
+    $('vR').textContent = (o.R * 100).toFixed(1) + '%'; $('vT').textContent = (o.T * 100).toFixed(1) + '%';
+    const mc = $('markC');
+    if (o.thc !== null) { mc.hidden = false; mc.style.left = (o.thc * R2D / 89 * 100) + '%'; } else mc.hidden = true;
+    $('markB').style.left = (o.thB * R2D / 89 * 100) + '%';
+    let note;
+    if (o.tir) note = '<strong>Beyond the critical angle</strong> all the light is reflected for both polarizations.';
+    else if (state.pol === 'p' && Math.abs(state.th - o.thB * R2D) < 1) note = '<strong>At Brewster’s angle</strong> p-polarized light is not reflected at all.';
+    else if (o.thc !== null) note = `Even below θc, <strong>${(o.R * 100).toFixed(1)}%</strong> of the light is reflected. R climbs to 100% as θ₁ approaches ${(o.thc * R2D).toFixed(1)}°.`;
+    else note = 'Going into a denser medium there is no critical angle: some light is always transmitted, until grazing incidence.';
+    $('fnote').innerHTML = note;
+    drawFresnel($('fresnel'), state);
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (state.playing) simT += dt;
+    if (sweep) {
+      const u = (now - sweep.start) / sweep.dur;
+      state.th = Math.min(89, sweep.from + (sweep.to - sweep.from) * Math.min(1, u));
+      if (u >= 1) { sweep = null; $('sweep').setAttribute('aria-pressed', 'false'); }
+      syncUI();
+    }
+    const { w, h, dpr } = sizeCanvas(scene);
+    const ctx = scene.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (DEMO) drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    else drawScene(ctx, 0, 0, w, h, state, simT, {});
+    requestAnimationFrame(frame);
+  }
+
+  function stopSweep() { if (sweep) { sweep = null; $('sweep').setAttribute('aria-pressed', 'false'); } }
+  $('th').addEventListener('input', e => { stopSweep(); state.th = +e.target.value; syncUI(); });
+  $('n1').addEventListener('input', e => { state.n1 = +e.target.value; syncUI(); });
+  $('n2').addEventListener('input', e => { state.n2 = +e.target.value; syncUI(); });
+  $('pol').addEventListener('change', e => { state.pol = e.target.value; syncUI(); });
+  $('presets').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; state.n1 = +b.dataset.n1; state.n2 = +b.dataset.n2; syncUI(); });
+  const toggle = (id, key, on, off) => $(id).addEventListener('click', e => { state[key] = !state[key]; e.currentTarget.setAttribute('aria-pressed', String(state[key])); if (on) e.currentTarget.textContent = state[key] ? on : off; });
+  toggle('play', 'playing', 'Waves moving', 'Waves paused');
+  toggle('tWaves', 'showWaves'); toggle('tRays', 'showRays');
+  $('sweep').addEventListener('click', e => {
+    if (sweep) { stopSweep(); return; }
+    sweep = { start: performance.now(), dur: 9000, from: 0, to: 85 }; e.currentTarget.setAttribute('aria-pressed', 'true');
+  });
+  // drag in the scene sets the angle from the pointer position (pointer in the lower half = incident side)
+  let dragging = false;
+  function pointerAngle(e) {
+    const r = scene.getBoundingClientRect(), x = e.clientX - r.left - r.width / 2, y = e.clientY - r.top - r.height / 2;
+    const yy = Math.abs(y) < 1 ? 1 : Math.abs(y);
+    state.th = Math.min(89, Math.max(0, Math.atan2(Math.abs(x), yy) * R2D)); stopSweep(); syncUI();
+  }
+  scene.addEventListener('pointerdown', e => { dragging = true; scene.setPointerCapture(e.pointerId); pointerAngle(e); });
+  scene.addEventListener('pointermove', e => { if (dragging) pointerAngle(e); });
+  scene.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('resize', syncUI);
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', syncUI);
+  new MutationObserver(syncUI).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // hook for rendering the slide video frame by frame
+  window.snellDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(scene); const ctx = scene.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, optics };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) document.fonts.ready.then(syncUI);
+})();
+</script>
