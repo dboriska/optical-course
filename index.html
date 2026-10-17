@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Optical Communication Labs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root {
+  --bg: #f3f6f8; --panel: #ffffff; --ink: #13202a; --muted: #566775; --line: #d3dce3; --accent: #0b6bc0; --ray: #d8402a;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif; --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d; --accent: #5aa8ec; --ray: #ff6b52; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); line-height: 1.5; }
+main { max-width: 860px; margin: 0 auto; padding: 40px 16px 56px; display: grid; gap: 28px; }
+header p { margin: 4px 0 0; color: var(--muted); }
+.course { font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); letter-spacing: 0.04em; }
+h1 { margin: 6px 0 0; font-size: 2rem; color: var(--accent); text-wrap: balance; }
+h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; }
+.labs { display: grid; gap: 12px; }
+a.lab { display: grid; gap: 4px; padding: 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: inherit; text-decoration: none; }
+a.lab:hover, a.lab:focus-visible { border-color: var(--accent); outline: none; }
+a.lab strong { font-size: 1.15rem; color: var(--accent); }
+a.lab span { color: var(--muted); }
+.links { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.92rem; }
+.links a { color: var(--accent); }
+footer { color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="course">83-466 · Bar-Ilan University</div>
+    <h1>Optical Communication Labs</h1>
+    <p>Interactive demonstrations for the course lectures. They run in any browser, on a laptop or a phone.</p>
+  </header>
+
+  <section>
+    <h2>Lecture 2 · Optical fibers</h2>
+    <div class="labs">
+      <a class="lab" href="lecture02/snell-lab.html">
+        <strong>Snell's Law Lab</strong>
+        <span>Change the angle and the refractive indices and watch rays and waves refract, reach the critical angle and turn into total internal reflection. Includes Fresnel reflectance.</span>
+      </a>
+    </div>
+    <div class="links" style="margin-top:10px">
+      <a href="lecture02/snell-lab.html#demo">Full-screen animation</a>
+      <a href="lecture02/snell-law-animation.mp4">Animation video (MP4)</a>
+    </div>
+  </section>
+
+  <footer>Dr. Boris Desiatov · Faculty of Engineering, Bar-Ilan University</footer>
+</main>
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
