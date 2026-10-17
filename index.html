@@ -22,7 +22,7 @@ main { max-width: 860px; margin: 0 auto; padding: 40px 16px 56px; display: grid;
 header p { margin: 4px 0 0; color: var(--muted); }
 .course { font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); letter-spacing: 0.04em; }
 h1 { margin: 6px 0 0; font-size: 2rem; color: var(--accent); text-wrap: balance; }
-h2 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; }
+h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .labs { display: grid; gap: 12px; }
 a.lab { display: grid; gap: 4px; padding: 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: inherit; text-decoration: none; }
 a.lab:hover, a.lab:focus-visible { border-color: var(--accent); outline: none; }
@@ -41,17 +41,22 @@ footer { color: var(--muted); font-size: 0.85rem; }
     <p>Interactive demonstrations for the course lectures. They run in any browser, on a laptop or a phone.</p>
   </header>
 
-  <section>
-    <h2>Lecture 2 · Optical fibers</h2>
+  <!-- One <section class="lecture"> per lecture; copy this block to add the next lecture -->
+  <section class="lecture" id="lecture-02">
+    <h2>Lecture 02 · Optical Fibers</h2>
     <div class="labs">
       <a class="lab" href="snell-lab.html">
         <strong>Snell's Law Lab</strong>
         <span>Change the angle and the refractive indices and watch rays and waves refract, reach the critical angle and turn into total internal reflection. Includes Fresnel reflectance.</span>
       </a>
-    </div>
-    <div class="links" style="margin-top:10px">
-      <a href="snell-lab.html#demo">Full-screen animation</a>
-      <a href="lecture02/snell-law-animation.mp4">Animation video (MP4)</a>
+      <a class="lab" href="acceptance-cone-lab.html">
+        <strong>Acceptance Cone and NA Lab</strong>
+        <span>Aim a ray at the fiber face and change n₁, Δ and the core diameter. See when the ray is guided or escapes, and the acceptance cone in 3D.</span>
+      </a>
+      <a class="lab" href="graded-index-race.html">
+        <strong>Graded-Index Ray Race</strong>
+        <span>Rays race through a step-index and a graded-index fiber, with the core colored by the speed of light. See why the parabolic profile keeps the pulse together.</span>
+      </a>
     </div>
   </section>
 
