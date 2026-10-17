@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Graded-Index Ray Race</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: race scene and arrival chart on the left, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --slow: #b9d3f0;    /* high index: light is slow */
+  --fast: #fbdcb4;    /* low index: light is fast */
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --slow: #1b3a5e; --fast: #4d3519;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --slow: #1b3a5e; --fast: #4d3519;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 74ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#scene { display: block; width: 100%; aspect-ratio: 16 / 10; max-width: 100%; }
+#arrive { display: block; width: 100%; aspect-ratio: 16 / 4; max-width: 100%; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 6px; }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+th, td { padding: 3px 4px; text-align: right; font-variant-numeric: tabular-nums; }
+th { color: var(--muted); font-weight: 700; font-size: 0.78rem; border-bottom: 1px solid var(--line); }
+th:first-child, td:first-child { text-align: left; }
+td { font-family: var(--font-mono); }
+td i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+tfoot td { border-top: 1px solid var(--line); font-weight: 600; }
+.readouts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.big { font-weight: 700; color: var(--accent); }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .arrive-card { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #scene { aspect-ratio: 16 / 9; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Graded-Index Ray Race</h1>
+    <p>The core is colored by the speed of light in the glass: slow (high index) at the center, fast (low index) near the edge. A pulse launches rays at several angles at the same moment. In the step-index fiber the steep rays fall behind. In the graded-index fiber they take longer paths through faster glass and arrive together.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="scene" aria-label="Rays racing through a step-index and a graded-index fiber"></canvas>
+        <div class="scene-bar">
+          <button id="play" aria-pressed="true">Running</button>
+          <button id="launch">Launch a new pulse</button>
+          <div class="row" id="view" role="group" aria-label="Fibers shown">
+            <button data-v="both" aria-pressed="true">Both</button>
+            <button data-v="grin" aria-pressed="false">Graded</button>
+            <button data-v="step" aria-pressed="false">Step</button>
+          </div>
+          <div class="legend"><span><i style="background:var(--slow)"></i>slower light</span><span><i style="background:var(--fast)"></i>faster light</span></div>
+        </div>
+      </div>
+      <div class="card scene arrive-card">
+        <canvas id="arrive" aria-label="Arrival times of the rays at the end of each fiber"></canvas>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="dl">Index difference Δ in the drawing <output id="dlOut"></output></label>
+          <input id="dl" type="range" min="0.02" max="0.15" step="0.005" value="0.1">
+          <span class="hint">Exaggerated so the speeds and paths are visible. Real fibers use about 0.002.</span>
+        </div>
+        <div class="ctl" style="margin-top:10px">
+          <label for="nr">Number of rays <output id="nrOut"></output></label>
+          <input id="nr" type="range" min="2" max="9" step="1" value="5">
+        </div>
+        <div class="ctl" style="margin-top:10px">
+          <label for="dur">Race length on screen <output id="durOut"></output></label>
+          <input id="dur" type="range" min="4" max="20" step="1" value="9">
+        </div>
+        <div class="ctl" style="margin-top:10px">
+          <label><span>Show the ray paths</span> <button id="paths" aria-pressed="true" style="font-weight:400">On</button></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Arrival delay vs the axial ray</p>
+        <table>
+          <thead><tr><th>Ray angle θ</th><th>Step</th><th>Graded</th></tr></thead>
+          <tbody id="tbl"></tbody>
+          <tfoot><tr><td>Spread ΔT</td><td id="sStep"></td><td id="sGrin"></td></tr></tfoot>
+        </table>
+        <p class="hint" style="margin:6px 0 0">As a percentage of the axial ray's travel time, for the Δ in the drawing.</p>
+      </div>
+
+      <div class="card">
+        <p class="section-title">A real fiber, n₁ = 1.5</p>
+        <div class="ctl">
+          <label for="rdl">Real Δ <output id="rdlOut"></output></label>
+          <input id="rdl" type="range" min="0.001" max="0.02" step="0.0005" value="0.002">
+        </div>
+        <dl class="readouts" style="margin-top:8px">
+          <dt>Step: ΔT/L = n₁Δ/c</dt><dd id="rStep"></dd>
+          <dt>Graded: ΔT/L = n₁Δ²/2c</dt><dd id="rGrin"></dd>
+          <dt>Improvement = 2/Δ</dt><dd id="rRatio" class="big"></dd>
+          <dt>Step: B·L limit</dt><dd id="rBLs"></dd>
+          <dt>Graded: B·L limit</dt><dd id="rBLg"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Meridional rays launched from the center of the face. Graded profile: n(r)² = n₁²[1 − 2Δ(r/a)²], cladding n₂ = n₁√(1 − 2Δ), the same NA as the step fiber. Rays are traced exactly (no paraxial approximation); the drawing is compressed along the fiber. B·L limit taken as L/ΔT.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI, D2R = PI / 180, R2D = 180 / PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+  const N1 = 1.5;
+
+  // ---------- physics (units: core radius a = 1, c = 1) ----------
+  // fiber geometry for one Δ: launch angles inside the core, and a length of 2.5 graded periods
+  function setup(delta, nRays) {
+    const n2 = N1 * Math.sqrt(1 - 2 * delta);
+    const thMax = Math.acos(n2 / N1);
+    const L = 2.5 * 2 * PI / Math.sqrt(2 * delta);
+    const rays = [];
+    for (let i = 0; i < nRays; i++) {
+      const th = nRays === 1 ? 0 : thMax * 0.96 * i / (nRays - 1);
+      const b = N1 * Math.cos(th);                              // ray invariant β̃
+      const Om = Math.sqrt(2 * delta) * N1 / b, A = Math.tan(th) / Om;
+      rays.push({ th, b, Om, A });
+    }
+    return { delta, n2, thMax, L, rays };
+  }
+  // graded: x = A sin(Ωz), t = (1/β̃)∫n² dz
+  const grinX = (r, z) => r.A * Math.sin(r.Om * z);
+  const grinT = (f, r, z) => N1 * N1 / r.b * (z - 2 * f.delta * r.A * r.A * (z / 2 - Math.sin(2 * r.Om * z) / (4 * r.Om)));
+  function grinZ(f, r, t) {                                      // invert t(z), monotonic
+    if (r.th === 0) return t / N1;
+    let lo = 0, hi = t / N1 * 1.01 + 1e-9;
+    for (let k = 0; k < 44; k++) { const m = (lo + hi) / 2; if (grinT(f, r, m) < t) lo = m; else hi = m; }
+    return (lo + hi) / 2;
+  }
+  // step: zigzag between ±1 at angle θ, speed 1/n₁ along the path
+  function stepX(r, z) {
+    if (r.th === 0) return 0;
+    const p = 4 / Math.tan(r.th), u = ((z / p) % 1 + 1) % 1;     // triangle wave
+    return u < 0.25 ? 4 * u : u < 0.75 ? 2 - 4 * u : 4 * u - 4;
+  }
+  const stepT = (r, z) => N1 * z / Math.cos(r.th);
+  const stepZ = (r, t) => t * Math.cos(r.th) / N1;
+  const nAt = (f, kind, x) => { const ax = Math.abs(x); if (ax > 1) return f.n2; return kind === 'step' ? N1 : N1 * Math.sqrt(1 - 2 * f.delta * ax * ax); };
+  function arrivals(f) {
+    const t0 = N1 * f.L;
+    return f.rays.map(r => ({ th: r.th, step: stepT(r, f.L) / t0 - 1, grin: grinT(f, r, f.L) / t0 - 1 }));
+  }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', slow: '#b9d3f0', fast: '#fbdcb4' };
+  const RAYS_L = ['#13202a', '#1d5cc0', '#0f8b8d', '#7b3fcf', '#c2185b', '#d8402a', '#b7791f', '#2e7d32', '#5d4037'];
+  const RAYS_D = ['#e4ecf2', '#5d9fff', '#3cc7c9', '#b48cff', '#ff6fa8', '#ff6b52', '#f2b84b', '#6fd47a', '#c4a07a'];
+  let dark = false;
+  function palette() {
+    if (DEMO) { dark = false; return LIGHT; }
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    dark = cs.colorScheme === 'dark' || p.bg.toLowerCase() === '#151d24';
+    return p;
+  }
+  // rays are spread over the palette so 3 rays don't all look alike
+  const rayColor = (i, n) => { const set = dark ? RAYS_D : RAYS_L; return set[n <= 1 ? 0 : Math.round(i * (set.length - 1) / (n - 1))]; };
+  function hexRGB(h) { h = h.trim().replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); const n = parseInt(h, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+  const mix = (a, b, u) => { const A = hexRGB(a), B = hexRGB(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * u)).join(',')})`; };
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => v.toFixed(n);
+
+  // ---------- one fiber block ----------
+  // tau: race time (units a/c); returns ray positions
+  function drawFiber(ctx, X, Y, W, H, f, kind, tau, opts) {
+    const pal = palette(), fs = opts.fs;
+    const titleH = fs * 1.9, stripH = H * 0.2, gap = fs * 0.5;
+    const ap = (H - titleH - stripH - gap) / 2 / 1.3, cp = ap * 0.3;
+    const y0 = Y + titleH + cp + ap, x0 = X + W * 0.035, x1 = X + W * 0.965;
+    const zx = z => x0 + z / f.L * (x1 - x0), xy = x => y0 + x * ap;
+    // glass colored by local speed (1/n)
+    const span = N1 - f.n2, col = n => mix(pal.slow, pal.fast, (N1 - n) / span);
+    ctx.fillStyle = col(f.n2); ctx.fillRect(x0, y0 - ap - cp, x1 - x0, 2 * (ap + cp));
+    if (kind === 'step') { ctx.fillStyle = col(N1); ctx.fillRect(x0, y0 - ap, x1 - x0, 2 * ap); }
+    else {
+      const g = ctx.createLinearGradient(0, y0 - ap, 0, y0 + ap);
+      for (let k = 0; k <= 24; k++) { const x = -1 + 2 * k / 24; g.addColorStop(k / 24, col(nAt(f, 'grin', x))); }
+      ctx.fillStyle = g; ctx.fillRect(x0, y0 - ap, x1 - x0, 2 * ap);
+    }
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.35; ctx.lineWidth = 1;
+    for (const yy of kind === 'step' ? [y0 - ap, y0 + ap] : []) { ctx.beginPath(); ctx.moveTo(x0, yy); ctx.lineTo(x1, yy); ctx.stroke(); }
+    ctx.globalAlpha = 0.55; ctx.strokeRect(x0, y0 - ap - cp, x1 - x0, 2 * (ap + cp));
+    ctx.globalAlpha = 0.3; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); ctx.stroke(); ctx.setLineDash([]);
+    // finish line
+    ctx.globalAlpha = 0.8; ctx.lineWidth = 2; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(x1, y0 - ap - cp - fs * 0.3); ctx.lineTo(x1, y0 + ap + cp + fs * 0.3); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    // title and index labels
+    ctx.textBaseline = 'top'; ctx.textAlign = 'left'; ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`;
+    ctx.fillText(kind === 'step' ? 'Step index' : 'Graded index (parabolic)', x0, Y + fs * 0.35);
+    ctx.font = `${fs * 0.85}px ${getFont()}`; ctx.fillStyle = pal.muted; ctx.textAlign = 'right';
+    ctx.fillText(kind === 'step' ? `core n = ${fmt(N1, 2)} everywhere: one speed` : `n = ${fmt(N1, 2)} at the center → ${fmt(f.n2, 2)} at the edge`, x1, Y + fs * 0.45);
+    // paths
+    const n = f.rays.length;
+    if (opts.paths) {
+      ctx.lineWidth = Math.max(1.2, fs / 9); ctx.globalAlpha = 0.45;
+      f.rays.forEach((r, i) => {
+        ctx.strokeStyle = rayColor(i, n); ctx.beginPath();
+        const steps = 600;
+        for (let k = 0; k <= steps; k++) { const z = f.L * k / steps, x = kind === 'step' ? stepX(r, z) : grinX(r, z); k ? ctx.lineTo(zx(z), xy(x)) : ctx.moveTo(zx(z), xy(x)); }
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+    }
+    // dots
+    const pos = f.rays.map(r => Math.min(f.L, kind === 'step' ? stepZ(r, tau) : grinZ(f, r, tau)));
+    const rd = Math.max(4, fs * 0.42);
+    f.rays.forEach((r, i) => {
+      const z = pos[i], x = kind === 'step' ? stepX(r, z) : grinX(r, z);
+      ctx.beginPath(); ctx.arc(zx(z), xy(x), rd, 0, 2 * PI); ctx.fillStyle = rayColor(i, n); ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = dark ? '#0e1419' : '#ffffff'; ctx.stroke();
+    });
+    // pulse along the fiber: where the light is, summed over rays
+    const sy = Y + H - fs * 0.2, sh = stripH - fs * 0.6, sig = (x1 - x0) * 0.012;
+    ctx.save(); ctx.beginPath(); ctx.moveTo(x0, sy);
+    let peak = 0; const vals = [];
+    for (let px = x0; px <= x1; px += 2) { let s = 0; for (const z of pos) { const d = (px - zx(z)) / sig; s += Math.exp(-d * d); } vals.push([px, s]); }
+    for (const [px, s] of vals) ctx.lineTo(px, sy - s / n * sh);
+    ctx.lineTo(x1, sy); ctx.closePath(); ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 0.9; ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, sy); ctx.lineTo(x1, sy); ctx.stroke();
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('the pulse: where the light is', x0 + 4, sy - sh * 0.75);
+    return pos;
+  }
+  function drawRace(ctx, X, Y, W, H, f, view, tau, opts) {
+    const pal = palette();
+    ctx.save(); ctx.fillStyle = pal.bg; ctx.fillRect(X, Y, W, H);
+    if (view === 'both') { drawFiber(ctx, X, Y, W, H / 2, f, 'step', tau, opts); drawFiber(ctx, X, Y + H / 2, W, H / 2, f, 'grin', tau, opts);
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X, Y + H / 2); ctx.lineTo(X + W, Y + H / 2); ctx.stroke(); }
+    else drawFiber(ctx, X, Y, W, H, f, view, tau, opts);
+    ctx.restore();
+  }
+  // arrival chart: delays relative to the axial ray, common axis for both fibers
+  function drawArrivals(ctx, X, Y, W, H, f, tau, opts) {
+    const pal = palette(), fs = opts.fs, arr = arrivals(f), n = arr.length, t0 = N1 * f.L;
+    const maxD = Math.max(...arr.map(a => a.step), ...arr.map(a => a.grin), 1e-6) * 1.08;
+    const L = X + fs * 6.5, R = X + W - fs, rows = [['Step', 'step'], ['Graded', 'grin']];
+    const tx = d => L + (d / maxD) * (R - L);
+    ctx.save(); ctx.fillStyle = pal.bg; ctx.fillRect(X, Y, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Arrival at the end of the fiber', X + fs, Y + fs * 0.5);
+    const rh = (H - fs * 4.4) / 2;
+    rows.forEach(([name, key], j) => {
+      const yc = Y + fs * 2.4 + rh * (j + 0.5);
+      ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.9}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(name, X + fs, yc);
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, yc); ctx.lineTo(R, yc); ctx.stroke();
+      const ds = arr.map(a => a[key]), lo = Math.min(...ds), hi = Math.max(...ds);
+      ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.18; ctx.fillRect(tx(lo) - 2, yc - rh * 0.32, Math.max(4, tx(hi) - tx(lo) + 4), rh * 0.64); ctx.globalAlpha = 1;
+      arr.forEach((a, i) => {
+        const done = tau >= t0 * (1 + a[key]) - 1e-9, x = tx(a[key]);
+        ctx.globalAlpha = done ? 1 : 0.18; ctx.fillStyle = rayColor(i, n);
+        ctx.beginPath(); ctx.arc(x, yc, Math.max(4, fs * 0.38), 0, 2 * PI); ctx.fill(); ctx.globalAlpha = 1;
+      });
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${fs * 0.85}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText(`ΔT = ${fmt((hi - lo) * 100, (hi - lo) < 0.01 ? 2 : 1)}%`, R, yc - rh * 0.34);
+    });
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.8}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    ctx.fillText('0 = the axial ray', L, Y + H - fs * 0.4);
+    ctx.textAlign = 'right'; ctx.fillText(`${fmt(maxD * 100, 1)}% later`, R, Y + H - fs * 0.4);
+    ctx.restore();
+  }
+
+  // ---------- demo timeline (for the slide animation) ----------
+  const DEMO_F = setup(0.1, 5), DEMO_DURATION = 32, RACE = [[3.5, 13.5], [19, 29]];
+  const DEMO_TMAX = N1 * DEMO_F.L / Math.cos(DEMO_F.rays[DEMO_F.rays.length - 1].th) * 1.02;
+  const CAPTIONS = [
+    [0, 3.5, 'Light is slower where the index is higher', 'In the graded core, n is highest at the center, so light is slowest there and faster toward the edge.'],
+    [3.5, 8.5, 'One pulse, five rays, launched together', 'The axial ray takes the shortest path, but through the slowest glass.'],
+    [8.5, 13.5, 'Steep rays travel further, but faster', 'In the graded core they spend their time in fast glass near the edge and catch up.'],
+    [13.5, 19, 'Step index: the pulse spreads. Graded: it stays together', 'Same NA, same rays. Only the index profile is different.'],
+    [19, 32, 'In a real fiber, Δ = 0.002', 'Step: 10 ns/km. Graded: 10 ps/km. The parabolic profile reduces modal dispersion by 2/Δ = 1000.'],
+  ];
+  function demoTau(t) {
+    if (t < RACE[0][0]) return 0;
+    const [a, b] = t < RACE[1][0] ? RACE[0] : RACE[1];
+    return Math.min(1, (t - a) / (b - a)) * DEMO_TMAX;
+  }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const sw = Math.round(W * 0.66), pad = W * 0.02, tau = demoTau(t), fs = W / 72;
+    drawRace(ctx, 0, 0, sw, H * 0.74, DEMO_F, 'both', tau, { fs, paths: true });
+    drawArrivals(ctx, 0, H * 0.74, sw, H * 0.26, DEMO_F, tau, { fs });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, H * 0.74); ctx.lineTo(sw, H * 0.74); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.5, pw = W - px - pad * 1.5;
+    let y = H * 0.07;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 50}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    y = wrapText(ctx, 'Graded-index fiber: the ray race', px, y, pw, W / 50 * 1.2) + W / 120;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 64}px ${getFont()}`;
+    ctx.fillText('speed in the glass: v = c / n(r)', px, y); y += W / 64 * 1.9;
+    // speed scale
+    const bh = W / 90, g = ctx.createLinearGradient(px, 0, px + pw, 0); g.addColorStop(0, pal.slow); g.addColorStop(1, pal.fast);
+    ctx.fillStyle = g; ctx.fillRect(px, y, pw, bh); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(px, y, pw, bh); y += bh + W / 160;
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 84}px ${getFont()}`; ctx.textAlign = 'left'; ctx.fillText(`slower  c/${fmt(N1, 2)}`, px, y);
+    ctx.textAlign = 'right'; ctx.fillText(`faster  c/${fmt(DEMO_F.n2, 2)}`, px + pw, y); y += W / 84 * 2.4;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 70;
+    ctx.textAlign = 'left'; ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 56}px ${getFont()}`;
+    y = wrapText(ctx, cap[2], px, y, pw, W / 56 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'Drawn with Δ = 0.1 so the speeds are visible; the fiber is compressed along its length.', px, H - H * 0.105, pw, W / 100 * 1.4);
+    ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const scene = $('scene'), arrive = $('arrive');
+  const state = { delta: 0.1, nRays: 5, dur: 9, view: 'both', paths: true, playing: true };
+  let f = setup(state.delta, state.nRays), raceT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tmaxOf = f => N1 * f.L / Math.cos(f.rays[f.rays.length - 1].th) * 1.02;
+  if (reduced) { state.playing = false; raceT = state.dur; $('play').setAttribute('aria-pressed', 'false'); $('play').textContent = 'Paused'; }
+
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  const timeStr = s => s >= 1e-9 ? `${fmt(s * 1e9, s * 1e9 < 10 ? 1 : 0)} ns/km` : `${fmt(s * 1e12, s * 1e12 < 10 ? 1 : 0)} ps/km`;
+  const blStr = v => v >= 1e9 ? `${fmt(v / 1e9, v < 1e10 ? 1 : 0)} Gb/s·km` : `${fmt(v / 1e6, v < 1e7 ? 1 : 0)} Mb/s·km`;
+  function syncUI() {
+    f = setup(state.delta, state.nRays);
+    $('dlOut').textContent = fmt(state.delta, 3); $('nrOut').textContent = state.nRays; $('durOut').textContent = `${state.dur} s`;
+    const arr = arrivals(f), pct = v => `${v < 0 ? '−' : '+'}${fmt(Math.abs(v) * 100, Math.abs(v) < 0.01 ? 3 : 2)}%`;
+    $('tbl').innerHTML = arr.map((a, i) => `<tr><td><i style="background:${rayColor(i, arr.length)}"></i>${fmt(a.th * R2D)}°</td><td>${pct(a.step)}</td><td>${pct(a.grin)}</td></tr>`).join('');
+    const spread = k => { const v = arr.map(a => a[k]); return Math.max(...v) - Math.min(...v); };
+    $('sStep').textContent = `${fmt(spread('step') * 100, 2)}%`; $('sGrin').textContent = `${fmt(spread('grin') * 100, 3)}%`;
+    const rd = +$('rdl').value, c = 299792458, s = N1 * rd / c * 1000, g = N1 * rd * rd / (2 * c) * 1000;
+    $('rdlOut').textContent = fmt(rd, 4);
+    $('rStep').textContent = timeStr(s); $('rGrin').textContent = timeStr(g);
+    $('rRatio').textContent = `${Math.round(2 / rd)}×`;
+    $('rBLs').textContent = blStr(1 / s); $('rBLg').textContent = blStr(1 / g);
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (DEMO) {
+      if (state.playing) raceT += dt;
+      const { w, h, dpr } = sizeCanvas(scene), ctx = scene.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawDemo(ctx, w, h, raceT % DEMO_DURATION);
+      requestAnimationFrame(frame); return;
+    }
+    if (state.playing) { raceT += dt; if (raceT > state.dur + 2.5) raceT = 0; }  // hold the finish, then launch again
+    const tau = Math.min(1, raceT / state.dur) * tmaxOf(f);
+    const fs = Math.max(11, Math.min(15, scene.clientWidth / 60));
+    let { w, h, dpr } = sizeCanvas(scene), ctx = scene.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawRace(ctx, 0, 0, w, h, f, state.view, tau, { fs, paths: state.paths });
+    ({ w, h, dpr } = sizeCanvas(arrive)); ctx = arrive.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawArrivals(ctx, 0, 0, w, h, f, tau, { fs });
+    requestAnimationFrame(frame);
+  }
+
+  $('dl').addEventListener('input', e => { state.delta = +e.target.value; raceT = 0; syncUI(); });
+  $('nr').addEventListener('input', e => { state.nRays = +e.target.value; raceT = 0; syncUI(); });
+  $('dur').addEventListener('input', e => { state.dur = +e.target.value; syncUI(); });
+  $('rdl').addEventListener('input', syncUI);
+  $('play').addEventListener('click', e => { state.playing = !state.playing; e.currentTarget.setAttribute('aria-pressed', String(state.playing)); e.currentTarget.textContent = state.playing ? 'Running' : 'Paused'; });
+  $('launch').addEventListener('click', () => { raceT = 0; if (!state.playing) $('play').click(); });
+  $('paths').addEventListener('click', e => { state.paths = !state.paths; e.currentTarget.setAttribute('aria-pressed', String(state.paths)); e.currentTarget.textContent = state.paths ? 'On' : 'Off'; });
+  $('view').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return; state.view = b.dataset.v;
+    for (const x of $('view').querySelectorAll('button')) x.setAttribute('aria-pressed', String(x === b));
+  });
+  window.addEventListener('resize', syncUI);
+  new MutationObserver(syncUI).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', syncUI);
+
+  // hook for rendering the slide video frame by frame
+  window.grinDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(scene); const ctx = scene.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, setup, arrivals };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) document.fonts.ready.then(syncUI);
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Acceptance Cone and NA Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: fiber side view and 3D cone on the left, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;     /* escaping ray */
+  --ok: #1d8a3a;      /* guided ray */
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#scene { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; touch-action: none; cursor: crosshair; }
+#cone { display: block; width: 100%; aspect-ratio: 16 / 7; max-width: 100%; touch-action: none; cursor: grab; }
+#cone:active { cursor: grabbing; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+.range { position: relative; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.mark { position: absolute; top: -3px; width: 2px; height: 22px; background: var(--ok); pointer-events: none; transform: translateX(-1px); }
+.mark span { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-family: var(--font-mono); white-space: nowrap; color: var(--muted); }
+.hint { font-size: 0.78rem; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 6px; }
+button, select { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover, select:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; border-radius: 4px; transition: background-color 0.5s; }
+.readouts dd.flash { background: color-mix(in srgb, var(--ok) 22%, transparent); transition: none; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+.note strong { color: var(--ink); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .cone-card { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #scene { aspect-ratio: 16 / 9; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .readouts dd { transition: none; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Acceptance Cone and NA Lab</h1>
+    <p>Aim a ray at the end face of a step-index fiber, and change n₁, Δ and the core diameter. The ray is green when it is guided and red when it escapes. <span class="law">NA = n₀ sin θa = √(n₁² − n₂²) ≈ n₁√(2Δ)</span>.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="scene" aria-label="Side view of a step-index fiber with a ray entering the end face"></canvas>
+        <div class="scene-bar">
+          <button id="play" aria-pressed="true">Light moving</button>
+          <button id="sweep">Sweep θ₀</button>
+          <div class="legend"><span><i style="background:var(--ok)"></i>guided</span><span><i style="background:var(--ray)"></i>escapes</span><span><i style="background:color-mix(in srgb, var(--ok) 25%, transparent)"></i>acceptance cone</span></div>
+        </div>
+      </div>
+      <div class="card scene cone-card">
+        <canvas id="cone" aria-label="Three-dimensional view of the acceptance cone in front of the fiber"></canvas>
+        <div class="scene-bar">
+          <button id="rotate" aria-pressed="true">Rotating</button>
+          <span class="hint">Drag to turn the view. The cone is the same for any core diameter.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="th0">Entry angle θ₀ (in air) <output id="th0Out"></output></label>
+          <div class="range"><input id="th0" type="range" min="0" max="80" step="0.1" value="20"><div class="mark" id="markA"><span>θa</span></div></div>
+          <span class="hint" style="margin-top:14px">Tip: you can also drag in the air, left of the fiber.</span>
+        </div>
+        <div class="ctl" style="margin-top:12px">
+          <label for="n1">Core index n₁ <output id="n1Out"></output></label>
+          <input id="n1" type="range" min="1.4" max="1.6" step="0.001" value="1.5">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="dl">Index difference Δ <output id="dlOut"></output></label>
+          <input id="dl" type="range" min="0" max="1000" step="any" value="900">
+          <span class="hint" id="n2Hint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="dia">Core diameter d <output id="diaOut"></output></label>
+          <input id="dia" type="range" min="5" max="200" step="1" value="50">
+          <span class="hint" id="diaHint">Watch the NA while you move this.</span>
+        </div>
+        <div class="ctl" style="margin-top:10px">
+          <label for="stretch">Vertical stretch of the drawing</label>
+          <select id="stretch">
+            <option value="auto">Auto (so small angles are visible)</option>
+            <option value="1">×1 (true angles)</option>
+            <option value="2">×2</option>
+            <option value="5">×5</option>
+            <option value="10">×10</option>
+            <option value="20">×20</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Angle in the core θ</dt><dd id="rTh"></dd>
+          <dt>Angle at the wall φ</dt><dd id="rPhi"></dd>
+          <dt>Critical angle φc</dt><dd id="rPhic"></dd>
+          <dt>Acceptance angle θa</dt><dd id="rTha"></dd>
+          <dt>NA = √(n₁² − n₂²)</dt><dd id="rNA"></dd>
+          <dt>NA ≈ n₁√(2Δ)</dt><dd id="rNAa"></dd>
+          <div class="sep"></div>
+          <dt>Distance between bounces</dt><dd id="rB"></dd>
+          <dt>Reflections per metre</dt><dd id="rPm"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Meridional rays only (rays in a plane through the axis), launched at the center of the face from air (n₀ = 1). The drawing can be stretched vertically so that small angles are visible; the numbers are always exact. The leak per bounce uses the Fresnel equations at the core–cladding boundary, averaged over polarization.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI, D2R = PI / 180, R2D = 180 / PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+  const N0 = 1;
+
+  // ---------- physics ----------
+  function fiber(n1, delta, th0Deg) {
+    const n2 = n1 * (1 - delta);
+    const th0 = th0Deg * D2R;
+    const th = Math.asin(N0 * Math.sin(th0) / n1);       // Snell at the face
+    const phi = PI / 2 - th;                             // angle to the wall normal
+    const phic = Math.asin(n2 / n1);
+    const NA = Math.sqrt(n1 * n1 - n2 * n2), NAapprox = n1 * Math.sqrt(2 * delta);
+    const tha = NA >= N0 ? PI / 2 : Math.asin(NA / N0);
+    const o = { n1, n2, delta, th0, th, phi, phic, thc: PI / 2 - phic, NA, NAapprox, tha, guided: phi >= phic - 1e-12 };
+    if (!o.guided) {
+      const st = n1 * Math.sin(phi) / n2, ct = Math.sqrt(1 - st * st), ci = Math.cos(phi);
+      const rs = (n1 * ci - n2 * ct) / (n1 * ci + n2 * ct), rp = (n2 * ci - n1 * ct) / (n2 * ci + n1 * ct);
+      o.R = (rs * rs + rp * rp) / 2; o.phit = Math.asin(st);
+    } else o.R = 1;
+    return o;
+  }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => v.toFixed(n);
+
+  // vertical exaggeration that draws the steepest guided ray at about 25°
+  const stretchNeed = o => Math.max(1, Math.tan(25 * D2R) / Math.tan(Math.max(o.thc, 1e-4)));
+  function niceStretch(o) { const k = stretchNeed(o); let best = 1; for (const v of [1, 2, 5, 10, 20, 50]) if (v <= k * 1.3) best = v; return best; }
+
+  // ---------- drawing helpers ----------
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, p = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.82; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - p, ty - p, w + 2 * p, h + 2 * p, p) : ctx.rect(lx - p, ty - p, w + 2 * p, h + 2 * p); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function arcLabel(ctx, cx, cy, r, a0, a1, text, color, fs, pal, lr) {
+    ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = Math.max(1.5, fs / 10);
+    ctx.beginPath(); ctx.arc(cx, cy, r, Math.min(a0, a1), Math.max(a0, a1)); ctx.stroke(); ctx.restore();
+    const am = (a0 + a1) / 2; lr = lr || r + fs * 1.4;
+    label(ctx, text, cx + Math.cos(am) * lr, cy + Math.sin(am) * lr, 'center', 'middle', color, `700 ${fs}px ${getFont()}`, pal);
+  }
+  function arrowHead(ctx, x, y, ang, s, color) {
+    ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x + Math.cos(ang) * s, y + Math.sin(ang) * s);
+    ctx.lineTo(x + Math.cos(ang + 2.5) * s, y + Math.sin(ang + 2.5) * s); ctx.lineTo(x + Math.cos(ang - 2.5) * s, y + Math.sin(ang - 2.5) * s); ctx.closePath(); ctx.fill();
+  }
+  function cumLen(pts) { const c = [0]; for (let i = 1; i < pts.length; i++) c.push(c[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); return c; }
+  function pointAt(pts, cum, s) {
+    if (s < 0 || s > cum[cum.length - 1]) return null;
+    let i = 1; while (i < cum.length - 1 && cum[i] < s) i++;
+    const u = (s - cum[i - 1]) / Math.max(1e-9, cum[i] - cum[i - 1]);
+    return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * u, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * u, i - 1];
+  }
+  function glow(ctx, x, y, r, color, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(0.25, color); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * PI); ctx.fill(); ctx.restore();
+  }
+  const coreHalf = (d, H) => H * (0.055 + 0.17 * Math.sqrt(Math.max(0, d - 5) / 195));
+
+  // ---------- side view ----------
+  // st: { th0, n1, delta, d, stretch (number) }
+  function drawSide(ctx, X, Y, W, H, st, t, opts = {}) {
+    const pal = palette();
+    const o = fiber(st.n1, st.delta, st.th0);
+    const k = st.stretch;
+    const fs = opts.fontSize || Math.max(12, Math.min(17, W / 52));
+    const rw = opts.rayWidth || 3;
+    const faceX = W * 0.26, y0 = H * 0.54, a = coreHalf(st.d, H), c = H * 0.09;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    // fiber
+    ctx.fillStyle = pal.clad; ctx.fillRect(faceX, y0 - a - c, W - faceX, 2 * (a + c));
+    ctx.fillStyle = pal.core; ctx.fillRect(faceX, y0 - a, W - faceX, 2 * a);
+    ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2;
+    for (const yy of [y0 - a - c, y0 + a + c]) { ctx.beginPath(); ctx.moveTo(faceX, yy); ctx.lineTo(W, yy); ctx.stroke(); }
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.45;
+    for (const yy of [y0 - a, y0 + a]) { ctx.beginPath(); ctx.moveTo(faceX, yy); ctx.lineTo(W, yy); ctx.stroke(); }
+    ctx.globalAlpha = 0.7; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(faceX, y0 - a - c); ctx.lineTo(faceX, y0 + a + c); ctx.stroke();
+    ctx.globalAlpha = 0.35; ctx.lineWidth = 1; ctx.setLineDash([6, 6]); ctx.beginPath(); ctx.moveTo(8, y0); ctx.lineTo(W, y0); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+
+    // acceptance cone (2D cut) in the air
+    const L = Math.hypot(W, H) * 2;
+    const alA = Math.atan(k * Math.tan(Math.min(o.tha, 89.9 * D2R)));
+    ctx.save(); ctx.fillStyle = pal.ok; ctx.globalAlpha = 0.13;
+    ctx.beginPath(); ctx.moveTo(faceX, y0); ctx.lineTo(faceX - L * Math.cos(alA), y0 - L * Math.sin(alA)); ctx.lineTo(faceX - L * Math.cos(alA), y0 + L * Math.sin(alA)); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 0.7; ctx.strokeStyle = pal.ok; ctx.lineWidth = 1.5; ctx.setLineDash([5, 6]);
+    for (const sg of [-1, 1]) { ctx.beginPath(); ctx.moveTo(faceX, y0); ctx.lineTo(faceX - L * Math.cos(alA), y0 + sg * L * Math.sin(alA)); ctx.stroke(); }
+    ctx.restore();
+
+    // ray paths
+    const col = o.guided ? pal.ok : pal.ray;
+    const al0 = Math.atan(k * Math.tan(o.th0));            // drawn angle in air
+    const ca = Math.cos(al0), sa = Math.sin(al0);
+    const Lair = Math.min(ca > 1e-6 ? faceX / ca : Infinity, sa > 1e-6 ? y0 / sa : Infinity);
+    const start = [faceX - Lair * ca, y0 - Lair * sa];
+    const m = k * Math.tan(o.th);                          // drawn slope in the core
+    const main = [start, [faceX, y0]], hits = [];
+    if (m < 1e-6) main.push([W, y0]);
+    else {
+      let x = faceX, y = y0, dir = 1, dx = a / m;
+      while (main.length < 3000) {
+        const nx = x + dx, ny = y0 + dir * a;
+        if (nx >= W) { main.push([W, y + (ny - y) * (W - x) / dx]); break; }
+        main.push([nx, ny]); hits.push([nx, ny, dir]); x = nx; y = ny; dir = -dir; dx = 2 * a / m;
+      }
+    }
+    const cum = cumLen(main);
+    // leaks into the cladding (escaping ray only)
+    const leaks = [];
+    if (!o.guided) {
+      const dLx = Math.sin(o.phit), dLy = k * Math.cos(o.phit), nL = Math.hypot(dLx, dLy);
+      const sAir = o.n2 * Math.sin(o.phit) / N0;
+      for (let n = 0; n < Math.min(hits.length, 6); n++) {
+        const [hx, hy, dir] = hits[n];
+        const ux = dLx / nL, uy = dir * dLy / nL, len1 = c / Math.abs(uy);
+        const p1 = [hx + ux * len1, hy + uy * len1], pts = [[hx, hy], p1];
+        if (sAir < 1) {
+          const ax = sAir, ay = k * Math.sqrt(1 - sAir * sAir), na = Math.hypot(ax, ay);
+          pts.push([p1[0] + ax / na * L, p1[1] + dir * ay / na * L]);
+        }
+        leaks.push({ pts, cum: cumLen(pts), s0: cum[n + 2], a: (1 - o.R) * Math.pow(o.R, n) });
+      }
+    }
+    // draw main path; after the n-th bounce its power is R^n
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = col; ctx.lineWidth = rw;
+    for (let i = 1; i < main.length; i++) {
+      const n = Math.max(0, i - 2);
+      ctx.globalAlpha = o.guided ? 1 : Math.max(0.06, Math.pow(o.R, n));
+      ctx.beginPath(); ctx.moveTo(main[i - 1][0], main[i - 1][1]); ctx.lineTo(main[i][0], main[i][1]); ctx.stroke();
+    }
+    for (const lk of leaks) {
+      ctx.globalAlpha = Math.max(0.12, Math.sqrt(lk.a)); ctx.beginPath(); ctx.moveTo(lk.pts[0][0], lk.pts[0][1]);
+      for (const p of lk.pts.slice(1)) ctx.lineTo(p[0], p[1]); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    // arrowhead on the incoming ray
+    const ah = Math.min(Lair * 0.45, W * 0.1);
+    arrowHead(ctx, faceX - ah * ca, y0 - ah * sa, al0, 6 + rw * 2.2, col);
+    ctx.restore();
+
+    // moving light pulses
+    if (opts.pulses !== false) {
+      const v = W * 0.24, S = W * 0.62, total = cum[cum.length - 1];
+      const r = rw * 4.5;
+      for (let s = (v * t) % S; s < total + 2 * S; s += S) {
+        const p = pointAt(main, cum, s);
+        if (p) { const n = Math.max(0, p[2] - 1); glow(ctx, X + p[0], Y + p[1], r, col, o.guided ? 1 : Math.max(0.1, Math.pow(o.R, n))); }
+        for (const lk of leaks) { const q = pointAt(lk.pts, lk.cum, s - lk.s0); if (q) glow(ctx, X + q[0], Y + q[1], r, pal.ray, Math.max(0.2, Math.sqrt(lk.a))); }
+      }
+    }
+
+    // angles
+    const R0 = Math.min(W, H) * 0.13;
+    if (o.th0 > 0.2 * D2R) arcLabel(ctx, faceX, y0, R0, PI, PI + al0, `θ₀ ${fmt(st.th0)}°`, pal.ink, fs, pal, R0 + fs * 2.2);
+    const be = Math.atan(m);
+    if (o.th > 0.1 * D2R) arcLabel(ctx, faceX, y0, R0 * 0.75, 0, be, `θ ${fmt(o.th * R2D)}°`, pal.ink, fs, pal, R0 * 0.75 + fs * 2.4);
+    if (hits.length && hits[0][0] < W * 0.9) {
+      const [hx, hy] = hits[0];
+      // wall normal (pointing into the core) and the critical direction
+      ctx.save(); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.2; ctx.setLineDash([4, 5]);
+      ctx.beginPath(); ctx.moveTo(hx, hy + c * 0.6); ctx.lineTo(hx, hy - Math.min(2 * a, R0 * 1.6)); ctx.stroke();
+      const bc = Math.atan(k * Math.tan(o.thc)), lc = Math.min(R0 * 1.7, 2 * a / Math.cos(PI / 2 - bc));
+      ctx.strokeStyle = pal.ok; ctx.globalAlpha = 0.9; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - Math.cos(bc) * lc, hy - Math.sin(bc) * lc); ctx.stroke(); ctx.restore();
+      const rphi = Math.min(R0 * 0.9, a * 1.4);
+      arcLabel(ctx, hx, hy, rphi, be - PI, -PI / 2, `φ ${fmt(o.phi * R2D)}°`, pal.ink, fs, pal, rphi + fs * 1.6);
+      label(ctx, `φc ${fmt(o.phic * R2D)}°`, hx - Math.cos(bc) * lc, hy - Math.sin(bc) * lc - fs * 0.3, 'right', 'bottom', pal.ok, `700 ${fs * 0.9}px ${getFont()}`, pal);
+    }
+    // labels
+    const f = `700 ${fs}px ${getFont()}`, fsm = `${fs * 0.88}px ${getFont()}`;
+    label(ctx, `air  n₀ = ${fmt(N0, 2)}`, 12, 10, 'left', 'top', pal.ink, f, pal);
+    label(ctx, `cladding  n₂ = ${fmt(o.n2, 3)}`, W - 12, y0 - a - c / 2, 'right', 'middle', pal.muted, fsm, pal);
+    label(ctx, `core  n₁ = ${fmt(o.n1, 3)}   d = ${Math.round(st.d)} µm`, W - 12, y0 - a + fs * 0.5, 'right', 'top', pal.ink, fsm, pal);
+    label(ctx, o.guided ? 'Guided: total internal reflection at every bounce' : `Escapes: ${fmt((1 - o.R) * 100, 0)}% leaks into the cladding at each bounce`,
+      W - 12, 10, 'right', 'top', col, f, pal);
+    label(ctx, `acceptance cone  θa = ${fmt(o.tha * R2D)}°`, 12, H - 10, 'left', 'bottom', pal.ok, fsm, pal);
+    if (k > 1.01) label(ctx, `vertical scale ×${k < 10 ? fmt(k, k % 1 ? 1 : 0) : Math.round(k)}`, W - 12, H - 10, 'right', 'bottom', pal.muted, fsm, pal);
+    ctx.restore();
+    return o;
+  }
+
+  // ---------- 3D acceptance cone ----------
+  function hull(pts) {
+    const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], up = [];
+    for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+    for (const q of p.reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  }
+  function poly(ctx, pts) { ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); }
+  function drawCone(ctx, X, Y, W, H, st, view, opts = {}) {
+    const pal = palette();
+    const o = fiber(st.n1, st.delta, st.th0);
+    const fs = opts.fontSize || Math.max(12, Math.min(16, W / 56));
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const cyw = Math.cos(view.yaw), syw = Math.sin(view.yaw), cp = Math.cos(view.pitch), sp = Math.sin(view.pitch);
+    const s = Math.min(W * 0.27, H * (opts.scaleH || 0.4)), cx0 = W * 0.52, cy0 = H * 0.56;
+    const P = (x, y, z) => { const x1 = x * cyw + z * syw, z1 = -x * syw + z * cyw; return [cx0 + x1 * s, cy0 - (y * cp - z1 * sp) * s, y * sp + z1 * cp]; };
+    const ring = (x, r, n = 72) => { const a = []; for (let i = 0; i < n; i++) { const u = 2 * PI * i / n; a.push(P(x, r * Math.cos(u), r * Math.sin(u))); } return a; };
+    const rc = 0.05 + 0.15 * Math.sqrt(Math.max(0, st.d - 5) / 195), rcl = rc + 0.08, Lf = 1.0;
+    const tha = Math.min(o.tha, 80 * D2R), Lc = Math.min(1, 0.75 / Math.tan(tha)), Rc = Lc * Math.tan(tha);
+    const col = o.guided ? pal.ok : pal.ray;
+
+    function drawFiber() {
+      ctx.save(); ctx.lineWidth = 1.2;
+      poly(ctx, hull(ring(0, rcl).concat(ring(Lf, rcl)))); ctx.fillStyle = pal.clad; ctx.fill(); ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.7; ctx.stroke(); ctx.globalAlpha = 1;
+      poly(ctx, hull(ring(0, rc).concat(ring(Lf, rc)))); ctx.fillStyle = pal.core; ctx.fill();
+      poly(ctx, ring(0, rcl)); ctx.fillStyle = pal.clad; ctx.fill(); ctx.strokeStyle = pal.muted; ctx.stroke();
+      poly(ctx, ring(0, rc)); ctx.fillStyle = pal.core; ctx.fill(); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.stroke();
+      ctx.restore();
+      // refracted ray inside the core
+      const e = P(0, 0, 0), q = P(Lf * 0.95, -Lf * 0.95 * Math.tan(o.th), 0);
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.9; if (!o.guided) ctx.setLineDash([6, 5]);
+      ctx.beginPath(); ctx.moveTo(e[0], e[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); ctx.restore();
+      const lp = P(Lf * 0.75, rcl + 0.05, 0);
+      label(ctx, `fiber, d = ${Math.round(st.d)} µm`, lp[0], lp[1], 'center', 'bottom', pal.muted, `${fs * 0.9}px ${getFont()}`, pal);
+    }
+    function drawConeShape() {
+      const apex = P(0, 0, 0), base = ring(-Lc, Rc);
+      ctx.save();
+      poly(ctx, hull(base.concat([apex]))); ctx.fillStyle = pal.ok; ctx.globalAlpha = 0.16; ctx.fill();
+      ctx.globalAlpha = 0.75; ctx.strokeStyle = pal.ok; ctx.lineWidth = 1.6; ctx.stroke();
+      poly(ctx, base); ctx.globalAlpha = 0.85; ctx.stroke();
+      ctx.globalAlpha = 0.25; ctx.lineWidth = 1;
+      for (let i = 0; i < base.length; i += 9) { ctx.beginPath(); ctx.moveTo(apex[0], apex[1]); ctx.lineTo(base[i][0], base[i][1]); ctx.stroke(); }
+      ctx.restore();
+      const lp = P(-Lc, -Rc, 0);
+      label(ctx, `θa = ${fmt(o.tha * R2D)}°`, lp[0], lp[1] + fs * 0.4, 'center', 'top', pal.ok, `700 ${fs}px ${getFont()}`, pal);
+    }
+    // axis
+    const a0 = P(-1.25, 0, 0), a1 = P(Lf + 0.15, 0, 0);
+    ctx.save(); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.3; ctx.setLineDash([5, 6]); ctx.beginPath(); ctx.moveTo(a0[0], a0[1]); ctx.lineTo(a1[0], a1[1]); ctx.stroke(); ctx.restore();
+    const fiberFirst = P(0.5, 0, 0)[2] < P(-0.5, 0, 0)[2];
+    if (fiberFirst) { drawFiber(); drawConeShape(); } else { drawConeShape(); drawFiber(); }
+    // incoming ray (in the same plane as the side view)
+    const Lr = 1.15, F = P(-Lr * Math.cos(o.th0), Lr * Math.sin(o.th0), 0), A = P(0, 0, 0);
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(F[0], F[1]); ctx.lineTo(A[0], A[1]); ctx.stroke();
+    const ang = Math.atan2(A[1] - F[1], A[0] - F[0]), M = [F[0] + (A[0] - F[0]) * 0.55, F[1] + (A[1] - F[1]) * 0.55];
+    arrowHead(ctx, M[0], M[1], ang, 11, col); ctx.restore();
+    label(ctx, `ray θ₀ = ${fmt(st.th0)}°`, F[0], F[1] - fs * 0.4, 'center', 'bottom', col, `700 ${fs}px ${getFont()}`, pal);
+    label(ctx, `NA = ${fmt(o.NA, 3)}`, 12, 10, 'left', 'top', pal.ink, `700 ${fs}px ${monoFont()}`, pal);
+    if (!opts.noTitle) label(ctx, 'Acceptance cone (3D)', W - 12, 10, 'right', 'top', pal.muted, `${fs * 0.9}px ${getFont()}`, pal);
+    ctx.restore();
+  }
+
+  // ---------- demo timeline (for the slide animation) ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t, log) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return log ? Math.exp(Math.log(a0) + (Math.log(a1) - Math.log(a0)) * u) : a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const D0 = 0.1 / 1.5;   // slide 18: n₁ = 1.5, n₂ = 1.4
+  const K_TH = [[0, 10], [2.5, 10], [8, 32.2], [11, 32.2], [14, 45], [16.5, 45], [18, 18], [23, 18], [27, 4], [28, 4], [30.5, 7], [34, 7]];
+  const K_D = [[0, 50], [18, 50], [20, 200], [21.5, 200], [23, 50], [27, 8], [34, 8]];
+  const K_DL = [[0, D0], [23, D0], [27, 0.002], [34, 0.002]];
+  const K_K = [[0, 1], [23, 1], [27, 7], [34, 7]];
+  const CAPTIONS = [
+    [0, 2.5, 'Light enters the fiber face', 'At the face, n₀ sin θ₀ = n₁ sin θ. Inside, the ray meets the core wall at φ = 90° − θ.'],
+    [2.5, 8, 'A steeper ray hits the wall at a smaller φ', 'While φ stays above φc, every bounce is a total internal reflection and the ray is guided.'],
+    [8, 11, 'The acceptance angle θa ≈ 32.6°', 'Here φ = φc. NA = n₀ sin θa = √(n₁² − n₂²) ≈ 0.54.'],
+    [11, 16.5, 'Beyond θa the ray escapes', 'Now φ < φc, and part of the light leaks into the cladding at every bounce.'],
+    [16.5, 23, 'A thicker core does not widen the cone', 'The diameter only changes how often the ray bounces. The NA stays the same.'],
+    [23, 28, 'Real fibers: Δ = 0.002', 'NA ≈ n₁√(2Δ) ≈ 0.095, so θa ≈ 5.4°. The cone becomes very narrow.'],
+    [28, 34, 'Only 7° off axis is already too steep', 'A narrow cone makes coupling hard: the source must be aimed and focused precisely.'],
+  ];
+  const DEMO_DURATION = 34;
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function demoState(t) { return { th0: track(K_TH, t), d: track(K_D, t), delta: track(K_DL, t, true), n1: 1.5, stretch: track(K_K, t) }; }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t);
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.6), pad = W * 0.02;
+    const o = drawSide(ctx, 0, 0, sw, sh, st, t, { fontSize: W / 74, rayWidth: W / 480 });
+    drawCone(ctx, 0, sh, sw, H - sh, st, { yaw: (32 + 14 * Math.sin(t * 0.35)) * D2R, pitch: 18 * D2R }, { fontSize: W / 80, scaleH: 0.5 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.07;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Acceptance cone and NA', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 56}px ${getFont()}`;
+    ctx.fillText('NA = n₀ sin θa = √(n₁² − n₂²)', px, y); y += W / 56 * 2.1;
+    const rows = [['Entry angle θ₀', `${fmt(st.th0)}°`], ['In the core θ', `${fmt(o.th * R2D)}°`], ['At the wall φ', `${fmt(o.phi * R2D)}°`], ['Critical φc', `${fmt(o.phic * R2D)}°`],
+      ['Acceptance θa', `${fmt(o.tha * R2D)}°`], ['NA', fmt(o.NA, 3)], ['n₁ / n₂', `${fmt(o.n1, 3)} / ${fmt(o.n2, 3)}`], ['Core diameter d', `${Math.round(st.d)} µm`]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = kk === 'NA' ? pal.ok : pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.6;
+    }
+    y += W / 160;
+    ctx.fillStyle = o.guided ? pal.ok : pal.ray; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`;
+    ctx.fillText(o.guided ? '● Guided (φ ≥ φc)' : '● Escapes (φ < φc)', px, y); y += W / 60 * 1.9;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'Meridional rays from air (n₀ = 1). Small angles are drawn stretched vertically; numbers are exact.', px, H - H * 0.105, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const scene = $('scene'), cone = $('cone');
+  const state = { th0: 20, n1: 1.5, delta: D0, d: 50, stretchSel: 'auto', playing: true, rotating: true };
+  const view = { yaw: 32 * D2R, pitch: 18 * D2R };
+  let simT = 0, last = performance.now(), sweep = null;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) { state.playing = false; state.rotating = false; $('play').setAttribute('aria-pressed', 'false'); $('play').textContent = 'Light paused'; $('rotate').setAttribute('aria-pressed', 'false'); $('rotate').textContent = 'Rotation off'; }
+
+  const dlToPos = d => (Math.log10(d) + 3) * 500, posToDl = p => Math.pow(10, p / 500 - 3);
+  const stOf = () => { const o = fiber(state.n1, state.delta, state.th0); return { th0: state.th0, n1: state.n1, delta: state.delta, d: state.d, stretch: state.stretchSel === 'auto' ? niceStretch(o) : +state.stretchSel }; };
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  const lenStr = um => um >= 1e5 ? `${fmt(um / 1000, 0)} mm` : um >= 1000 ? `${fmt(um / 1000, 2)} mm` : `${fmt(um, 0)} µm`;
+  function syncUI() {
+    const o = fiber(state.n1, state.delta, state.th0);
+    $('th0').value = state.th0; $('n1').value = state.n1; $('dl').value = dlToPos(state.delta); $('dia').value = state.d;
+    $('th0Out').textContent = `${fmt(state.th0)}°`; $('n1Out').textContent = fmt(state.n1, 3);
+    $('dlOut').textContent = state.delta < 0.01 ? fmt(state.delta, 4) : fmt(state.delta, 3);
+    $('n2Hint').textContent = `Cladding n₂ = n₁(1 − Δ) = ${fmt(o.n2, 4)}`;
+    $('diaOut').textContent = `${Math.round(state.d)} µm`;
+    const st = $('status');
+    st.className = 'status ' + (o.guided ? 'ok' : 'bad');
+    st.innerHTML = o.guided ? `Guided<small>φ = ${fmt(o.phi * R2D)}° ≥ φc = ${fmt(o.phic * R2D)}°, so every bounce is a total internal reflection.</small>`
+      : `Escapes<small>φ = ${fmt(o.phi * R2D)}° < φc. ${fmt((1 - o.R) * 100, 1)}% leaks out at each bounce; after 10 bounces ${fmt(Math.pow(o.R, 10) * 100, 1)}% is left.</small>`;
+    $('rTh').textContent = `${fmt(o.th * R2D, 2)}°`;
+    $('rPhi').textContent = `${fmt(o.phi * R2D, 2)}°`;
+    $('rPhic').textContent = `${fmt(o.phic * R2D, 2)}°`;
+    $('rTha').textContent = `${fmt(o.tha * R2D, 2)}°`;
+    $('rNA').textContent = fmt(o.NA, 4); $('rNAa').textContent = fmt(o.NAapprox, 4);
+    if (o.th < 1e-6) { $('rB').textContent = 'none (axial ray)'; $('rPm').textContent = '0'; }
+    else { const b = state.d / Math.tan(o.th); $('rB').textContent = lenStr(b); const pm = 1e6 / b; $('rPm').textContent = pm >= 1e4 ? Math.round(pm).toLocaleString('en-US') : fmt(pm, 0); }
+    const mk = $('markA'), thaD = o.tha * R2D;
+    mk.hidden = thaD > 80; mk.style.left = (thaD / 80 * 100) + '%';
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (state.playing) simT += dt;
+    if (state.rotating && !dragCone) view.yaw += dt * 0.35;
+    if (sweep) {
+      const u = (now - sweep.start) / sweep.dur;
+      state.th0 = sweep.from + (sweep.to - sweep.from) * Math.min(1, u);
+      if (u >= 1) { sweep = null; $('sweep').setAttribute('aria-pressed', 'false'); }
+      syncUI();
+    }
+    let { w, h, dpr } = sizeCanvas(scene);
+    let ctx = scene.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (DEMO) drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    else {
+      const st = stOf();
+      drawSide(ctx, 0, 0, w, h, st, simT, {});
+      ({ w, h, dpr } = sizeCanvas(cone)); ctx = cone.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawCone(ctx, 0, 0, w, h, st, view, { noTitle: w < 420 });
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function stopSweep() { if (sweep) { sweep = null; $('sweep').setAttribute('aria-pressed', 'false'); } }
+  let flashT = 0;
+  $('th0').addEventListener('input', e => { stopSweep(); state.th0 = +e.target.value; syncUI(); });
+  $('n1').addEventListener('input', e => { state.n1 = +e.target.value; syncUI(); });
+  $('dl').addEventListener('input', e => { state.delta = posToDl(+e.target.value); syncUI(); });
+  $('dia').addEventListener('input', e => {
+    state.d = +e.target.value; syncUI();
+    for (const id of ['rNA', 'rNAa', 'rTha']) $(id).classList.add('flash');
+    $('diaHint').innerHTML = '<strong style="color:var(--ok)">NA unchanged:</strong> it depends only on n₁ and n₂. The diameter changes how often the ray bounces.';
+    clearTimeout(flashT); flashT = setTimeout(() => { for (const id of ['rNA', 'rNAa', 'rTha']) $(id).classList.remove('flash'); }, 450);
+  });
+  $('stretch').addEventListener('change', e => { state.stretchSel = e.target.value; });
+  const toggle = (id, key, on, off) => $(id).addEventListener('click', e => { state[key] = !state[key]; e.currentTarget.setAttribute('aria-pressed', String(state[key])); e.currentTarget.textContent = state[key] ? on : off; });
+  toggle('play', 'playing', 'Light moving', 'Light paused');
+  toggle('rotate', 'rotating', 'Rotating', 'Rotation off');
+  $('sweep').addEventListener('click', e => {
+    if (sweep) { stopSweep(); return; }
+    const tha = fiber(state.n1, state.delta, 0).tha * R2D;
+    sweep = { start: performance.now(), dur: 9000, from: 0, to: Math.min(80, tha * 1.6 + 2) }; e.currentTarget.setAttribute('aria-pressed', 'true');
+  });
+  // drag in the air (left of the face) sets θ₀ from the pointer position
+  let dragging = false;
+  function pointerAngle(e) {
+    const r = scene.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    const faceX = r.width * 0.26, y0 = r.height * 0.54, k = stOf().stretch;
+    const dx = Math.max(1, faceX - x), dy = Math.abs(y0 - y) / k;
+    state.th0 = Math.min(80, Math.max(0, Math.atan2(dy, dx) * R2D)); stopSweep(); syncUI();
+  }
+  scene.addEventListener('pointerdown', e => { if (DEMO) return; dragging = true; scene.setPointerCapture(e.pointerId); pointerAngle(e); });
+  scene.addEventListener('pointermove', e => { if (dragging) pointerAngle(e); });
+  scene.addEventListener('pointerup', () => { dragging = false; });
+  let dragCone = null;
+  cone.addEventListener('pointerdown', e => { dragCone = { x: e.clientX, y: e.clientY }; cone.setPointerCapture(e.pointerId); });
+  cone.addEventListener('pointermove', e => {
+    if (!dragCone) return;
+    view.yaw += (e.clientX - dragCone.x) * 0.01; view.pitch = Math.max(-80 * D2R, Math.min(80 * D2R, view.pitch + (e.clientY - dragCone.y) * 0.01));
+    dragCone = { x: e.clientX, y: e.clientY };
+  });
+  cone.addEventListener('pointerup', () => { dragCone = null; });
+  window.addEventListener('resize', syncUI);
+  new MutationObserver(syncUI).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // hook for rendering the slide video frame by frame
+  window.naDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(scene); const ctx = scene.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, fiber };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) document.fonts.ready.then(syncUI);
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
