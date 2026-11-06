@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>DCF and DSP Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; align-items: center; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px) !important; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status.neutral { color: var(--accent); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+canvas.hero { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.sub { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.hero { aspect-ratio: 4 / 3; } }
+.seg { display: inline-flex; gap: 0; flex-wrap: wrap; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; }
+.seg button + button { border-left: 0; }
+.status.hot { color: var(--ray); }
+select { font: inherit; font-size: 0.9rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 5px 8px; }
+body.demo canvas.hero { aspect-ratio: 16 / 9; }
+
+/* Layout: link and bits on top, dispersion/power map and receiver below, instrument column on the right */
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>DCF and DSP Lab</h1>
+    <p>Fiber dispersion only changes the phase of each frequency, <span class="law">H(ω) = exp(jβ₂zω²/2)</span>, so it can be undone. A short dispersion-compensating fiber (DCF) with β₂ of the opposite sign does it optically. A coherent receiver measures amplitude and phase and does it in software. A receiver that measures only power cannot. Move along the link, change the DCF, and compare the two receivers.</p>
+  </header>
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="bits" class="hero" aria-label="The link with its SMF and DCF sections, and the received bit stream at the chosen position along it"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="DCF position">
+            <button id="pPost" aria-pressed="true">DCF after the SMF</button>
+            <button id="pPre" aria-pressed="false">DCF before the SMF</button>
+          </div>
+          <div class="legend"><span><i style="background:var(--muted)"></i>sent bits</span><span><i style="background:var(--accent)"></i>power at position z</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="map" class="sub" aria-label="Accumulated dispersion and signal power along the link"></canvas></div>
+        <div class="card scene">
+          <canvas id="rx" class="sub" aria-label="Receiver output before and after digital dispersion compensation"></canvas>
+          <div class="scene-bar">
+            <div class="seg" role="group" aria-label="Receiver">
+              <button id="rDD" aria-pressed="true">Power detector</button>
+              <button id="rCoh" aria-pressed="false">Coherent + DSP</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl"><label for="ls">SMF length <output id="lsOut"></output></label><input id="ls" type="range" min="0" max="150" step="1" value="80"><span class="hint">D = 17 ps/(nm·km), 0.2 dB/km</span></div>
+        <div class="ctl" style="margin-top:8px"><label for="ld">DCF length <output id="ldOut"></output></label><input id="ld" type="range" min="0" max="30" step="0.1" value="13.6"><span class="hint" id="ldHint"></span></div>
+        <div class="ctl" style="margin-top:8px"><label for="br">Bit rate <output id="brOut"></output></label><input id="br" type="range" min="2.5" max="40" step="0.5" value="10"></div>
+        <div class="ctl" style="margin-top:8px"><label for="pl">Launch power <output id="plOut"></output></label><input id="pl" type="range" min="-5" max="15" step="0.5" value="0"></div>
+        <div class="ctl" style="margin-top:8px"><label for="zz">Position along the link <output id="zzOut"></output></label><input id="zz" type="range" min="0" max="1" step="0.001" value="1"></div>
+      </div>
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Accumulated dispersion, SMF</dt><dd id="rDs"></dd>
+          <dt>Accumulated dispersion, DCF</dt><dd id="rDd"></dd>
+          <dt>Residual at the receiver</dt><dd id="rRes"></dd>
+          <dt>DCF for full compensation</dt><dd id="rFull"></dd>
+          <div class="sep"></div>
+          <dt>Total loss</dt><dd id="rLoss"></dd>
+          <dt>Received power</dt><dd id="rPrx"></dd>
+          <dt>Peak intensity in the DCF</dt><dd id="rInt"></dd>
+          <div class="sep"></div>
+          <dt>Receiver eye opening</dt><dd id="rEye"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <p class="note">16 RZ Gaussian bits at 1550 nm, pulse FWHM = 0.4 of the bit slot, propagated exactly with an FFT: each frequency is multiplied by exp(jβ₂zω²/2). SMF: D = 17 ps/(nm·km) (β₂ ≈ −21.7 ps²/km), 0.2 dB/km, effective area 80 µm². DCF: D = −100 ps/(nm·km) (β₂ ≈ +128 ps²/km), about 1 dB/km (slide 27), effective area 20 µm². The order of the fibers does not matter for dispersion (H₁H₂ = H₂H₁), but it matters for the power inside the DCF, where nonlinearity sets in; the warning appears above 10 mW in 20 µm² (0.5 mW/µm²), a rough guide only. Coherent + DSP multiplies the received field by H⁻¹(ω). The power detector has only |A|²; the same filter applied to √|A|² (no phase) cannot undo the spreading. Eye opening: lowest "1" minus highest "0" at the bit centers, relative to the sent pulse peak.</p>
+</div>
+
+<script>
+(() => {
+  // ---------- shared helpers (same in every lab of the course) ----------
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+  const CREDIT = 'Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov';
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7', dark: false };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) if (k !== 'dark') p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    const th = document.documentElement.dataset.theme;
+    p.dark = th === 'dark' || (th !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtS = (v, n = 2) => (Math.abs(v) < 0.5 * 10 ** -n ? '' : v > 0 ? '+' : '−') + fmt(Math.abs(v), n);
+  const fmtT = v => Math.abs(v) >= 1000 ? `${fmt(v / 1000, 2)} ns` : `${fmt(v, Math.abs(v) >= 100 ? 0 : 1)} ps`;
+  const fmtKm = v => !isFinite(v) ? '∞' : v >= 1000 ? `${fmt(v, 0)} km` : v >= 100 ? `${fmt(v, 0)} km` : v >= 10 ? `${fmt(v, 1)} km` : `${fmt(v, 2)} km`;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  // linear or log axes; opts: xLog, yLog, xStep, yStep, xf, yf, xTicks [[v, text]], noGridX, noGridY
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const tx = v => opts.xLog ? Math.log10(v) : v, ty = v => opts.yLog ? Math.log10(v) : v;
+    const sx = x => B.x0 + (B.x1 - B.x0) * (tx(x) - tx(xr[0])) / (tx(xr[1]) - tx(xr[0])), sy = y => B.y1 - (B.y1 - B.y0) * (ty(y) - ty(yr[0])) / (ty(yr[1]) - ty(yr[0]));
+    ctx.save(); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const ticks = (r, log, step) => {
+      const out = [];
+      if (log) { for (let e = Math.floor(Math.log10(r[0])); e <= Math.ceil(Math.log10(r[1])); e++) { const v = 10 ** e; if (v >= r[0] * 0.999 && v <= r[1] * 1.001) out.push(v); } }
+      else { const s = step || niceStep(r[1] - r[0], 5); for (let v = Math.ceil(r[0] / s - 1e-9) * s; v <= r[1] + 1e-9; v += s) out.push(v); }
+      return out;
+    };
+    const lf = v => { if (v === 0) return '0'; const e = Math.log10(Math.abs(v)); return Math.abs(e) >= 4 ? `1e${Math.round(e)}` : String(+v.toPrecision(6)); };
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const xt = opts.xTicks || ticks(xr, opts.xLog, opts.xStep).map(v => [v, (opts.xf || (opts.xLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [x, t] of xt) { if (!opts.noGridX) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); } ctx.fillText(t, sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yt = opts.yTicks || ticks(yr, opts.yLog, opts.yStep).map(v => [v, (opts.yf || (opts.yLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [y, t] of yt) { if (!opts.noGridY) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); } ctx.fillText(t, B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    if (xl) ctx.fillText(xl, (B.x0 + B.x1) / 2, (opts.xlY ?? H) - fs * 0.15);
+    if (yl) { ctx.save(); ctx.translate(B.x0 - (opts.ylOff ?? fs * 3.6) + fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore(); }
+    ctx.restore();
+    return { sx, sy };
+  }
+  function frameBox(ctx, B, pal) { ctx.save(); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.restore(); }
+  function clipBox(ctx, B) { ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip(); }
+  function panelStart(ctx, X, Y, W, H, pal) { ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); }
+  function polyline(ctx, n, f) { ctx.beginPath(); let started = false; for (let i = 0; i <= n; i++) { const p = f(i / n); if (!p) { started = false; continue; } started ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); started = true; } ctx.stroke(); }
+  // ---------- timeline helpers for the slide animation ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const step = (keys, t) => { let v = keys[0][1]; for (const [t0, a] of keys) if (t >= t0) v = a; return v; };
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  // right-hand column of the slide animation: title, formulas, readouts, status, caption, footnote, credit
+  function sidePanel(ctx, W, H, x0, o) {
+    const pal = LIGHT, pad = W * 0.02, px = x0 + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.save(); ctx.textBaseline = 'top';
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left';
+    y = wrapText(ctx, o.title, px, y, pw, W / 46 * 1.2) + W / 46 * 0.35;
+    ctx.fillStyle = pal.ink;
+    for (const f of o.formulas || []) { ctx.font = `${W / 76}px ${monoFont()}`; ctx.fillText(f, px, y); y += W / 76 * 1.55; }
+    y += W / 76 * 0.5;
+    for (const [k, v] of o.rows || []) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(k, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 70}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    if (o.status) { ctx.fillStyle = o.status[1]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`; y = wrapText(ctx, '● ' + o.status[0], px, y, pw, W / 60 * 1.25) + W / 60 * 0.5; }
+    if (o.cap) {
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+      ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textAlign = 'left';
+      y = wrapText(ctx, o.cap[0], px, y, pw, W / 54 * 1.25) + W / 160;
+      ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+      wrapText(ctx, o.cap[1], px, y, pw, W / 68 * 1.4);
+    }
+    if (o.foot) { ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`; ctx.textAlign = 'left'; wrapText(ctx, o.foot, px, H - H * 0.115, pw, W / 100 * 1.4); }
+    ctx.restore();
+    credit(ctx, W, H);
+  }
+  function credit(ctx, W, H) {
+    ctx.save(); ctx.fillStyle = LIGHT.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(CREDIT, W - W * 0.02, H - H * 0.022); ctx.restore();
+  }
+  const captionAt = (caps, t) => caps.find(c => t >= c[0] && t < c[1]) || caps[caps.length - 1];
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function ctxOf(c) { const { w, h, dpr } = sizeCanvas(c), ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, w, h]; }
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // app loop: draw() when dirty (or every frame when animating), demo mode draws the slide animation
+  function runApp({ name, duration, drawDemo, draw, animating = () => false, tick = () => {} }) {
+    let dirty = true, simT = 0, last = performance.now();
+    const hero = document.querySelector('canvas.hero');
+    const api = { markDirty() { dirty = true; } };
+    function frame(now) {
+      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      if (DEMO) { simT += dt; const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, simT % duration); }
+      else { tick(dt); if (dirty || animating()) { draw(now / 1000); dirty = false; } }
+      requestAnimationFrame(frame);
+    }
+    window.addEventListener('resize', api.markDirty);
+    new MutationObserver(api.markDirty).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', api.markDirty);
+    window[name] = { duration, draw(t) { const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, t); } };
+    if (!window.__noLoop) requestAnimationFrame(frame);
+    if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(api.markDirty);
+    return api;
+  }
+  // slider wiring: ids → state keys, with optional transform (e.g. log sliders)
+  function bindRange(id, onValue) { const el = $(id); el.addEventListener('input', () => onValue(+el.value)); return el; }
+  function bindSeg(ids, onPick) { ids.forEach((id, i) => $(id).addEventListener('click', () => { ids.forEach((j, k) => $(j).setAttribute('aria-pressed', String(k === i))); onPick(i); })); }
+  // radix-2 FFT in place on Float64Array re, im (n a power of two); inverse when inv
+  function fft(re, im, inv = false) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = 2 * PI / len * (inv ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ar = re[i + j], ai = im[i + j], br = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci, bi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ar + br; im[i + j] = ai + bi; re[i + j + len / 2] = ar - br; im[i + j + len / 2] = ai - bi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+  }
+  // seeded random numbers, so the slide animation is the same every time
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const C_NM_PS = 299792.458;   // speed of light in nm/ps
+  const beta2Of = (D, lam = 1550) => -lam * lam * D / (2 * PI * C_NM_PS);   // ps²/km from ps/(nm·km)
+
+  // ---------- physics ----------
+  const BITS = [0, 1, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0], NB = BITS.length, NS = 2048;
+  const SMF = { D: 17, a: 0.2, A: 80 }, DCF = { D: -100, a: 1.0, A: 20 };
+  const b2s = beta2Of(SMF.D), b2d = beta2Of(DCF.D);
+  let grid = null;
+  function makeGrid(B) {
+    if (grid && grid.B === B) return grid;
+    const slot = 1000 / B, Tw = slot * NB, dt = Tw / NS, T0 = 0.4 * slot / 1.665;
+    const re = new Float64Array(NS), im = new Float64Array(NS), t = new Float64Array(NS), w = new Float64Array(NS);
+    for (let i = 0; i < NS; i++) {
+      t[i] = i * dt;
+      let a = 0; for (let k = 0; k < NB; k++) if (BITS[k]) for (const sh of [-Tw, 0, Tw]) { const u = (t[i] - (k + 0.5) * slot - sh) / T0; a += Math.exp(-u * u / 2); }
+      re[i] = a;
+      w[i] = 2 * PI * (i < NS / 2 ? i : i - NS) / Tw;   // rad/ps
+    }
+    const sent = Float64Array.from(re, v => v * v);
+    fft(re, im);
+    return (grid = { B, slot, Tw, dt, T0, t, w, specRe: re, specIm: im, sent });
+  }
+  // field after accumulated β₂z (ps²): returns {re, im}
+  function propagate(g, b2z) {
+    const re = new Float64Array(NS), im = new Float64Array(NS);
+    for (let i = 0; i < NS; i++) { const ph = 0.5 * b2z * g.w[i] * g.w[i], c = Math.cos(ph), s = Math.sin(ph); re[i] = g.specRe[i] * c - g.specIm[i] * s; im[i] = g.specRe[i] * s + g.specIm[i] * c; }
+    fft(re, im, true); return { re, im };
+  }
+  function undo(re0, im0, g, b2z) {   // apply H⁻¹ to a time-domain field
+    const re = Float64Array.from(re0), im = Float64Array.from(im0); fft(re, im);
+    for (let i = 0; i < NS; i++) { const ph = -0.5 * b2z * g.w[i] * g.w[i], c = Math.cos(ph), s = Math.sin(ph), a = re[i], b = im[i]; re[i] = a * c - b * s; im[i] = a * s + b * c; }
+    fft(re, im, true); return { re, im };
+  }
+  const pow = f => Float64Array.from(f.re, (v, i) => v * v + f.im[i] * f.im[i]);
+  function eye(g, P) {   // lowest one minus highest zero at the bit centers
+    let lo1 = Infinity, hi0 = -Infinity;
+    for (let k = 0; k < NB; k++) { const i = Math.round((k + 0.5) * g.slot / g.dt) % NS, v = P[i]; if (BITS[k]) lo1 = Math.min(lo1, v); else hi0 = Math.max(hi0, v); }
+    return lo1 - hi0;
+  }
+  // st: { Ls, Ld, B, Pl (dBm), pre, zf (0…1 along the link), coh }
+  function link(st) {
+    const g = makeGrid(st.B), L = st.Ls + st.Ld;
+    const segs = st.pre ? [['DCF', st.Ld, DCF], ['SMF', st.Ls, SMF]] : [['SMF', st.Ls, SMF], ['DCF', st.Ld, DCF]];
+    // accumulated dispersion (ps/nm), power (dBm) and β₂z at a distance x (km)
+    function at(x) {
+      let D = 0, b2z = 0, P = st.Pl, rest = x, inF = segs[0][0];
+      for (const [nm, len, f] of segs) { const d = Math.min(Math.max(rest, 0), len); D += f.D * d; b2z += beta2Of(f.D) * d; P -= f.a * d; if (rest > 0 && rest <= len + 1e-9) inF = nm; rest -= len; }
+      return { D, b2z, P, inF };
+    }
+    const z = st.zf * L, here = at(z), end = at(L);
+    const fz = propagate(g, here.b2z), Pz = pow(fz);
+    const fe = propagate(g, end.b2z), Pe = pow(fe);
+    const after = st.coh ? undo(fe.re, fe.im, g, end.b2z) : undo(Float64Array.from(Pe, Math.sqrt), new Float64Array(NS), g, end.b2z);
+    const Pa = pow(after);
+    const pDcfIn = st.pre ? st.Pl : st.Pl - SMF.a * st.Ls, iDcf = st.Ld > 0 ? 10 ** (pDcfIn / 10) / DCF.A : 0;   // mW/µm²
+    const peak = Math.max(...g.sent);
+    return { ...st, g, L, segs, at, z, here, end, Pz, Pe, Pa, peak, eyeRx: eye(g, Pe) / peak, eyeOut: eye(g, Pa) / peak, pDcfIn, iDcf, loss: SMF.a * st.Ls + DCF.a * st.Ld, full: st.Ls * SMF.D / -DCF.D };
+  }
+
+  // ---------- drawing ----------
+  function drawBits(ctx, X, Y, W, H, m, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(16, W / 58));
+    panelStart(ctx, X, Y, W, H, pal);
+    // the link bar
+    const bx0 = fs * 4.4, bx1 = W - fs * 1.2, by = fs * 2.2, L = Math.max(m.L, 1e-6), sxL = x => bx0 + (bx1 - bx0) * x / L;
+    let x = 0;
+    for (const [nm, len] of m.segs) {
+      if (len <= 0) continue;
+      ctx.fillStyle = nm === 'SMF' ? pal.core : (pal.dark ? '#4a3a1c' : '#f6dfb8'); ctx.fillRect(sxL(x), by - fs * 0.5, sxL(x + len) - sxL(x), fs);
+      ctx.strokeStyle = pal.line; ctx.strokeRect(sxL(x), by - fs * 0.5, sxL(x + len) - sxL(x), fs);
+      label(ctx, `${nm} ${fmt(len, len < 10 ? 1 : 0)} km`, (sxL(x) + sxL(x + len)) / 2, by - fs * 0.7, 'center', 'bottom', pal.muted, `700 ${fs * 0.75}px ${monoFont()}`, pal, false);
+      x += len;
+    }
+    const pz = sxL(m.z); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(pz, by, fs * 0.42, 0, 2 * PI); ctx.fill();
+    label(ctx, `z = ${fmt(m.z, 1)} km`, clamp(pz, bx0 + fs * 3, bx1 - fs * 3), by + fs * 0.75, 'center', 'top', pal.accent, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    // bits
+    const B = { x0: bx0, x1: bx1, y0: fs * 5.6, y1: H - fs * 3.2 }, g = m.g, ymax = Math.max(1.15, Math.max(...m.Pz) / m.peak * 1.08);
+    const { sx, sy } = axes(ctx, B, [0, g.Tw], [0, ymax], pal, fs, 'Time (ps)', 'Power / sent peak', H, { yStep: ymax > 2 ? 0.5 : 0.25, yf: v => fmt(v, 2) });
+    clipBox(ctx, B);
+    for (let k = 0; k <= NB; k++) { ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.4; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(sx(k * g.slot), B.y0); ctx.lineTo(sx(k * g.slot), B.y1); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.6; ctx.setLineDash([7, 5]); polyline(ctx, NS - 1, u => { const i = Math.round(u * (NS - 1)); return [sx(g.t[i]), sy(g.sent[i] / m.peak)]; }); ctx.setLineDash([]);
+    ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.14; ctx.beginPath(); ctx.moveTo(sx(0), sy(0)); for (let i = 0; i < NS; i++) ctx.lineTo(sx(g.t[i]), sy(m.Pz[i] / m.peak)); ctx.lineTo(sx(g.Tw), sy(0)); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = Math.max(2.4, W / 420); polyline(ctx, NS - 1, u => { const i = Math.round(u * (NS - 1)); return [sx(g.t[i]), sy(m.Pz[i] / m.peak)]; });
+    ctx.restore();
+    for (let k = 0; k < NB; k++) label(ctx, String(BITS[k]), sx((k + 0.5) * g.slot), B.y0 + fs * 0.3, 'center', 'top', BITS[k] ? pal.ink : pal.muted, `700 ${fs * 0.85}px ${monoFont()}`, pal, false);
+    label(ctx, `accumulated dispersion ${fmtS(m.here.D, 0)} ps/nm`, B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.85}px ${monoFont()}`, pal, false);
+    label(ctx, `${fmt(m.B, 1)} Gbit/s, in the ${m.here.inF}`, B.x1, B.y0 - fs * 0.35, 'right', 'bottom', pal.muted, `700 ${fs * 0.85}px ${getFont()}`, pal, false);
+    frameBox(ctx, B, pal); ctx.restore();
+  }
+  function drawMap(ctx, X, Y, W, H, m, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(14, W / 34));
+    panelStart(ctx, X, Y, W, H, pal);
+    const B = { x0: fs * 4.0, x1: W - fs * 3.6, y0: fs * 2.0, y1: H - fs * 2.8 }, L = Math.max(m.L, 1);
+    let dmax = 0; for (let i = 0; i <= 100; i++) dmax = Math.max(dmax, Math.abs(m.at(L * i / 100).D)); dmax = Math.max(500, Math.ceil(dmax * 1.15 / 500) * 500);
+    const { sx, sy } = axes(ctx, B, [0, L], [-dmax, dmax], pal, fs, 'Distance along the link (km)', 'Dispersion (ps/nm)', H, { yStep: niceStep(2 * dmax, 4) });
+    const pmin = Math.floor((m.Pl - m.loss - 3) / 5) * 5, pmax = Math.ceil((m.Pl + 2) / 5) * 5, syP = p => B.y1 - (B.y1 - B.y0) * (p - pmin) / (pmax - pmin);
+    clipBox(ctx, B);
+    let x = 0; for (const [nm, len] of m.segs) { if (nm === 'DCF' && len > 0) { ctx.fillStyle = pal.dark ? '#4a3a1c' : '#f6dfb8'; ctx.globalAlpha = 0.5; ctx.fillRect(sx(x), B.y0, sx(x + len) - sx(x), B.y1 - B.y0); ctx.globalAlpha = 1; } x += len; }
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(B.x0, sy(0)); ctx.lineTo(B.x1, sy(0)); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.6; polyline(ctx, 300, u => [sx(L * u), sy(m.at(L * u).D)]);
+    ctx.strokeStyle = pal.ray; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); polyline(ctx, 300, u => [sx(L * u), syP(m.at(L * u).P)]); ctx.setLineDash([]);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(m.z), B.y0); ctx.lineTo(sx(m.z), B.y1); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = pal.ray; ctx.font = `${fs * 0.75}px ${monoFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    for (let p = pmin; p <= pmax; p += Math.max(5, Math.round((pmax - pmin) / 4 / 5) * 5)) ctx.fillText(String(p), B.x1 + fs * 0.3, syP(p));
+    ctx.save(); ctx.translate(W - fs * 0.7, (B.y0 + B.y1) / 2); ctx.rotate(PI / 2); ctx.textAlign = 'center'; ctx.font = `700 ${fs * 0.8}px ${getFont()}`; ctx.fillText('Power (dBm)', 0, 0); ctx.restore();
+    label(ctx, '— accumulated dispersion', B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.accent, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    label(ctx, '- - power', B.x1, B.y0 - fs * 0.35, 'right', 'bottom', pal.ray, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    if (m.iDcf > 0.5) label(ctx, `⚠ ${fmt(m.iDcf, 2)} mW/µm² in the DCF: nonlinear`, (B.x0 + B.x1) / 2, B.y1 - fs * 0.4, 'center', 'bottom', pal.ray, `700 ${fs * 0.8}px ${getFont()}`, pal);
+    frameBox(ctx, B, pal); ctx.restore();
+  }
+  function drawRx(ctx, X, Y, W, H, m, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(14, W / 34));
+    panelStart(ctx, X, Y, W, H, pal);
+    const B = { x0: fs * 3.6, x1: W - fs * 1, y0: fs * 2.0, y1: H - fs * 2.8 }, g = m.g;
+    const ymax = Math.max(1.15, Math.max(...m.Pa) / m.peak * 1.05, Math.max(...m.Pe) / m.peak * 1.05);
+    const { sx, sy } = axes(ctx, B, [0, g.Tw], [0, ymax], pal, fs, 'Time (ps)', 'Power / sent peak', H, { yStep: 0.5, yf: v => fmt(v, 1) });
+    clipBox(ctx, B);
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.6; polyline(ctx, NS - 1, u => { const i = Math.round(u * (NS - 1)); return [sx(g.t[i]), sy(m.Pe[i] / m.peak)]; });
+    const good = m.eyeOut > 0.5;
+    ctx.strokeStyle = good ? pal.ok : pal.ray; ctx.lineWidth = 2.4; polyline(ctx, NS - 1, u => { const i = Math.round(u * (NS - 1)); return [sx(g.t[i]), sy(m.Pa[i] / m.peak)]; });
+    ctx.restore();
+    label(ctx, m.coh ? 'coherent + DSP: H⁻¹ on the full field' : Math.abs(m.end.D) < 5 ? 'power detector: no residual to undo' : 'power detector: H⁻¹ on √power fails', B.x0, B.y0 - fs * 0.35, 'left', 'bottom', good ? pal.ok : pal.ray, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    label(ctx, '— received', B.x1, B.y0 - fs * 0.35, 'right', 'bottom', pal.muted, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    label(ctx, `eye after DSP ${fmt(Math.max(0, m.eyeOut) * 100, 0)}%`, B.x1 - fs * 0.3, B.y0 + fs * 0.3, 'right', 'top', good ? pal.ok : pal.ray, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    frameBox(ctx, B, pal); ctx.restore();
+  }
+
+  // ---------- slide animation ----------
+  const K = { Ls: [[0, 80], [52, 80]], Ld: [[0, 13.6], [30, 13.6], [33, 0], [52, 0]], Pl: [[0, 0], [21, 0], [26, 12], [29, 12], [31, 0], [52, 0]], zf: [[0, 0], [4, 0], [13, 0.855], [15, 0.855], [20, 1], [52, 1]] };
+  const CAPS = [
+    [0, 4, 'A 10 Gb/s link: SMF, then DCF', '80 km of standard fiber followed by 13.6 km of DCF with D = −100 ps/(nm·km): 80 × 17 = 13.6 × 100 = 1360 ps/nm.'],
+    [4, 14, 'The SMF spreads the bits', 'Accumulated dispersion grows by 17 ps/nm every km. After 80 km the pulses overlap and the zeros fill up.'],
+    [14, 21, 'The DCF squeezes them back', 'Opposite β₂: the accumulated dispersion returns to zero and the bits are clean again. The price is about 14 dB of extra loss.'],
+    [21, 30, 'Power inside the DCF', 'Put the DCF first and launch 12 dBm: 16 mW in a 20 µm² core is enough for nonlinear effects. Dispersion does not care about the order (H₁H₂ = H₂H₁), nonlinearity does, so the DCF goes at the end of the span.'],
+    [30, 41, 'No DCF, power detector', 'Without the DCF the bits arrive spread. Filtering the detected power with H⁻¹ does not help: the phase is gone.'],
+    [41, 52, 'No DCF, coherent receiver + DSP', 'A coherent receiver measures the field. Multiply by H⁻¹(ω) and the bits come back exactly: a linear system can be inverted.'],
+  ];
+  const DUR = 52;
+  const demoState = t => ({ Ls: track(K.Ls, t), Ld: track(K.Ld, t), B: 10, Pl: track(K.Pl, t), pre: t >= 21.5 && t < 30, zf: track(K.zf, t), coh: t >= 41 });
+  function drawDemo(ctx, W, H, t) {
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    const m = link(demoState(t)), sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02, bw = (sw - pad) / 2;
+    drawBits(ctx, 0, 0, sw, sh, m, { fontSize: W / 80 });
+    drawMap(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, m, { fontSize: W / 100 });
+    drawRx(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, m, { fontSize: W / 100 });
+    ctx.strokeStyle = LIGHT.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const c = captionAt(CAPS, t);
+    sidePanel(ctx, W, H, sw, { title: 'Undoing dispersion', formulas: ['H = exp(jβ₂zω²/2)', 'Σ β₂z = 0  →  no spreading'],
+      rows: [['SMF, DCF', `${fmt(m.Ls, 0)} km, ${fmt(m.Ld, 1)} km`], ['Dispersion at z', `${fmtS(m.here.D, 0)} ps/nm`], ['Residual', `${fmtS(m.end.D, 0)} ps/nm`], ['Launch power', `${fmt(m.Pl, 0)} dBm`], ['Receiver', m.coh ? 'coherent + DSP' : 'power detector']],
+      status: m.eyeOut > 0.5 ? ['Bits recovered', LIGHT.ok] : ['Bits lost', LIGHT.ray], cap: [c[2], c[3]],
+      foot: '16 RZ bits, FWHM 40 ps, exact FFT propagation. SMF D = 17, DCF D = −100 ps/(nm·km).' });
+  }
+
+  // ---------- app ----------
+  const st = { Ls: 80, Ld: 13.6, B: 10, Pl: 0, pre: false, zf: 1, coh: false };
+  let cur = link(st);
+  const app = runApp({ name: 'dsDemo', duration: DUR, drawDemo, draw() {
+    let [c, w, h] = ctxOf($('bits')); drawBits(c, 0, 0, w, h, cur);
+    [c, w, h] = ctxOf($('map')); drawMap(c, 0, 0, w, h, cur);
+    [c, w, h] = ctxOf($('rx')); drawRx(c, 0, 0, w, h, cur);
+  } });
+  function sync() {
+    const m = cur = link(st);
+    $('lsOut').textContent = `${fmt(st.Ls, 0)} km`; $('ldOut').textContent = `${fmt(st.Ld, 1)} km`; $('brOut').textContent = `${fmt(st.B, 1)} Gbit/s`;
+    $('plOut').textContent = `${fmt(st.Pl, 1)} dBm`; $('zzOut').textContent = `${fmt(m.z, 1)} km`;
+    $('ldHint').textContent = `D = −100 ps/(nm·km), 1 dB/km. Full compensation: ${fmt(m.full, 1)} km`;
+    $('rDs').textContent = `${fmtS(SMF.D * st.Ls, 0)} ps/nm`; $('rDd').textContent = `${fmtS(DCF.D * st.Ld, 0)} ps/nm`; $('rRes').textContent = `${fmtS(m.end.D, 0)} ps/nm`;
+    $('rFull').textContent = `${fmt(m.full, 1)} km`; $('rLoss').textContent = `${fmt(m.loss, 1)} dB`; $('rPrx').textContent = `${fmt(st.Pl - m.loss, 1)} dBm`;
+    $('rInt').textContent = st.Ld > 0 ? `${fmt(m.iDcf, 3)} mW/µm²` : 'no DCF'; $('rEye').textContent = `${fmt(Math.max(0, m.eyeOut) * 100, 0)}%`;
+    const s = $('status');
+    if (m.eyeOut > 0.5) { s.className = 'status ok'; s.innerHTML = `Bits recovered<small>${m.coh ? 'The DSP undid' : 'The fiber leaves'} a residual of ${fmtS(m.coh ? 0 : m.end.D, 0)} ps/nm; the eye is ${fmt(m.eyeOut * 100, 0)}% open.</small>`; }
+    else { s.className = 'status bad'; s.innerHTML = `Bits lost<small>Residual dispersion ${fmtS(m.end.D, 0)} ps/nm. ${m.coh ? '' : 'A power detector cannot undo it in software; add DCF or use a coherent receiver.'}</small>`; }
+    app.markDirty();
+  }
+  bindRange('ls', v => { st.Ls = v; sync(); }); bindRange('ld', v => { st.Ld = v; sync(); }); bindRange('br', v => { st.B = v; sync(); });
+  bindRange('pl', v => { st.Pl = v; sync(); }); bindRange('zz', v => { st.zf = v; sync(); });
+  bindSeg(['pPost', 'pPre'], i => { st.pre = i === 1; sync(); });
+  bindSeg(['rDD', 'rCoh'], i => { st.coh = i === 1; sync(); });
+  sync();
+
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

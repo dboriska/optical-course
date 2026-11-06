@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Phase vs Group Velocity</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: three wave strips (wave 1, wave 2, their sum) on top, ω–k diagram below, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* carrier crests, phase velocity */
+  --ray: #d8402a;
+  --ok: #1d8a3a;      /* envelope, group velocity */
+  --w1: #b5651d;      /* wave 1 */
+  --w2: #7b3fb5;      /* wave 2 */
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --w1: #e0a060; --w2: #b48ae6; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --w1: #e0a060; --w2: #b48ae6; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 78ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#wave { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; }
+#wk { display: block; width: 100%; aspect-ratio: 16 / 7; max-width: 100%; }
+@media (max-width: 600px) { #wave { aspect-ratio: 3 / 4; } #wk { aspect-ratio: 4 / 3; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:not(:first-child) { border-left: 0; }
+.seg button:last-child { border-radius: 0 7px 7px 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; color: var(--ink); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.86rem; }
+.compare div { border-radius: 8px; padding: 8px 10px; border: 1px solid var(--line); }
+.compare b { display: block; margin-bottom: 2px; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo #wkCard { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Phase vs Group Velocity</h1>
+    <p>Add two waves of slightly different frequency. The crests of the sum move at the <b>phase velocity</b> <span class="law">v_p = ω/k</span>. The beats, the envelope that carries energy and data, move at the <b>group velocity</b> <span class="law">v_g = Δω/Δk → dω/dk</span>. They differ whenever ω/k changes with k, which is dispersion.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="wave" aria-label="Wave 1, wave 2 and their sum moving along z, with a tracked crest in blue and the envelope peak in green"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Frame of reference">
+            <button id="fLab" aria-pressed="true">Lab frame</button>
+            <button id="fEnv" aria-pressed="false">Ride with the envelope</button>
+            <button id="fCrest" aria-pressed="false">Ride with a crest</button>
+          </div>
+          <button id="pause" aria-pressed="false">Pause</button>
+        </div>
+      </div>
+      <div class="card scene" id="wkCard"><canvas id="wk" aria-label="Dispersion diagram ω against k: the slope of the line from the origin is the phase velocity, the slope of the tangent is the group velocity"></canvas></div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="vp">Phase velocity v_p <output id="vpOut"></output></label>
+          <input id="vp" type="range" min="0.3" max="1" step="0.01" value="0.8">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="vg">Group velocity v_g <output id="vgOut"></output></label>
+          <input id="vg" type="range" min="0.3" max="1" step="0.01" value="0.55">
+          <span class="hint">Set them equal to see a medium without dispersion.</span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="nb">Crests per beat <output id="nbOut"></output></label>
+          <input id="nb" type="range" min="4" max="16" step="1" value="8">
+          <span class="hint">More crests per beat means the two frequencies are closer.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">What you see</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>v_p = ω₀/k₀ (blue dot)</dt><dd id="rVp"></dd>
+          <dt>v_g = Δω/Δk (green dot)</dt><dd id="rVg"></dd>
+          <dt>v_p − v_g</dt><dd id="rDv"></dd>
+          <div class="sep"></div>
+          <dt>Index n = c/v_p</dt><dd id="rN"></dd>
+          <dt>Group index n_g = c/v_g</dt><dd id="rNg"></dd>
+          <dt>A crest crosses one beat every</dt><dd id="rSlip"></dd>
+        </dl>
+      </div>
+
+      <div class="card compare">
+        <div style="border-color:var(--accent)"><b style="color:var(--accent)">Phase velocity</b>Speed of one crest of one frequency. A pure sine wave has no start and no end, so it carries no information.</div>
+        <div style="border-color:var(--ok)"><b style="color:var(--ok)">Group velocity</b>Speed of the envelope made by many frequencies. Energy, pulses and bits travel at v_g.</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Speeds are in units of c, and the animation runs slowly: the carrier wavelength is drawn as one grid step. The two waves have k₁,₂ = k₀ ∓ δk and ω₁,₂ = ω(k₁,₂) on a dispersion curve ω(k) that passes through the origin, with ω₀/k₀ = v_p and dω/dk = v_g at k₀. For two waves placed symmetrically on a parabola, Δω/Δk equals the tangent slope exactly. In silica at 1550 nm v_p = c/1.444 and v_g = c/1.463, only 1.3% apart; here the gap is exaggerated so you can see it.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- physics in screen units: carrier wavelength 1, speed unit c → SC wavelengths per second ----------
+  const SC = 4, K0 = 2 * PI;
+  // st: { vp, vg (units of c), nb (crests per beat) }
+  function model(st) {
+    const dk = PI / st.nb;                       // beat period = π/dk = nb wavelengths (|envelope|)
+    const vp = st.vp * SC, vg = st.vg * SC, w0 = vp * K0, b = 2 * (vg - vp) / K0;
+    const om = k => w0 + vg * (k - K0) + 0.5 * b * (k - K0) ** 2;
+    const k1 = K0 - dk, k2 = K0 + dk;
+    return { ...st, dk, k1, k2, w1: om(k1), w2: om(k2), om, b, w0, VP: vp, VG: vg };
+  }
+  // phases θ₁, θ₂ advance by ω dt; the drawing needs only these two numbers
+  function fields(m, th) {
+    const [t1, t2] = th;
+    const zEnv = (t2 - t1) / (m.k2 - m.k1);                     // a beat maximum (lab coordinate)
+    const zCr = ((t1 + t2) / 2) / K0;                           // a carrier crest of the sum (lab coordinate)
+    return {
+      f1: z => Math.cos(m.k1 * z - t1), f2: z => Math.cos(m.k2 * z - t2),
+      sum: z => 0.5 * (Math.cos(m.k1 * z - t1) + Math.cos(m.k2 * z - t2)),
+      env: z => Math.abs(Math.cos(m.dk * z - (t2 - t1) / 2)),
+      zEnv, zCr, c1: t1 / m.k1, c2: t2 / m.k2,
+    };
+  }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', w1: '#b5651d', w2: '#7b3fb5', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 2) => v.toFixed(n);
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, p = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha *= 0.88; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - p, ty - p, w + 2 * p, h + 2 * p, p) : ctx.rect(lx - p, ty - p, w + 2 * p, h + 2 * p); ctx.fill(); ctx.globalAlpha /= 0.88;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  const posmod = (a, b) => ((a % b) + b) % b;
+
+  // ---------- wave strips ----------
+  const WIN = 40;                  // window, carrier wavelengths
+  // frame: 'lab' | 'env' | 'crest'; show: alpha of [wave1, wave2, sum]
+  function drawWaves(ctx, X, Y, W, H, m, th, frame, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58)), show = opts.show || [1, 1, 1];
+    const F = fields(m, th);
+    // the window follows the chosen object; the lab frame stays still
+    const z0 = frame === 'env' ? F.zEnv - WIN / 2 : frame === 'crest' ? F.zCr - WIN / 2 : 0;
+    // in moving frames pick the envelope peak / crest nearest the centre
+    const beat = PI / m.dk;
+    const zPk = (() => { const c = z0 + WIN / 2; return F.zEnv + beat * Math.round((c - F.zEnv) / beat); })();
+    ctx.save(); ctx.translate(X, Y);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const rows = [
+      { a: show[0], f: F.f1, c: pal.w1, title: 'Wave 1, frequency ω₁', sp: m.w1 / m.k1 / SC, cz: F.c1, lam: 2 * PI / m.k1 },
+      { a: show[1], f: F.f2, c: pal.w2, title: 'Wave 2, frequency ω₂', sp: m.w2 / m.k2 / SC, cz: F.c2, lam: 2 * PI / m.k2 },
+      { a: show[2], f: F.sum, c: pal.accent, title: 'Sum: carrier at v_p inside an envelope at v_g', sum: true },
+    ];
+    const hs = [0.25, 0.25, 0.5];
+    let y = 0;
+    rows.forEach((r, i) => {
+      const h = H * hs[i]; const B = { x0: fs * 1.2, x1: W - fs * 1.2, y0: y + fs * 2.0, y1: y + h - fs * 0.6 };
+      const sx = z => B.x0 + (B.x1 - B.x0) * (z - z0) / WIN, yc = (B.y0 + B.y1) / 2, amp = (B.y1 - B.y0) * 0.44, sy = v => yc - amp * v;
+      ctx.save(); ctx.globalAlpha = Math.max(0.0, r.a);
+      if (r.a > 0.01) {
+        ctx.fillStyle = pal.clad; ctx.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+        // ticks every 4 wavelengths, fixed to the lab, so a moving frame shows them sliding
+        ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+        for (let z = Math.ceil(z0 / 4) * 4; z <= z0 + WIN; z += 4) { ctx.beginPath(); ctx.moveTo(sx(z), B.y0); ctx.lineTo(sx(z), B.y1); ctx.stroke(); }
+        const N = Math.round((B.x1 - B.x0) * 1.5);
+        if (r.sum) {
+          ctx.strokeStyle = pal.ok; ctx.lineWidth = Math.max(2, W / 520);
+          for (const s of [1, -1]) { ctx.beginPath(); for (let k = 0; k <= N; k++) { const z = z0 + WIN * k / N, yy = sy(s * F.env(z)); k ? ctx.lineTo(sx(z), yy) : ctx.moveTo(sx(z), yy); } ctx.stroke(); }
+        }
+        ctx.strokeStyle = r.c; ctx.lineWidth = Math.max(2.2, W / 480); ctx.lineJoin = 'round';
+        ctx.beginPath(); for (let k = 0; k <= N; k++) { const z = z0 + WIN * k / N, yy = sy(r.f(z)); k ? ctx.lineTo(sx(z), yy) : ctx.moveTo(sx(z), yy); } ctx.stroke();
+        const dot = (z, v, c, rad = 0.5) => { if (z < z0 - 0.01 || z > z0 + WIN + 0.01) return; ctx.fillStyle = c; ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(z), sy(v), fs * rad, 0, 2 * PI); ctx.fill(); ctx.stroke(); };
+        if (r.sum) {
+          // envelope peak (green) and one crest that cycles through the beat (blue)
+          ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.ok; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(zPk), B.y0); ctx.lineTo(sx(zPk), B.y1); ctx.stroke(); ctx.restore();
+          // in every other beat the envelope factor is negative, so the crests of the sum sit half a wavelength over
+          const R = Math.max(1, Math.floor(m.nb / 2) - 1), flip = Math.round((zPk - F.zEnv) / beat) % 2 ? 0.5 : 0, rel = posmod(F.zCr + flip - zPk + R, 2 * R) - R, zc = zPk + rel;
+          dot(zPk, 1, pal.ok, 0.55);
+          dot(zc, F.sum(zc), pal.accent, 0.5);
+        } else {
+          const M = Math.max(1, Math.floor(WIN / r.lam)), span = M * r.lam, zc = z0 + posmod(r.cz - z0, span);
+          dot(zc, 1, r.c, 0.45);
+        }
+        ctx.strokeStyle = pal.ink; ctx.globalAlpha *= 0.5; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.globalAlpha /= 0.5;
+        ctx.font = `700 ${fs * 0.88}px ${getFont()}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = r.c;
+        ctx.fillText(r.title, B.x0, y + fs * 1.0);
+        ctx.textAlign = 'right'; ctx.font = `${fs * 0.8}px ${monoFont()}`; ctx.fillStyle = pal.muted;
+        ctx.fillText(r.sum ? `crest ${fmt(m.vp)}c   envelope ${fmt(m.vg)}c` : `crests move at ω/k = ${fmt(r.sp)}c`, B.x1, y + fs * 1.0);
+      }
+      ctx.restore();
+      y += h;
+    });
+    if (frame !== 'lab') label(ctx, frame === 'env' ? 'camera moves with the envelope' : 'camera moves with the crests', W - fs * 1.4, H - fs * 1.2, 'right', 'bottom', pal.muted, `${fs * 0.78}px ${getFont()}`, pal);
+    ctx.restore();
+  }
+
+  // ---------- ω–k diagram ----------
+  function drawWK(ctx, X, Y, W, H, m, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 60));
+    const B = { x0: fs * 3.2, x1: W - fs * 1.2, y0: fs * 1.6, y1: H - fs * 2.6 };
+    const kmax = 2 * K0, wmax = Math.max(m.om(kmax), m.w0 * 1.6, 1e-6) * 1.05;
+    const sx = k => B.x0 + (B.x1 - B.x0) * k / kmax, sy = w => B.y1 - (B.y1 - B.y0) * w / wmax;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(B.x0, B.y0); ctx.lineTo(B.x0, B.y1); ctx.lineTo(B.x1, B.y1); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.95}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('k', B.x1, B.y1 + fs * 0.4);
+    ctx.textAlign = 'left'; ctx.fillText('ω', B.x0 - fs * 1.6, B.y0 - fs * 0.3);
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0 - fs, B.x1 - B.x0, B.y1 - B.y0 + fs); ctx.clip();
+    // dispersion curve
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.4; ctx.beginPath();
+    for (let i = 0; i <= 200; i++) { const k = kmax * i / 200, w = m.om(k); i ? ctx.lineTo(sx(k), sy(w)) : ctx.moveTo(sx(k), sy(w)); } ctx.stroke();
+    // phase: line from the origin; group: tangent at k₀
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.4; ctx.beginPath(); ctx.moveTo(sx(0), sy(0)); ctx.lineTo(sx(kmax), sy(m.VP * kmax)); ctx.stroke();
+    ctx.strokeStyle = pal.ok; ctx.setLineDash([9, 6]); ctx.beginPath(); ctx.moveTo(sx(K0 - 0.7 * K0), sy(m.w0 - m.VG * 0.7 * K0)); ctx.lineTo(sx(K0 + 0.9 * K0), sy(m.w0 + m.VG * 0.9 * K0)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    // the two waves on the curve
+    for (const [k, w, c] of [[m.k1, m.w1, pal.w1], [m.k2, m.w2, pal.w2]]) { ctx.fillStyle = c; ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(k), sy(w), fs * 0.4, 0, 2 * PI); ctx.fill(); ctx.stroke(); }
+    ctx.fillStyle = pal.ink; ctx.beginPath(); ctx.arc(sx(K0), sy(m.w0), fs * 0.3, 0, 2 * PI); ctx.fill();
+    ctx.save(); ctx.setLineDash([3, 4]); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx(K0), sy(m.w0)); ctx.lineTo(sx(K0), B.y1); ctx.moveTo(sx(K0), sy(m.w0)); ctx.lineTo(B.x0, sy(m.w0)); ctx.stroke(); ctx.restore();
+    label(ctx, 'k₀', sx(K0), B.y1 + fs * 0.35, 'center', 'top', pal.muted, `${fs * 0.85}px ${monoFont()}`, pal, false);
+    label(ctx, 'ω₀', B.x0 - fs * 0.3, sy(m.w0), 'right', 'middle', pal.muted, `${fs * 0.85}px ${monoFont()}`, pal, false);
+    // labels
+    // legend in the top-left corner
+    const lx = B.x0 + fs * 1.2, ly = B.y0 + fs * 0.4, seg = fs * 2.2;
+    ctx.lineWidth = 2.4; ctx.strokeStyle = pal.accent; ctx.beginPath(); ctx.moveTo(lx, ly + fs * 0.5); ctx.lineTo(lx + seg, ly + fs * 0.5); ctx.stroke();
+    ctx.strokeStyle = pal.ok; ctx.setLineDash([7, 5]); ctx.beginPath(); ctx.moveTo(lx, ly + fs * 2.0); ctx.lineTo(lx + seg, ly + fs * 2.0); ctx.stroke(); ctx.setLineDash([]);
+    label(ctx, `v_p = ω₀/k₀ = ${fmt(m.vp)}c: slope of the line from the origin`, lx + seg + fs * 0.5, ly + fs * 0.5, 'left', 'middle', pal.accent, `700 ${fs * 0.85}px ${getFont()}`, pal);
+    label(ctx, `v_g = dω/dk = ${fmt(m.vg)}c: slope of the tangent at k₀`, lx + seg + fs * 0.5, ly + fs * 2.0, 'left', 'middle', pal.ok, `700 ${fs * 0.85}px ${getFont()}`, pal);
+    label(ctx, Math.abs(m.vp - m.vg) < 0.005 ? 'ω(k) is a straight line through 0: no dispersion' : 'ω(k) is curved: dispersion', B.x1 - fs * 0.3, B.y1 - fs * 0.5, 'right', 'bottom', pal.ink, `${fs * 0.85}px ${getFont()}`, pal);
+    ctx.restore();
+  }
+
+  // ---------- demo timeline ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const K_A1 = [[0, 1], [40, 1]], K_A2 = [[0, 0], [5, 0], [6, 1], [40, 1]], K_A3 = [[0, 0], [10, 0], [11, 1], [40, 1]];
+  const K_VG = [[0, 0.55], [22, 0.55], [24, 0.8], [30, 0.8], [32, 0.95], [38, 0.95], [40, 0.55]];
+  const CAPTIONS = [
+    [0, 5, 'One wave: phase velocity', 'A single frequency. Each crest moves at v_p = ω/k. The wave never starts or ends, so it carries no message.'],
+    [5, 10, 'A second wave, slightly higher frequency', 'Its ω/k is a little different, because in a dispersive medium the phase velocity depends on frequency.'],
+    [10, 22, 'Their sum: beats', 'The crests (blue dot) move at v_p. The envelope (green dot) moves at v_g = Δω/Δk. Here v_g < v_p, so the crests run forward through the envelope.'],
+    [22, 30, 'No dispersion: v_g = v_p', 'ω(k) is a straight line through the origin. Every frequency has the same ω/k, and the crests stay locked inside the envelope.'],
+    [30, 40, 'v_g > v_p: crests drift backward', 'The envelope now outruns its crests. In silica at 1550 nm v_g is 1.3% below v_p; information always moves at v_g.'],
+  ];
+  const DEMO_DURATION = 40;
+  function demoState(t) { return { vp: 0.8, vg: track(K_VG, t), nb: 8, show: [track(K_A1, t), track(K_A2, t), track(K_A3, t)], frame: 'lab' }; }
+  function demoPhases(t) { let a = 0, b = 0; const h = 1 / 120; for (let s = 0; s < t; s += h) { const m = model(demoState(s)), d = Math.min(h, t - s); a += m.w1 * d; b += m.w2 * d; } return [a, b]; }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), m = model(st), th = demoPhases(t);
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.66), pad = W * 0.02;
+    drawWaves(ctx, 0, 0, sw, sh, m, th, 'lab', { fontSize: W / 84, show: st.show });
+    drawWK(ctx, 0, sh + pad * 0.3, sw, H - sh - pad * 0.4, m, { fontSize: W / 105 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Phase vs group velocity', px, y); y += W / 46 * 1.6;
+    ctx.font = `${W / 64}px ${getFont()}`;
+    ctx.fillStyle = pal.accent; ctx.fillText('v_p = ω/k', px, y); ctx.fillStyle = pal.muted; ctx.fillText('speed of the crests', px + W / 64 * 7, y); y += W / 64 * 1.6;
+    ctx.fillStyle = pal.ok; ctx.fillText('v_g = dω/dk', px, y); ctx.fillStyle = pal.muted; ctx.fillText('speed of the envelope', px + W / 64 * 7, y); y += W / 64 * 2.0;
+    const rows = [['v_p', `${fmt(m.vp)} c`], ['v_g', `${fmt(m.vg)} c`], ['v_p − v_g', `${fmt(m.vp - m.vg)} c`]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'Speeds in units of c, slowed down for the eye. The gap between v_p and v_g is exaggerated; in fiber it is about 1%.', px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const wc = $('wave'), kc = $('wk');
+  const state = { vp: 0.8, vg: 0.55, nb: 8, frame: 'lab' };
+  let m = model(state), th = [0, 0], wkDirty = true, paused = false, simT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    m = model(state);
+    $('vp').value = state.vp; $('vg').value = state.vg; $('nb').value = state.nb;
+    $('vpOut').textContent = `${fmt(state.vp)} c`; $('vgOut').textContent = `${fmt(state.vg)} c`; $('nbOut').textContent = state.nb;
+    $('rVp').textContent = `${fmt(m.vp)} c`; $('rVg').textContent = `${fmt(m.vg)} c`; $('rDv').textContent = `${m.vp - m.vg >= 0 ? '+' : '−'}${fmt(Math.abs(m.vp - m.vg))} c`;
+    $('rN').textContent = fmt(1 / m.vp, 3); $('rNg').textContent = fmt(1 / m.vg, 3);
+    const dv = Math.abs(m.VP - m.VG);
+    $('rSlip').textContent = dv < 1e-6 ? 'never' : `${fmt(m.nb / dv, 1)} s`;
+    const st = $('status'), d = m.vp - m.vg;
+    st.innerHTML = Math.abs(d) < 0.005 ? `No dispersion<small>v_p = v_g: the crests stay put inside the envelope.</small>`
+      : d > 0 ? `Crests run forward through the envelope<small>v_p &gt; v_g, as for light in glass (n_g &gt; n).</small>`
+      : `Crests drift backward through the envelope<small>v_g &gt; v_p: the envelope outruns its own crests.</small>`;
+    wkDirty = true;
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (DEMO) {
+      simT += dt; const { w, h, dpr } = sizeCanvas(wc); const ctx = wc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    } else {
+      if (!paused) { const d = dt * (reduced ? 0.4 : 1); th = [th[0] + m.w1 * d, th[1] + m.w2 * d]; }
+      let { w, h, dpr } = sizeCanvas(wc), ctx = wc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawWaves(ctx, 0, 0, w, h, m, th, state.frame);
+      if (wkDirty) { ({ w, h, dpr } = sizeCanvas(kc)); ctx = kc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawWK(ctx, 0, 0, w, h, m); wkDirty = false; }
+    }
+    requestAnimationFrame(frame);
+  }
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  $('vp').addEventListener('input', e => { state.vp = +e.target.value; later(); });
+  $('vg').addEventListener('input', e => { state.vg = +e.target.value; later(); });
+  $('nb').addEventListener('input', e => { state.nb = +e.target.value; later(); });
+  const frames = { fLab: 'lab', fEnv: 'env', fCrest: 'crest' };
+  for (const [id, f] of Object.entries(frames)) $(id).addEventListener('click', () => { state.frame = f; for (const j of Object.keys(frames)) $(j).setAttribute('aria-pressed', String(j === id)); });
+  $('pause').addEventListener('click', e => { paused = !paused; e.currentTarget.setAttribute('aria-pressed', String(paused)); e.currentTarget.textContent = paused ? 'Play' : 'Pause'; });
+  window.addEventListener('resize', () => { wkDirty = true; });
+  new MutationObserver(() => { wkDirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { wkDirty = true; });
+
+  // hook for rendering the slide video frame by frame
+  window.vpvgDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(wc); const ctx = wc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, model, demoState };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { wkDirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

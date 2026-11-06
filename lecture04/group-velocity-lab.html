@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Phase and Group Velocity Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the moving wave (lab frame and envelope frame) on top, silica index chart below it, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* carrier, phase */
+  --ray: #d8402a;
+  --ok: #1d8a3a;      /* envelope, group */
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 76ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#wave { display: block; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; }
+#idx { display: block; width: 100%; aspect-ratio: 3 / 1; max-width: 100%; touch-action: none; cursor: ew-resize; }
+@media (max-width: 600px) { #wave { aspect-ratio: 4 / 3; } #idx { aspect-ratio: 2 / 1; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.readouts { display: grid; grid-template-columns: auto auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .h { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; text-align: right; font-family: var(--font-body); font-weight: 700; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.readouts .wide { grid-column: 2 / -1; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo #idxCard { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Phase and Group Velocity Lab</h1>
+    <p>The carrier crests move at the phase velocity <span class="law">v_p = c/n</span>; the envelope, which carries the data, moves at the group velocity <span class="law">v_g = 1/β₁ = c/n_g</span>, with <span class="law">n_g = n − λ dn/dλ</span>. A fiber of length L delays the pulse by <span class="law">T = L n_g / c</span>.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="wave" aria-label="A wave packet moving along the fiber: carrier crests in blue, envelope in green, seen in the lab and riding with the envelope"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Signal">
+            <button id="mPacket" aria-pressed="true">Wave packet</button>
+            <button id="mBeat" aria-pressed="false">Two frequencies</button>
+          </div>
+          <button id="pause" aria-pressed="false">Pause</button>
+          <div class="legend"><span><i style="background:var(--accent)"></i>carrier, v_p</span><span><i style="background:var(--ok)"></i>envelope, v_g</span></div>
+        </div>
+      </div>
+      <div class="card scene" id="idxCard"><canvas id="idx" aria-label="Phase index n and group index n_g of silica against wavelength; drag to set the wavelength"></canvas></div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="lam">Wavelength λ <output id="lamOut"></output></label>
+          <input id="lam" type="range" min="0.8" max="1.7" step="0.001" value="1.55">
+          <span class="hint">n and n_g of pure silica from the Sellmeier equation.</span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="ex">Exaggerate n_g − n on screen <output id="exOut"></output></label>
+          <input id="ex" type="range" min="1" max="40" step="1" value="10">
+          <span class="hint">Only the animation is exaggerated. The numbers stay real.</span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="len">Fiber length L <output id="lenOut"></output></label>
+          <input id="len" type="range" min="1" max="1000" step="1" value="100">
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <dl class="readouts">
+          <dt></dt><dd class="h" style="color:var(--accent)">crests</dd><dd class="h" style="color:var(--ok)">envelope</dd>
+          <dt>Index</dt><dd id="rN"></dd><dd id="rNg"></dd>
+          <dt>Speed / c</dt><dd id="rVp"></dd><dd id="rVg"></dd>
+          <dt>Delay per km</dt><dd id="rTp"></dd><dd id="rTg"></dd>
+          <div class="sep"></div>
+          <dt>Pulse delay T = L n_g/c</dt><dd class="wide" id="rT"></dd>
+          <dt>Crests arrive earlier by</dt><dd class="wide" id="rDT"></dd>
+          <dt>Crests passing the envelope</dt><dd class="wide" id="rSlip"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Pure silica, Sellmeier coefficients B = 0.6962, 0.4079, 0.8975 and λⱼ = 68.4 nm, 116.2 nm, 9.896 µm. The guided mode of a real fiber has a slightly different n_eff and n_g, but the picture is the same. In the animation the carrier wavelength is drawn about a hundred thousand times longer and the wave is slowed down; only the ratio v_p / v_g matters. "Crests passing the envelope" is the number of carrier periods by which the crests outrun the envelope over the length L, L(n_g − n)/λ.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- silica (λ in µm) ----------
+  const SB = [0.6961663, 0.4079426, 0.8974794], SL = [0.0684043, 0.1162414, 9.896161];
+  const nSil = l => Math.sqrt(1 + SB.reduce((s, b, j) => s + b * l * l / (l * l - SL[j] * SL[j]), 0));
+  const ngSil = l => { const h = 1e-5, d = (nSil(l + h) - nSil(l - h)) / (2 * h); return nSil(l) - l * d; };
+  const C_KM_US = 0.299792458; // km per µs
+  function optics(st) {
+    const n = nSil(st.lam), ng = ngSil(st.lam);
+    return { ...st, n, ng, vp: 1 / n, vg: 1 / ng, tp: n / C_KM_US, tg: ng / C_KM_US, T: st.L * ng / C_KM_US, dT: st.L * (ng - n) / C_KM_US, slip: st.L * 1e9 * (ng - n) / st.lam };
+  }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => v.toFixed(n);
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, p = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - p, ty - p, w + 2 * p, h + 2 * p, p) : ctx.rect(lx - p, ty - p, w + 2 * p, h + 2 * p); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+
+  // ---------- the wave (screen units: carrier wavelength = 1) ----------
+  const S = 4;            // envelope speed on screen, wavelengths per second
+  const SIG = 4.5;        // packet width (σ of the field envelope)
+  const HB = 10;          // half beat length for two frequencies
+  const R = 4;            // the tracked crest cycles through ±R around the envelope peak
+  const P = 64;           // the lab frame shows copies of the packet every P wavelengths (integer)
+  const LABW = 48;        // lab window, wavelengths
+  // returns field(z) and markers for one frame
+  const relSpeed = (st, o) => S * st.ex * (o.ng / o.n - 1);   // crest speed relative to the envelope
+  // phi: how far the crests have moved through the envelope (integral of the relative speed)
+  function waveAt(st, o, t, phi) {
+    const w = 1;
+    const rStar = (((phi + R) % (2 * R)) + 2 * R) % (2 * R) - R;
+    const env = st.beat ? (r => Math.abs(Math.cos(PI * r / (2 * HB)))) : (r => Math.exp(-r * r / (2 * SIG * SIG)));
+    const sgn = st.beat ? (r => Math.sign(Math.cos(PI * r / (2 * HB))) || 1) : (() => 1);
+    const fieldRel = r => env(r) * sgn(r) * Math.cos(2 * PI * (r - phi));
+    let zc;
+    if (st.beat) zc = (((S * t) % (2 * HB)) + 2 * HB) % (2 * HB) + LABW / 2 - HB;
+    else zc = (((S * t + 26) % P) + P) % P - (P - LABW) / 2;
+    return { w, rStar, env, fieldRel, zc };
+  }
+  function drawStrip(ctx, X, Y, W, H, st, o, t, phi, frame, pal, fs) {
+    const B = { x0: fs * 1.2, x1: W - fs * 1.2, y0: fs * 2.2, y1: H - fs * 0.8 };
+    const wv = waveAt(st, o, t, phi), lab = frame === 'lab';
+    const zr = lab ? [0, LABW] : [-LABW / 2, LABW / 2];
+    const sx = z => B.x0 + (B.x1 - B.x0) * (z - zr[0]) / (zr[1] - zr[0]), yc = (B.y0 + B.y1) / 2, amp = (B.y1 - B.y0) * 0.44, sy = v => yc - amp * v;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    // fiber core band
+    ctx.fillStyle = pal.clad; ctx.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.fillStyle = pal.core; ctx.fillRect(B.x0, yc - amp * 1.12, B.x1 - B.x0, amp * 2.24);
+    // ticks every 4 wavelengths, moving with the frame
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+    const off = lab ? 0 : (((wv.zc) % 4) + 4) % 4;
+    for (let z = Math.ceil(zr[0] / 4) * 4 - off; z <= zr[1]; z += 4) { if (z < zr[0]) continue; ctx.beginPath(); ctx.moveTo(sx(z), B.y1 - fs * 0.5); ctx.lineTo(sx(z), B.y1); ctx.stroke(); }
+    const rel = z => { if (!lab) return z; const r = z - wv.zc; return st.beat ? r : r - P * Math.round(r / P); };   // position relative to the nearest envelope peak
+    const N = Math.round(B.x1 - B.x0);
+    // envelope
+    ctx.strokeStyle = pal.ok; ctx.lineWidth = Math.max(2, W / 520);
+    for (const s of [1, -1]) { ctx.beginPath(); for (let i = 0; i <= N; i++) { const z = zr[0] + (zr[1] - zr[0]) * i / N, y = sy(s * wv.env(rel(z))); i ? ctx.lineTo(sx(z), y) : ctx.moveTo(sx(z), y); } ctx.stroke(); }
+    // carrier
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = Math.max(2.2, W / 480); ctx.lineJoin = 'round';
+    ctx.beginPath(); for (let i = 0; i <= N * 2; i++) { const z = zr[0] + (zr[1] - zr[0]) * i / (N * 2), y = sy(wv.fieldRel(rel(z))); i ? ctx.lineTo(sx(z), y) : ctx.moveTo(sx(z), y); } ctx.stroke();
+    // markers: envelope peak (green) and one tracked crest (blue)
+    const zPeak = lab ? (st.beat ? wv.zc : wv.zc - P * Math.round((wv.zc - LABW / 2) / P)) : 0, zCrest = zPeak + wv.rStar;
+    ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.ok; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(sx(zPeak), B.y0); ctx.lineTo(sx(zPeak), B.y1); ctx.stroke(); ctx.restore();
+    const dot = (z, v, c) => { if (z < zr[0] || z > zr[1]) return; ctx.fillStyle = c; ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(z), sy(v), fs * 0.45, 0, 2 * PI); ctx.fill(); ctx.stroke(); };
+    dot(zPeak, wv.env(0) * (st.beat ? 1 : 1) + 0.0, pal.ok);
+    dot(zCrest, wv.fieldRel(wv.rStar), pal.accent);
+    // titles
+    ctx.font = `700 ${fs * 0.9}px ${getFont()}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.fillStyle = pal.ink;
+    ctx.fillText(lab ? 'In the lab: both move to the right' : 'Riding with the envelope', B.x0, fs * 1.0);
+    ctx.textAlign = 'right'; ctx.font = `${fs * 0.8}px ${monoFont()}`; ctx.fillStyle = pal.muted;
+    const rel1 = o.ng / o.n;
+    ctx.fillText(lab ? `v_g = c/${fmt(o.ng, 4)}   →` : (st.ex > 1 ? `crests drift ${rel1 >= 1 ? 'forward →' : '← backward'}   (n_g − n shown ×${st.ex})` : `crests drift ${rel1 >= 1 ? 'forward →' : '← backward'}`), B.x1, fs * 1.0);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+  function drawWave(ctx, X, Y, W, H, st, o, t, phi, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    ctx.save(); ctx.translate(X, Y);
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const h = H / 2;
+    drawStrip(ctx, 0, 0, W, h, st, o, t, phi, 'lab', pal, fs);
+    drawStrip(ctx, 0, h, W, h, st, o, t, phi, 'env', pal, fs);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, h); ctx.lineTo(W, h); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---------- n and n_g of silica ----------
+  const LMIN = 0.8, LMAX = 1.7;
+  function idxBox(W, H, fs) { return { x0: fs * 4.2, x1: W - fs * 1.2, y0: fs * 1.8, y1: H - fs * 2.8 }; }
+  function drawIdx(ctx, X, Y, W, H, o, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 60)), B = idxBox(W, H, fs);
+    const yr = [1.440, 1.468];
+    const sx = l => B.x0 + (B.x1 - B.x0) * (l - LMIN) / (LMAX - LMIN), sy = v => B.y1 - (B.y1 - B.y0) * (v - yr[0]) / (yr[1] - yr[0]);
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let l = 0.8; l <= LMAX + 1e-9; l += 0.1) { ctx.beginPath(); ctx.moveTo(sx(l), B.y0); ctx.lineTo(sx(l), B.y1); ctx.stroke(); ctx.fillText(fmt(l, 1), sx(l), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let v = 1.440; v <= yr[1] + 1e-9; v += 0.005) { ctx.beginPath(); ctx.moveTo(B.x0, sy(v)); ctx.lineTo(B.x1, sy(v)); ctx.stroke(); ctx.fillText(fmt(v, 3), B.x0 - fs * 0.3, sy(v)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Wavelength λ (µm)', (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('Index', 0, 0); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    for (const [f, c] of [[nSil, pal.accent], [ngSil, pal.ok]]) {
+      ctx.strokeStyle = c; ctx.lineWidth = 2.6; ctx.beginPath();
+      for (let i = 0; i <= 200; i++) { const l = LMIN + (LMAX - LMIN) * i / 200, y = sy(f(l)); i ? ctx.lineTo(sx(l), y) : ctx.moveTo(sx(l), y); } ctx.stroke();
+    }
+    ctx.restore();
+    // minimum of n_g: zero material dispersion
+    const lz = 1.2727;
+    ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(sx(lz), B.y0); ctx.lineTo(sx(lz), B.y1); ctx.stroke(); ctx.restore();
+    label(ctx, 'n_g lowest: zero material dispersion, 1.27 µm', sx(lz), sy(ngSil(lz)) + fs * 0.6, 'center', 'top', pal.muted, `${fs * 0.78}px ${getFont()}`, pal);
+    // current λ
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(o.lam), B.y0); ctx.lineTo(sx(o.lam), B.y1); ctx.stroke();
+    for (const [v, c, txt] of [[o.n, pal.accent, `n = ${fmt(o.n, 4)}`], [o.ng, pal.ok, `n_g = ${fmt(o.ng, 4)}`]]) {
+      ctx.fillStyle = c; ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(o.lam), sy(v), fs * 0.42, 0, 2 * PI); ctx.fill(); ctx.stroke();
+      const right = o.lam < 1.45;
+      label(ctx, txt, sx(o.lam) + (right ? 1 : -1) * fs * 0.8, sy(v) + (c === pal.ok ? -fs * 0.6 : fs * 0.6), right ? 'left' : 'right', 'middle', c, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    }
+    label(ctx, '— n (crests)', B.x0 + fs * 0.4, B.y0 - fs * 0.35, 'left', 'bottom', pal.accent, `700 ${fs * 0.8}px ${getFont()}`, pal, false);
+    label(ctx, '— n_g (envelope)', B.x0 + fs * 8.2, B.y0 - fs * 0.35, 'left', 'bottom', pal.ok, `700 ${fs * 0.8}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- demo timeline (for the slide animation) ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const K_EX = [[0, 1], [6, 1], [8, 15], [40, 15]];
+  const K_LAM = [[0, 1.55], [28, 1.55], [32, 0.85], [36, 0.85], [39, 1.55], [40, 1.55]];
+  const CAPTIONS = [
+    [0, 6, 'A pulse in silica at 1550 nm', 'Blue: the carrier. Green: the envelope that carries the data. Their speeds differ by only about 1.3%.'],
+    [6, 16, 'Crests move faster than the envelope', 'With n_g − n magnified 15 times, the blue crest runs forward through the green envelope. The data travels with the envelope.'],
+    [16, 26, 'Two frequencies make a beat', 'Two close carriers add up to a beat pattern. The beats move at dω/dβ = c/n_g, the group velocity.'],
+    [26, 40, 'n_g sets the pulse delay', 'Over 100 km the pulse takes 488 µs. n_g changes with λ, so each color has its own delay: that is chromatic dispersion.'],
+  ];
+  const DEMO_DURATION = 40;
+  function demoState(t) { return { lam: track(K_LAM, t), ex: Math.round(track(K_EX, t) * 10) / 10, L: 100, beat: t >= 16 && t < 26 }; }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), o = optics(st);
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.64), pad = W * 0.02;
+    let phi = 0; for (let s = 0; s < t; s += 1 / 120) { const ds = demoState(s); phi += relSpeed(ds, optics(ds)) * Math.min(1 / 120, t - s); }
+    drawWave(ctx, 0, 0, sw, sh, st, o, t, phi, { fontSize: W / 80 });
+    drawIdx(ctx, 0, sh + pad * 0.3, sw, H - sh - pad * 0.5, o, { fontSize: W / 100 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Phase and group velocity', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 64}px ${getFont()}`;
+    ctx.fillText('v_p = c/n     v_g = 1/β₁ = c/n_g', px, y); y += W / 64 * 2.0;
+    const rows = [['Wavelength λ', `${fmt(o.lam * 1000, 0)} nm`], ['Phase index n', fmt(o.n, 4)], ['Group index n_g', fmt(o.ng, 4)],
+      ['Envelope delay per km', `${fmt(o.tg, 3)} µs`], ['Crest delay per km', `${fmt(o.tp, 3)} µs`], ['Delay over 100 km', `${fmt(o.T, 1)} µs`]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'Pure silica, Sellmeier equation. The carrier is drawn far longer than 1.55 µm and slowed down; only v_p / v_g is to scale (×1 at first, then n_g − n magnified ×15).', px, H - H * 0.12, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const wc = $('wave'), ic = $('idx');
+  const state = { lam: 1.55, ex: 10, L: 100, beat: false };
+  let cur = optics(state), idxDirty = true, paused = false, simT = 0, phiT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  const fmtUs = v => v >= 1000 ? `${fmt(v / 1000, 3)} ms` : `${fmt(v, v >= 100 ? 1 : 2)} µs`;
+  function syncUI() {
+    cur = optics(state); const o = cur;
+    $('lam').value = state.lam; $('ex').value = state.ex; $('len').value = state.L;
+    $('lamOut').textContent = `${fmt(state.lam * 1000, 0)} nm`; $('exOut').textContent = `× ${state.ex}`; $('lenOut').textContent = `${state.L} km`;
+    $('rN').textContent = fmt(o.n, 4); $('rNg').textContent = fmt(o.ng, 4);
+    $('rVp').textContent = fmt(o.vp, 4); $('rVg').textContent = fmt(o.vg, 4);
+    $('rTp').textContent = `${fmt(o.tp, 3)} µs`; $('rTg').textContent = `${fmt(o.tg, 3)} µs`;
+    $('rT').textContent = fmtUs(o.T);
+    $('rDT').textContent = fmtUs(o.dT);
+    $('rSlip').textContent = o.slip >= 1e9 ? `${fmt(o.slip / 1e9, 2)} billion` : o.slip >= 1e6 ? `${fmt(o.slip / 1e6, 1)} million` : Math.round(o.slip).toLocaleString('en-US');
+    idxDirty = true;
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (!paused) { const d = dt * (reduced && !DEMO ? 0.4 : 1); simT += d; phiT += relSpeed(state, cur) * d; }
+    if (DEMO) {
+      const { w, h, dpr } = sizeCanvas(wc); const ctx = wc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    } else {
+      let { w, h, dpr } = sizeCanvas(wc), ctx = wc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawWave(ctx, 0, 0, w, h, state, cur, simT, phiT);
+      if (idxDirty) { ({ w, h, dpr } = sizeCanvas(ic)); ctx = ic.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawIdx(ctx, 0, 0, w, h, cur); idxDirty = false; }
+    }
+    requestAnimationFrame(frame);
+  }
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  const onInput = (id, key) => $(id).addEventListener('input', e => { state[key] = +e.target.value; later(); });
+  onInput('lam', 'lam'); onInput('ex', 'ex'); onInput('len', 'L');
+  function setMode(beat) { state.beat = beat; $('mPacket').setAttribute('aria-pressed', String(!beat)); $('mBeat').setAttribute('aria-pressed', String(beat)); later(); }
+  $('mPacket').addEventListener('click', () => setMode(false));
+  $('mBeat').addEventListener('click', () => setMode(true));
+  $('pause').addEventListener('click', e => { paused = !paused; e.currentTarget.setAttribute('aria-pressed', String(paused)); e.currentTarget.textContent = paused ? 'Play' : 'Pause'; });
+  // drag on the index chart sets the wavelength
+  let dragging = false;
+  function pointerL(e) {
+    const r = ic.getBoundingClientRect(), fs = Math.max(11, Math.min(14, r.width / 60)), B = idxBox(r.width, r.height, fs);
+    state.lam = Math.round(Math.max(LMIN, Math.min(LMAX, LMIN + (e.clientX - r.left - B.x0) / (B.x1 - B.x0) * (LMAX - LMIN))) * 1000) / 1000; later();
+  }
+  ic.addEventListener('pointerdown', e => { if (DEMO) return; dragging = true; ic.setPointerCapture(e.pointerId); pointerL(e); });
+  ic.addEventListener('pointermove', e => { if (dragging) pointerL(e); });
+  ic.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('resize', () => { idxDirty = true; });
+  new MutationObserver(() => { idxDirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { idxDirty = true; });
+
+  // hook for rendering the slide video frame by frame
+  window.gvDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(wc); const ctx = wc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, optics, demoState };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { idxDirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

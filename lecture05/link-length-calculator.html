@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Link Length Calculator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; align-items: center; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px) !important; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status.neutral { color: var(--accent); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+canvas.hero { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.sub { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.hero { aspect-ratio: 4 / 3; } }
+.seg { display: inline-flex; gap: 0; flex-wrap: wrap; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; }
+.seg button + button { border-left: 0; }
+.status.hot { color: var(--ray); }
+select { font: inherit; font-size: 0.9rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 5px 8px; }
+body.demo canvas.hero { aspect-ratio: 16 / 9; }
+
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Link Length Calculator</h1>
+    <p>Two things stop a fiber link. <em>Loss</em>: the received power falls below the receiver sensitivity, which itself rises with the bit rate. <em>Dispersion</em>: the pulses spread until they spill into the neighboring bit slots. For each bit rate the maximum length is the shorter of the two limits. Change the source, the fiber and the power budget and see which one wins.</p>
+  </header>
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="lim" class="hero" aria-label="Maximum link length against bit rate, for the loss limit and the dispersion limit, with the chosen link marked"></canvas>
+        <div class="scene-bar">
+          <div class="legend"><span><i style="background:var(--accent)"></i>loss limit</span><span><i style="background:var(--ray)"></i>dispersion limit</span><span><i style="background:var(--ok)"></i>links that work</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="pow" class="sub" aria-label="Optical power along the link compared with the receiver sensitivity"></canvas></div>
+        <div class="card scene"><canvas id="pul" class="sub" aria-label="Transmitted and received pulses for the bit pattern 1 0 1 1 0 1"></canvas></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Link</p>
+        <div class="ctl"><label for="br">Bit rate B <output id="brOut"></output></label><input id="br" type="range" min="-2" max="2" step="0.01" value="1"></div>
+        <div class="ctl" style="margin-top:8px"><label for="ll">Link length L <output id="llOut"></output></label><input id="ll" type="range" min="0" max="4" step="0.01" value="1.301"></div>
+        <p class="section-title" style="margin-top:14px">Power budget</p>
+        <div class="ctl"><label for="pt">Transmitter power <output id="ptOut"></output></label><input id="pt" type="range" min="-10" max="10" step="0.5" value="0"></div>
+        <div class="ctl" style="margin-top:8px"><label for="sn">Receiver sensitivity at 10 Gb/s <output id="snOut"></output></label><input id="sn" type="range" min="-40" max="-10" step="0.5" value="-24"><span class="hint">Scales as +10 dB per decade of B (fixed photons per bit)</span></div>
+        <div class="ctl" style="margin-top:8px"><label for="mg">System margin <output id="mgOut"></output></label><input id="mg" type="range" min="0" max="10" step="0.5" value="3"></div>
+        <p class="section-title" style="margin-top:14px">Fiber and source</p>
+        <div class="ctl"><label for="al">Fiber loss α <output id="alOut"></output></label><input id="al" type="range" min="0.15" max="3" step="0.01" value="0.2"><span class="hint">1550 nm ≈ 0.2, 1310 nm ≈ 0.35, 850 nm ≈ 2.5 dB/km</span></div>
+        <div class="ctl" style="margin-top:8px"><label for="dd">Dispersion |D| <output id="ddOut"></output></label><input id="dd" type="range" min="0" max="20" step="0.1" value="17"><span class="hint">SMF at 1550 ≈ 17, near 1310 ≈ 0</span></div>
+        <div class="ctl" style="margin-top:8px"><label for="sw">Source rms spectral width σλ <output id="swOut"></output></label><input id="sw" type="range" min="-4" max="1.5" step="0.01" value="-4"><span class="hint">DFB ≈ 10⁻⁴ nm, Fabry–Perot ≈ 1 nm, LED ≈ 20 nm</span></div>
+      </div>
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Loss limit at this B</dt><dd id="rLl"></dd>
+          <dt>Dispersion limit at this B</dt><dd id="rLd"></dd>
+          <dt>Limited by</dt><dd id="rLim"></dd>
+          <div class="sep"></div>
+          <dt>Received power</dt><dd id="rPr"></dd>
+          <dt>Needed (sensitivity + margin)</dt><dd id="rPn"></dd>
+          <dt>Pulse rms width at receiver</dt><dd id="rSg"></dd>
+          <dt>Bit slot T = 1/B</dt><dd id="rT"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <p class="note">Loss limit: L = (P<sub>tx</sub> − P<sub>sens</sub>(B) − margin)/α with P<sub>sens</sub>(B) = P<sub>sens</sub>(10 Gb/s) + 10·log<sub>10</sub>(B/10). Dispersion limit: the criterion 4Bσ ≤ 1 (σ ≤ T/4) with σ² = σ<sub>0</sub>² + (β<sub>2</sub>L/2σ<sub>0</sub>)² + (D L σ<sub>λ</sub>)², where the transmitted Gaussian width σ<sub>0</sub> is chosen optimally (σ<sub>0</sub>² = |β<sub>2</sub>|L/2). A narrow source gives L = 1/(16B²|β<sub>2</sub>|); a wide source gives L = 1/(4B|D|σ<sub>λ</sub>). β<sub>2</sub> = −λ²D/(2πc) at 1550 nm. The 4Bσ ≤ 1 rule is conservative; the ±1000 ps/nm rule of thumb used in other labs allows about twice the length.</p>
+</div>
+
+<script>
+(() => {
+  // ---------- shared helpers (same in every lab of the course) ----------
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+  const CREDIT = 'Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov';
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7', dark: false };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) if (k !== 'dark') p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    const th = document.documentElement.dataset.theme;
+    p.dark = th === 'dark' || (th !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtS = (v, n = 2) => (Math.abs(v) < 0.5 * 10 ** -n ? '' : v > 0 ? '+' : '−') + fmt(Math.abs(v), n);
+  const fmtT = v => Math.abs(v) >= 1000 ? `${fmt(v / 1000, 2)} ns` : `${fmt(v, Math.abs(v) >= 100 ? 0 : 1)} ps`;
+  const fmtKm = v => !isFinite(v) ? '∞' : v >= 1000 ? `${fmt(v, 0)} km` : v >= 100 ? `${fmt(v, 0)} km` : v >= 10 ? `${fmt(v, 1)} km` : `${fmt(v, 2)} km`;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  // linear or log axes; opts: xLog, yLog, xStep, yStep, xf, yf, xTicks [[v, text]], noGridX, noGridY
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const tx = v => opts.xLog ? Math.log10(v) : v, ty = v => opts.yLog ? Math.log10(v) : v;
+    const sx = x => B.x0 + (B.x1 - B.x0) * (tx(x) - tx(xr[0])) / (tx(xr[1]) - tx(xr[0])), sy = y => B.y1 - (B.y1 - B.y0) * (ty(y) - ty(yr[0])) / (ty(yr[1]) - ty(yr[0]));
+    ctx.save(); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const ticks = (r, log, step) => {
+      const out = [];
+      if (log) { for (let e = Math.floor(Math.log10(r[0])); e <= Math.ceil(Math.log10(r[1])); e++) { const v = 10 ** e; if (v >= r[0] * 0.999 && v <= r[1] * 1.001) out.push(v); } }
+      else { const s = step || niceStep(r[1] - r[0], 5); for (let v = Math.ceil(r[0] / s - 1e-9) * s; v <= r[1] + 1e-9; v += s) out.push(v); }
+      return out;
+    };
+    const lf = v => { if (v === 0) return '0'; const e = Math.log10(Math.abs(v)); return Math.abs(e) >= 4 ? `1e${Math.round(e)}` : String(+v.toPrecision(6)); };
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const xt = opts.xTicks || ticks(xr, opts.xLog, opts.xStep).map(v => [v, (opts.xf || (opts.xLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [x, t] of xt) { if (!opts.noGridX) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); } ctx.fillText(t, sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yt = opts.yTicks || ticks(yr, opts.yLog, opts.yStep).map(v => [v, (opts.yf || (opts.yLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [y, t] of yt) { if (!opts.noGridY) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); } ctx.fillText(t, B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    if (xl) ctx.fillText(xl, (B.x0 + B.x1) / 2, (opts.xlY ?? H) - fs * 0.15);
+    if (yl) { ctx.save(); ctx.translate(B.x0 - (opts.ylOff ?? fs * 3.6) + fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore(); }
+    ctx.restore();
+    return { sx, sy };
+  }
+  function frameBox(ctx, B, pal) { ctx.save(); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.restore(); }
+  function clipBox(ctx, B) { ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip(); }
+  function panelStart(ctx, X, Y, W, H, pal) { ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); }
+  function polyline(ctx, n, f) { ctx.beginPath(); let started = false; for (let i = 0; i <= n; i++) { const p = f(i / n); if (!p) { started = false; continue; } started ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); started = true; } ctx.stroke(); }
+  // ---------- timeline helpers for the slide animation ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const step = (keys, t) => { let v = keys[0][1]; for (const [t0, a] of keys) if (t >= t0) v = a; return v; };
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  // right-hand column of the slide animation: title, formulas, readouts, status, caption, footnote, credit
+  function sidePanel(ctx, W, H, x0, o) {
+    const pal = LIGHT, pad = W * 0.02, px = x0 + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.save(); ctx.textBaseline = 'top';
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left';
+    y = wrapText(ctx, o.title, px, y, pw, W / 46 * 1.2) + W / 46 * 0.35;
+    ctx.fillStyle = pal.ink;
+    for (const f of o.formulas || []) { ctx.font = `${W / 76}px ${monoFont()}`; ctx.fillText(f, px, y); y += W / 76 * 1.55; }
+    y += W / 76 * 0.5;
+    for (const [k, v] of o.rows || []) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(k, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 70}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    if (o.status) { ctx.fillStyle = o.status[1]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`; y = wrapText(ctx, '● ' + o.status[0], px, y, pw, W / 60 * 1.25) + W / 60 * 0.5; }
+    if (o.cap) {
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+      ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textAlign = 'left';
+      y = wrapText(ctx, o.cap[0], px, y, pw, W / 54 * 1.25) + W / 160;
+      ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+      wrapText(ctx, o.cap[1], px, y, pw, W / 68 * 1.4);
+    }
+    if (o.foot) { ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`; ctx.textAlign = 'left'; wrapText(ctx, o.foot, px, H - H * 0.115, pw, W / 100 * 1.4); }
+    ctx.restore();
+    credit(ctx, W, H);
+  }
+  function credit(ctx, W, H) {
+    ctx.save(); ctx.fillStyle = LIGHT.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(CREDIT, W - W * 0.02, H - H * 0.022); ctx.restore();
+  }
+  const captionAt = (caps, t) => caps.find(c => t >= c[0] && t < c[1]) || caps[caps.length - 1];
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function ctxOf(c) { const { w, h, dpr } = sizeCanvas(c), ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, w, h]; }
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // app loop: draw() when dirty (or every frame when animating), demo mode draws the slide animation
+  function runApp({ name, duration, drawDemo, draw, animating = () => false, tick = () => {} }) {
+    let dirty = true, simT = 0, last = performance.now();
+    const hero = document.querySelector('canvas.hero');
+    const api = { markDirty() { dirty = true; } };
+    function frame(now) {
+      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      if (DEMO) { simT += dt; const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, simT % duration); }
+      else { tick(dt); if (dirty || animating()) { draw(now / 1000); dirty = false; } }
+      requestAnimationFrame(frame);
+    }
+    window.addEventListener('resize', api.markDirty);
+    new MutationObserver(api.markDirty).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', api.markDirty);
+    window[name] = { duration, draw(t) { const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, t); } };
+    if (!window.__noLoop) requestAnimationFrame(frame);
+    if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(api.markDirty);
+    return api;
+  }
+  // slider wiring: ids → state keys, with optional transform (e.g. log sliders)
+  function bindRange(id, onValue) { const el = $(id); el.addEventListener('input', () => onValue(+el.value)); return el; }
+  function bindSeg(ids, onPick) { ids.forEach((id, i) => $(id).addEventListener('click', () => { ids.forEach((j, k) => $(j).setAttribute('aria-pressed', String(k === i))); onPick(i); })); }
+  // radix-2 FFT in place on Float64Array re, im (n a power of two); inverse when inv
+  function fft(re, im, inv = false) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = 2 * PI / len * (inv ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ar = re[i + j], ai = im[i + j], br = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci, bi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ar + br; im[i + j] = ai + bi; re[i + j + len / 2] = ar - br; im[i + j + len / 2] = ai - bi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+  }
+  // seeded random numbers, so the slide animation is the same every time
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const C_NM_PS = 299792.458;   // speed of light in nm/ps
+  const beta2Of = (D, lam = 1550) => -lam * lam * D / (2 * PI * C_NM_PS);   // ps²/km from ps/(nm·km)
+
+  const LAM = 1550, PAT = [1, 0, 1, 1, 0, 1];
+  // st: { B (Gb/s), L (km), Pt, S10, M, a, D, sl (nm) }
+  const lossLim = (st, B) => Math.max(0, (st.Pt - (st.S10 + 10 * Math.log10(B / 10)) - st.M) / st.a);
+  function dispLim(st, B) {
+    const b2 = Math.abs(beta2Of(st.D, LAM)), k = st.D * st.sl, Bp = B / 1000;   // ps²/km, ps/km, 1/ps
+    const c = 1 / (16 * Bp * Bp);
+    if (k < 1e-9) return b2 < 1e-12 ? Infinity : c / b2;
+    return (-b2 + Math.sqrt(b2 * b2 + 4 * k * k * c)) / (2 * k * k);
+  }
+  function calc(st) {
+    const b2 = Math.abs(beta2Of(st.D, LAM)), T = 1000 / st.B;
+    const s0 = Math.max(Math.sqrt(b2 * st.L / 2), T / 8),   // best width, but not narrower than T/8
+     sig = Math.sqrt(s0 * s0 + (b2 * st.L / (2 * s0)) ** 2 + (st.D * st.L * st.sl) ** 2);
+    const Ll = lossLim(st, st.B), Ld = dispLim(st, st.B), Lmax = Math.min(Ll, Ld);
+    const Prx = st.Pt - st.a * st.L, Pneed = st.S10 + 10 * Math.log10(st.B / 10) + st.M;
+    return { ...st, b2, T, s0, sig, Ll, Ld, Lmax, lim: Ll < Ld ? 'loss' : 'dispersion', Prx, Pneed, okP: Prx >= Pneed, okD: st.L <= Ld };
+  }
+  const BR = [0.01, 100], LR = [0.1, 1e5];
+  function drawLim(ctx, X, Y, W, H, m, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(16, W / 58));
+    panelStart(ctx, X, Y, W, H, pal);
+    const B = { x0: fs * 5.0, x1: W - fs * 1.2, y0: fs * 2.2, y1: H - fs * 3.2 };
+    const xf = v => v >= 1 ? String(v) : String(+v.toPrecision(2)), yf = v => v >= 1e4 ? `${v / 1000}k` : String(+v.toPrecision(2));
+    const { sx, sy } = axes(ctx, B, BR, LR, pal, fs, 'Bit rate B (Gb/s)', 'Maximum length (km)', H, { xLog: true, yLog: true, xf, yf, ylOff: fs * 4.4 });
+    const N = 240, Bu = u => BR[0] * (BR[1] / BR[0]) ** u, cy = L => sy(clamp(L, LR[0] * 0.5, LR[1] * 2));
+    clipBox(ctx, B);
+    // feasible region: under both limits
+    ctx.fillStyle = pal.ok; ctx.globalAlpha = 0.13; ctx.beginPath(); ctx.moveTo(B.x0, B.y1);
+    for (let i = 0; i <= N; i++) { const b = Bu(i / N); ctx.lineTo(sx(b), cy(Math.min(lossLim(m, b), dispLim(m, b)))); }
+    ctx.lineTo(B.x1, B.y1); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.lineWidth = Math.max(2, W / 450);
+    ctx.strokeStyle = pal.accent; polyline(ctx, N, u => { const b = Bu(u), L = lossLim(m, b); return L > 0 ? [sx(b), cy(L)] : null; });
+    ctx.strokeStyle = pal.ray; polyline(ctx, N, u => { const b = Bu(u); return [sx(b), cy(dispLim(m, b))]; });
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = Math.max(1, W / 1200); ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.moveTo(sx(m.B), B.y0); ctx.lineTo(sx(m.B), B.y1); ctx.stroke(); ctx.setLineDash([]);
+    // markers on the limits at this B
+    for (const [L, col] of [[m.Ll, pal.accent], [m.Ld, pal.ray]]) if (L > LR[0] && L < LR[1]) { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(sx(m.B), sy(L), fs * 0.32, 0, 2 * PI); ctx.fill(); }
+    ctx.restore();
+    // the chosen link
+    const ok = m.okP && m.okD, px = sx(m.B), py = sy(clamp(m.L, LR[0], LR[1]));
+    ctx.fillStyle = ok ? pal.ok : pal.bg; ctx.strokeStyle = ok ? pal.ok : pal.ray; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(px, py, fs * 0.55, 0, 2 * PI); ctx.fill(); ctx.stroke();
+    label(ctx, `${fmtKm(m.L)} at ${fmtB(m.B)}`, px + (px > (B.x0 + B.x1) / 2 ? -fs : fs), py - fs * 0.9, px > (B.x0 + B.x1) / 2 ? 'right' : 'left', 'bottom', ok ? pal.ok : pal.ray, `700 ${fs * 0.85}px ${getFont()}`, pal);
+    // curve labels near the right end
+    const bl = 0.04, Lll = lossLim(m, bl);
+    if (Lll > LR[0] * 2 && Lll < LR[1] / 2) label(ctx, 'loss limit', sx(bl), sy(Lll) - fs * 0.4, 'center', 'bottom', pal.accent, `700 ${fs * 0.85}px ${getFont()}`, pal);
+    let bd = 60; for (let i = 0; i <= 200; i++) { const b = BR[0] * (BR[1] / BR[0]) ** (i / 200); if (dispLim(m, b) < 3) { bd = b; break; } }
+    const Ldd = dispLim(m, bd); if (Ldd > LR[0] && Ldd < LR[1] / 2) label(ctx, 'dispersion limit', sx(bd) - fs * 0.5, sy(Ldd) + fs * 0.3, 'right', 'top', pal.ray, `700 ${fs * 0.85}px ${getFont()}`, pal);
+    label(ctx, `L_max = ${fmtKm(m.Lmax)} at ${fmtB(m.B)}, set by ${m.lim}`, B.x0, B.y0 - fs * 0.4, 'left', 'bottom', pal.ink, `700 ${fs * 0.85}px ${monoFont()}`, pal, false);
+    frameBox(ctx, B, pal); ctx.restore();
+  }
+  const fmtB = b => b >= 1 ? `${fmt(b, b >= 10 ? 0 : 1)} Gb/s` : `${fmt(b * 1000, 0)} Mb/s`;
+  function drawPow(ctx, X, Y, W, H, m, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(14, W / 34));
+    panelStart(ctx, X, Y, W, H, pal);
+    const B = { x0: fs * 4.2, x1: W - fs * 1, y0: fs * 2.0, y1: H - fs * 2.8 };
+    const lo = Math.min(m.Prx, m.Pneed) - 6, hi = Math.max(m.Pt, m.Pneed) + 4;
+    const { sx, sy } = axes(ctx, B, [0, m.L], [lo, hi], pal, fs, 'Distance (km)', 'Power (dBm)', H, { ylOff: fs * 4.2 });
+    clipBox(ctx, B);
+    ctx.fillStyle = pal.ray; ctx.globalAlpha = 0.08; ctx.fillRect(B.x0, sy(m.Pneed), B.x1 - B.x0, B.y1 - sy(m.Pneed)); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.ray; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(B.x0, sy(m.Pneed)); ctx.lineTo(B.x1, sy(m.Pneed)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx(0), sy(m.Pt)); ctx.lineTo(sx(m.L), sy(m.Prx)); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = m.okP ? pal.ok : pal.ray; ctx.beginPath(); ctx.arc(sx(m.L), sy(m.Prx), fs * 0.38, 0, 2 * PI); ctx.fill();
+    label(ctx, `needed ${fmt(m.Pneed, 1)} dBm`, B.x0 + fs * 0.4, sy(m.Pneed) + fs * 0.3, 'left', 'top', pal.ray, `700 ${fs * 0.78}px ${getFont()}`, pal);
+    label(ctx, 'power budget', B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.82}px ${getFont()}`, pal, false);
+    const mg = m.Prx - m.Pneed;
+    label(ctx, `${mg >= 0 ? 'spare' : 'short by'} ${fmt(Math.abs(mg), 1)} dB`, B.x1, B.y0 - fs * 0.35, 'right', 'bottom', m.okP ? pal.ok : pal.ray, `700 ${fs * 0.8}px ${monoFont()}`, pal, false);
+    frameBox(ctx, B, pal); ctx.restore();
+  }
+  function drawPul(ctx, X, Y, W, H, m, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(14, W / 34));
+    panelStart(ctx, X, Y, W, H, pal);
+    const B = { x0: fs * 2.4, x1: W - fs * 1, y0: fs * 2.0, y1: H - fs * 2.8 };
+    const nb = PAT.length, s0 = m.s0 / m.T, s1 = m.sig / m.T;   // widths in bit slots
+    const pk0 = 1, pk1 = s0 / s1;
+    const sum = (x, s, pk) => PAT.reduce((a, b, k) => a + (b ? pk * Math.exp(-((x - k - 0.5) ** 2) / (2 * s * s)) : 0), 0);
+    const ymax = Math.max(1.15, sum(nb / 2, s0, pk0) * 1.1);
+    const { sx, sy } = axes(ctx, B, [0, nb], [0, ymax], pal, fs, 'Time (bit slots)', '', H, { xStep: 1, yTicks: [], noGridY: true });
+    clipBox(ctx, B);
+    PAT.forEach((b, k) => { if (b) { ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.06; ctx.fillRect(sx(k), B.y0, sx(k + 1) - sx(k), B.y1 - B.y0); ctx.globalAlpha = 1; } });
+    ctx.lineWidth = 2; ctx.strokeStyle = pal.muted; ctx.setLineDash([5, 4]); polyline(ctx, 400, u => { const x = u * nb; return [sx(x), sy(sum(x, s0, pk0))]; }); ctx.setLineDash([]);
+    ctx.lineWidth = 3; ctx.strokeStyle = m.okD ? pal.ok : pal.ray; polyline(ctx, 400, u => { const x = u * nb; return [sx(x), sy(sum(x, s1, pk1))]; });
+    ctx.restore();
+    PAT.forEach((b, k) => label(ctx, String(b), sx(k + 0.5), B.y0 + fs * 0.3, 'center', 'top', pal.muted, `700 ${fs * 0.85}px ${monoFont()}`, pal, false));
+    label(ctx, 'pulses: sent (dashed) and received', B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.82}px ${getFont()}`, pal, false);
+    label(ctx, `σ/T = ${fmt(m.sig / m.T, m.sig / m.T < 10 ? 2 : 0)} (limit 0.25)`, B.x1, B.y0 - fs * 0.35, 'right', 'bottom', m.okD ? pal.ok : pal.ray, `700 ${fs * 0.78}px ${monoFont()}`, pal, false);
+    frameBox(ctx, B, pal); ctx.restore();
+  }
+  // ---------- slide animation ----------
+  const K = {
+    lB: [[0, 1], [5, 1], [12, -1.5], [16, 1], [50, 1]],
+    lS: [[0, -4], [16, -4], [21, 0], [27, 0], [30, 1.3], [37, 1.3], [39, -4], [56, -4]],
+    D: [[0, 17], [31, 17], [34, 0.5], [37, 0.5], [39, 17], [48, 17], [51, 4], [56, 4]],
+    a: [[0, 0.2], [31, 0.2], [34, 0.35], [37, 0.35], [39, 0.2], [56, 0.2]],
+    Pt: [[0, 0], [41, 0], [44, 10], [56, 10]],
+  };
+  const CAPS = [
+    [0, 5, 'Two limits on every link', 'Blue: the power runs out. Red: the pulses overlap. A link works only below both curves (green). Here: 10 Gb/s over 20 km with a DFB laser on standard fiber at 1550 nm.'],
+    [5, 16, 'Different slopes', 'The loss limit falls slowly: the receiver needs 10 dB more power per decade of B. The dispersion limit falls as 1/B²: a faster signal has a wider spectrum and shorter bits. At low rates loss wins, at high rates dispersion wins.'],
+    [16, 27, 'A wide source: the limit drops to 1/B', 'A Fabry–Perot laser with σλ ≈ 1 nm: now the source spectrum, not the signal, sets the spreading. L = 1/(4B|D|σλ): about 1.4 km at 10 Gb/s.'],
+    [27, 31, 'An LED', 'σλ ≈ 20 nm. On standard fiber at 1550 nm the reach falls below a kilometer even at 100 Mb/s.'],
+    [31, 39, 'Move to 1310 nm', 'Near zero dispersion (|D| ≈ 0.5) the LED reaches much farther, but the fiber loss is 0.35 dB/km, so the loss limit drops. This is why early systems ran at 1310 nm.'],
+    [39, 48, 'More power moves only the blue curve', 'Back to a DFB laser at 1550 nm. +10 dB of transmitter power adds 50 km to the loss limit, but the dispersion limit is untouched: amplifiers cannot fix dispersion.'],
+    [48, 56, 'Lower D moves the red curve', 'A non-zero dispersion-shifted fiber with |D| ≈ 4 ps/(nm·km) raises the dispersion limit four times.'],
+  ];
+  const DUR = 56;
+  const demoState = t => ({ B: 10 ** track(K.lB, t), L: 20, Pt: track(K.Pt, t), S10: -24, M: 3, a: track(K.a, t), D: track(K.D, t), sl: 10 ** track(K.lS, t) });
+  function drawDemo(ctx, W, H, t) {
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    const m = calc(demoState(t)), sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02, bw = (sw - pad) / 2;
+    drawLim(ctx, 0, 0, sw, sh, m, { fontSize: W / 80 });
+    drawPow(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, m, { fontSize: W / 100 });
+    drawPul(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, m, { fontSize: W / 100 });
+    ctx.strokeStyle = LIGHT.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const c = captionAt(CAPS, t), ok = m.okP && m.okD;
+    sidePanel(ctx, W, H, sw, { title: 'Loss or dispersion?', formulas: ['L_loss = (P_tx − P_sens − M)/α', 'narrow source: L = 1/(16 B² |β2|)', 'wide source:   L = 1/(4 B |D| σλ)'],
+      rows: [['Bit rate', fmtB(m.B)], ['σλ, |D|, α', `${m.sl < 0.01 ? '10⁻⁴' : fmt(m.sl, m.sl < 10 ? 1 : 0)} nm, ${fmt(m.D, 1)}, ${fmt(m.a, 2)}`], ['Loss limit', fmtKm(m.Ll)], ['Dispersion limit', fmtKm(m.Ld)]],
+      status: ok ? [`20 km works (${m.lim} sets the limit)`, LIGHT.ok] : [`20 km fails: ${m.okP ? '' : 'not enough power'}${!m.okP && !m.okD ? ' and ' : ''}${m.okD ? '' : 'pulses overlap'}`, LIGHT.ray], cap: [c[2], c[3]],
+      foot: 'Criterion 4Bσ ≤ 1 with the best transmitted pulse width. Sensitivity −24 dBm at 10 Gb/s, margin 3 dB.' });
+  }
+  // ---------- app ----------
+  const st = { B: 10, L: 20, Pt: 0, S10: -24, M: 3, a: 0.2, D: 17, sl: 1e-4 };
+  let cur = calc(st);
+  const app = runApp({ name: 'lkDemo', duration: DUR, drawDemo, draw() {
+    let [c, w, h] = ctxOf($('lim')); drawLim(c, 0, 0, w, h, cur);
+    [c, w, h] = ctxOf($('pow')); drawPow(c, 0, 0, w, h, cur);
+    [c, w, h] = ctxOf($('pul')); drawPul(c, 0, 0, w, h, cur);
+  } });
+  function sync() {
+    const m = cur = calc(st);
+    $('brOut').textContent = fmtB(st.B); $('llOut').textContent = fmtKm(st.L); $('ptOut').textContent = `${fmt(st.Pt, 1)} dBm`; $('snOut').textContent = `${fmt(st.S10, 1)} dBm`;
+    $('mgOut').textContent = `${fmt(st.M, 1)} dB`; $('alOut').textContent = `${fmt(st.a, 2)} dB/km`; $('ddOut').textContent = `${fmt(st.D, 1)} ps/(nm·km)`;
+    $('swOut').textContent = st.sl < 0.01 ? `${fmt(st.sl * 1000, 2)} pm` : `${fmt(st.sl, st.sl < 1 ? 2 : 1)} nm`;
+    $('rLl').textContent = fmtKm(m.Ll); $('rLd').textContent = fmtKm(m.Ld); $('rLim').textContent = m.lim;
+    $('rPr').textContent = `${fmt(m.Prx, 1)} dBm`; $('rPn').textContent = `${fmt(m.Pneed, 1)} dBm`; $('rSg').textContent = fmtT(m.sig); $('rT').textContent = fmtT(m.T);
+    const s = $('status');
+    if (m.okP && m.okD) { s.className = 'status ok'; s.innerHTML = `The link works<small>${fmtKm(m.L)} is below both limits. Maximum here: ${fmtKm(m.Lmax)}, set by ${m.lim}.</small>`; }
+    else { s.className = 'status bad'; s.innerHTML = `The link fails<small>${m.okP ? '' : `Received power is ${fmt(m.Pneed - m.Prx, 1)} dB short. `}${m.okD ? '' : `Pulses spread to σ = ${fmt(m.sig / m.T, 2)} T, more than T/4.`}</small>`; }
+    app.markDirty();
+  }
+  bindRange('br', v => { st.B = 10 ** v; sync(); });
+  bindRange('ll', v => { st.L = 10 ** v; sync(); });
+  bindRange('sw', v => { st.sl = 10 ** v; sync(); });
+  for (const [id, k] of [['pt', 'Pt'], ['sn', 'S10'], ['mg', 'M'], ['al', 'a'], ['dd', 'D']]) bindRange(id, v => { st[k] = v; sync(); });
+  sync();
+
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

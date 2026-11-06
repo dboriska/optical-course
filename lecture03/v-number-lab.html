@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>V Number and Mode Chart Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: b–V chart and guided-mode gallery on the left, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;     /* cut-off / multimode */
+  --ok: #1d8a3a;      /* guided / single-mode */
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#chart { display: block; width: 100%; aspect-ratio: 16 / 10; max-width: 100%; touch-action: none; cursor: ew-resize; }
+@media (max-width: 600px) { #chart { aspect-ratio: 4 / 3.4; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+.range { position: relative; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.mark { position: absolute; top: -3px; width: 2px; height: 22px; background: var(--ok); pointer-events: none; transform: translateX(-1px); }
+.mark span { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-family: var(--font-mono); white-space: nowrap; color: var(--muted); }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+.gal-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; margin-bottom: 8px; }
+.gal-head .hint { font-size: 0.82rem; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.tile { display: grid; gap: 3px; padding: 6px; text-align: left; border-radius: 8px; background: var(--bg); }
+.tile canvas { width: 100%; aspect-ratio: 1; border-radius: 5px; display: block; background: #000; }
+.tile b { font-size: 0.95rem; }
+.tile b sub { font-size: 0.7em; }
+.tile span { font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
+.tile .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.tile[aria-pressed="true"] { background: var(--bg); color: var(--ink); border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.more { align-self: center; justify-self: center; color: var(--muted); font-size: 0.85rem; text-align: center; padding: 8px; }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .gal-card { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #chart { aspect-ratio: 16 / 9; cursor: default; }
+</style>
+
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>V Number and Mode Chart Lab</h1>
+    <p>Change the core radius, the wavelength and the index contrast of a step-index fiber. One number sums them up, <span class="law">V = (2π/λ)·a·NA</span>, and the mode chart shows which modes the fiber guides at that V. Below <span class="law">V = 2.405</span> only the fundamental mode is left.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="chart" aria-label="Mode chart: normalized propagation constant b against normalized frequency V, with a vertical line at the fiber's V"></canvas>
+        <div class="scene-bar">
+          <button id="sweep" aria-pressed="false">Sweep λ</button>
+          <span class="hint">Drag on the chart to change V (it changes the core radius).</span>
+          <div class="legend"><span><i style="background:var(--ok)"></i>single-mode region</span><span><i style="background:var(--accent)"></i>guided mode</span></div>
+        </div>
+      </div>
+      <div class="card gal-card">
+        <div class="gal-head"><p class="section-title" style="margin:0">Guided modes, cross-section intensity</p><span class="hint" id="galHint"></span></div>
+        <div class="gallery" id="gallery"></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="lam">Wavelength λ <output id="lamOut"></output></label>
+          <div class="range"><input id="lam" type="range" min="0.6" max="1.7" step="0.001" value="1.55"><div class="mark" id="markC"><span>λc</span></div></div>
+          <span class="hint" style="margin-top:14px" id="lamHint"></span>
+        </div>
+        <div class="ctl" style="margin-top:12px">
+          <label for="rad">Core radius a <output id="radOut"></output></label>
+          <input id="rad" type="range" min="1" max="30" step="0.05" value="4">
+          <span class="hint" id="radHint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="n1">Core index n₁ <output id="n1Out"></output></label>
+          <input id="n1" type="range" min="1.44" max="1.5" step="0.001" value="1.45">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="dl">Index contrast Δ <output id="dlOut"></output></label>
+          <input id="dl" type="range" min="0.001" max="0.01" step="0.0001" value="0.005">
+          <span class="hint" id="n2Hint"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>NA = n₁√(2Δ)</dt><dd id="rNA"></dd>
+          <dt>V = (2π/λ)·a·NA</dt><dd id="rV"></dd>
+          <dt>Cutoff wavelength λc</dt><dd id="rLc"></dd>
+          <dt>Largest single-mode a</dt><dd id="rAmax"></dd>
+          <div class="sep"></div>
+          <dt>Guided LP mode groups</dt><dd id="rLP"></dd>
+          <dt>Guided modes (all)</dt><dd id="rM"></dd>
+          <dt>Estimate M ≈ V²/2</dt><dd id="rMe"></dd>
+          <div class="sep"></div>
+          <dt>Fundamental b (exact)</dt><dd id="rB"></dd>
+          <dt>b ≈ (1.1428 − 0.996/V)²</dt><dd id="rBa"></dd>
+          <dt>Effective index n_eff</dt><dd id="rNeff"></dd>
+          <dt>Power in the core</dt><dd id="rG"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Weakly guiding (LP) approximation, valid for small Δ: the modes are solutions of u·J<sub>l−1</sub>(u)/J<sub>l</sub>(u) = −w·K<sub>l−1</sub>(w)/K<sub>l</sub>(w), with u² + w² = V² and b = w²/V². Each LP mode group is a set of almost degenerate vector modes, named under each picture (for example LP₁₁ = TE₀₁, TM₀₁, HE₂₁). With a large Δ the vector modes split slightly, as in the mode chart of the lecture. Mode counts include both polarizations and both orientations. Δ = (n₁² − n₂²)/(2n₁²).</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+  const VMAX = 10;   // right edge of the mode chart
+
+  // ---------- Bessel functions ----------
+  // J_n by the trapezoid rule on Bessel's integral (spectrally accurate for this periodic integrand)
+  function besselJ(n, x) {
+    if (n < 0) return (n % 2 ? -1 : 1) * besselJ(-n, x);
+    const N = 2 * Math.ceil((24 + Math.abs(x) + n) / 2), h = PI / N;
+    let s = 0.5 * (1 + Math.cos(n * PI));
+    for (let k = 1; k < N; k++) { const t = k * h; s += Math.cos(n * t - x * Math.sin(t)); }
+    return s / N;
+  }
+  function besselI0(x) { const y = (x / 3.75) ** 2; return 1 + y * (3.5156229 + y * (3.0899424 + y * (1.2067492 + y * (0.2659732 + y * (0.360768e-1 + y * 0.45813e-2))))); }
+  function besselI1(x) { const y = (x / 3.75) ** 2; return x * (0.5 + y * (0.87890594 + y * (0.51498869 + y * (0.15084934 + y * (0.2658733e-1 + y * (0.301532e-2 + y * 0.32411e-3)))))); }
+  function besselK0(x) {
+    if (x <= 2) { const y = x * x / 4; return -Math.log(x / 2) * besselI0(x) + (-0.57721566 + y * (0.42278420 + y * (0.23069756 + y * (0.3488590e-1 + y * (0.262698e-2 + y * (0.10750e-3 + y * 0.74e-5)))))); }
+    const y = 2 / x; return Math.exp(-x) / Math.sqrt(x) * (1.25331414 + y * (-0.7832358e-1 + y * (0.2189568e-1 + y * (-0.1062446e-1 + y * (0.587872e-2 + y * (-0.251540e-2 + y * 0.53208e-3))))));
+  }
+  function besselK1(x) {
+    if (x <= 2) { const y = x * x / 4; return Math.log(x / 2) * besselI1(x) + (1 / x) * (1 + y * (0.15443144 + y * (-0.67278579 + y * (-0.18156897 + y * (-0.1919402e-1 + y * (-0.110404e-2 + y * -0.4686e-4)))))); }
+    const y = 2 / x; return Math.exp(-x) / Math.sqrt(x) * (1.25331414 + y * (0.23498619 + y * (-0.3655620e-1 + y * (0.1504268e-1 + y * (-0.780353e-2 + y * (0.325614e-2 + y * -0.68245e-3))))));
+  }
+  // K_{n-1}(x)/K_n(x) by upward recurrence on the ratio (never overflows); n = 0 gives K_1/K_0
+  function kRatio(n, x) {
+    if (n === 0) return besselK1(x) / besselK0(x);
+    let r = besselK0(x) / besselK1(x);
+    for (let k = 1; k < n; k++) r = 1 / (r + 2 * k / x);
+    return r;
+  }
+  // ln K_n(x)
+  function logK(n, x) {
+    let lk = Math.log(besselK0(x));
+    if (n === 0) return lk;
+    let r = besselK0(x) / besselK1(x); lk -= Math.log(r);
+    for (let k = 1; k < n; k++) { r = 1 / (r + 2 * k / x); lk -= Math.log(r); }
+    return lk;
+  }
+  // positive zeros of J_n below XZ, cached per order
+  const XZ = 80, zeroCache = new Map();
+  function zerosJ(n) {
+    if (zeroCache.has(n)) return zeroCache.get(n);
+    const z = [], st = 0.08;
+    let x0 = Math.max(0.05, n * 0.9), f0 = besselJ(n, x0);
+    for (let x1 = x0 + st; x1 <= XZ + st; x1 += st) {
+      const f1 = besselJ(n, x1);
+      if (f0 === 0 || f0 * f1 < 0) {
+        let lo = x0, hi = x1, flo = f0;
+        for (let i = 0; i < 50; i++) { const m = (lo + hi) / 2, fm = besselJ(n, m); if (flo * fm <= 0) hi = m; else { lo = m; flo = fm; } }
+        z.push((lo + hi) / 2);
+      }
+      x0 = x1; f0 = f1;
+    }
+    zeroCache.set(n, z); return z;
+  }
+
+  // ---------- LP modes ----------
+  // LP_lm cutoff: l = 0 → 0, j(1, m−1); l ≥ 1 → j(l−1, m). The root u lies below j(l, m).
+  function cutoff(l, m) { if (l === 0) return m === 1 ? 0 : zerosJ(1)[m - 2]; return zerosJ(l - 1)[m - 1]; }
+  function uUpper(l, m) { return zerosJ(l)[m - 1]; }
+  function charF(l, u, V) {
+    const w = Math.sqrt(Math.max(0, V * V - u * u));
+    const t1 = u * besselJ(l - 1, u) / besselJ(l, u);
+    const t2 = w < 1e-7 ? 0 : w * kRatio(l, w);
+    return t1 + t2;
+  }
+  function solveLP(l, m, V) {
+    const c = cutoff(l, m);
+    if (c === undefined || V <= c + 1e-9) return null;
+    let lo = c + 1e-10, hi = Math.min(V, uUpper(l, m)) - 1e-10;
+    let flo = charF(l, lo, V);
+    for (let i = 0; i < 44; i++) { const mid = (lo + hi) / 2, fm = charF(l, mid, V); if ((fm > 0) === (flo > 0)) { lo = mid; flo = fm; } else hi = mid; }
+    const u = (lo + hi) / 2, w = Math.sqrt(Math.max(0, V * V - u * u));
+    // fraction of the mode power inside the core (Gloge)
+    const kap = w < 1e-7 ? 0 : kRatio(l + 1, w) / kRatio(l, w);
+    const G = 1 - (u * u) / (V * V) * (1 - kap);
+    return { l, m, u, w, b: (w * w) / (V * V), cut: c, G };
+  }
+  const deg = l => (l === 0 ? 2 : 4);
+  function vectorNames(l, m) {
+    if (l === 0) return [`HE₁${sub(m)}`];
+    if (l === 1) return [`TE₀${sub(m)}`, `TM₀${sub(m)}`, `HE₂${sub(m)}`];
+    return [`EH${sub(l - 1)}${sub(m)}`, `HE${sub(l + 1)}${sub(m)}`];
+  }
+  const SUBS = '₀₁₂₃₄₅₆₇₈₉';
+  function sub(n) { return String(n).split('').map(d => SUBS[+d]).join(''); }
+  const lpName = (l, m) => `LP${sub(l)}${sub(m)}`;
+  // all guided LP modes at this V, sorted by b (highest first)
+  function guidedModes(V) {
+    const out = [];
+    for (let l = 0; ; l++) {
+      const first = cutoff(l, 1);
+      if (first === undefined || first >= V) break;
+      for (let m = 1; ; m++) { const md = solveLP(l, m, V); if (!md) break; out.push(md); }
+    }
+    return out.sort((p, q) => q.b - p.b);
+  }
+
+  // b(V) curves for the chart, computed once
+  const CURVES = (() => {
+    const list = [];
+    for (let l = 0; l < 12; l++) for (let m = 1; m < 6; m++) {
+      const c = cutoff(l, m); if (c === undefined || c >= VMAX) continue;
+      const pts = [[c, 0]];
+      for (let V = Math.ceil((c + 0.005) / 0.025) * 0.025; V <= VMAX + 1e-9; V += 0.025) { const md = solveLP(l, m, V); if (md) pts.push([V, md.b]); }
+      list.push({ l, m, c, pts });
+    }
+    return list;
+  })();
+
+  // ---------- fiber ----------
+  // st: { lam (µm), a (µm), n1, delta }
+  function fiber(st) {
+    const NA = st.n1 * Math.sqrt(2 * st.delta), n2 = st.n1 * Math.sqrt(1 - 2 * st.delta);
+    const V = 2 * PI / st.lam * st.a * NA;
+    const lamC = 2 * PI * st.a * NA / 2.405, aMax = 2.405 * st.lam / (2 * PI * NA);
+    const modes = guidedModes(V);
+    const M = modes.reduce((s, md) => s + deg(md.l), 0);
+    const f = modes[0];
+    const bApprox = (1.1428 - 0.996 / V) ** 2;
+    return { ...st, NA, n2, V, lamC, aMax, modes, M, f, bApprox, neff: n2 + f.b * (st.n1 - n2) };
+  }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => v.toFixed(n);
+
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, p = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - p, ty - p, w + 2 * p, h + 2 * p, p) : ctx.rect(lx - p, ty - p, w + 2 * p, h + 2 * p); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+
+  // ---------- mode chart ----------
+  function chartBox(W, H, fs) { const l = fs * 4.2, r = fs * 5.2, t = fs * 2.6, b = fs * 3.6; return { x0: l, x1: W - r, y0: t, y1: H - b }; }
+  function drawChart(ctx, X, Y, W, H, o, opts = {}) {
+    const pal = palette();
+    const fs = opts.fontSize || Math.max(11, Math.min(16, W / 56));
+    const B = chartBox(W, H, fs);
+    const sx = V => B.x0 + (B.x1 - B.x0) * V / VMAX, sy = b => B.y1 - (B.y1 - B.y0) * b;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    // single-mode region
+    ctx.fillStyle = pal.ok; ctx.globalAlpha = 0.09; ctx.fillRect(B.x0, B.y0, sx(2.405) - B.x0, B.y1 - B.y0); ctx.globalAlpha = 1;
+    label(ctx, 'single-mode', (B.x0 + sx(2.405)) / 2, B.y0 + fs * 0.6, 'center', 'top', pal.ok, `700 ${fs * 0.85}px ${getFont()}`, pal, false);
+    // grid and axes
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+    for (let v = 0; v <= VMAX; v++) { ctx.beginPath(); ctx.moveTo(sx(v), B.y0); ctx.lineTo(sx(v), B.y1); ctx.stroke(); }
+    for (let b = 0; b <= 1.0001; b += 0.2) { ctx.beginPath(); ctx.moveTo(B.x0, sy(b)); ctx.lineTo(B.x1, sy(b)); ctx.stroke(); }
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.4; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.globalAlpha = 1;
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.85}px ${monoFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let v = 0; v <= VMAX; v += (W < 420 ? 2 : 1)) ctx.fillText(String(v), sx(v), B.y1 + fs * 0.4);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let b = 0; b <= 1.0001; b += 0.2) ctx.fillText(fmt(b, 1), B.x0 - fs * 0.4, sy(b));
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.95}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Normalized frequency V', (B.x0 + B.x1) / 2, H - fs * 0.35);
+    ctx.save(); ctx.translate(fs * 1.1, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('Normalized propagation constant b', 0, 0); ctx.restore();
+    // curves
+    const sel = opts.sel;
+    const ends = [];
+    for (const cv of CURVES) {
+      const on = cv.c < o.V, isSel = sel && sel.l === cv.l && sel.m === cv.m;
+      ctx.strokeStyle = on ? pal.accent : pal.muted; ctx.globalAlpha = on ? 1 : 0.45; ctx.lineWidth = isSel ? 4 : (on ? 2.2 : 1.4);
+      ctx.beginPath(); cv.pts.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); ctx.stroke(); ctx.globalAlpha = 1;
+      const last = cv.pts[cv.pts.length - 1];
+      ends.push({ y: sy(last[1]), text: lpName(cv.l, cv.m), on, isSel });
+    }
+    // curve names at the right edge, pushed apart so they do not overlap
+    ends.sort((p, q) => p.y - q.y);
+    const gap = fs * 0.95;
+    for (let i = 1; i < ends.length; i++) ends[i].ly = Math.max(ends[i].y, (ends[i - 1].ly ?? ends[i - 1].y) + gap);
+    ends[0].ly = ends[0].y;
+    const over = ends[ends.length - 1].ly - (B.y1 - fs * 0.2);
+    if (over > 0) for (const e of ends) e.ly -= over * (e.ly - ends[0].ly) / Math.max(1, ends[ends.length - 1].ly - ends[0].ly);
+    for (const e of ends) {
+      ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.4; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(B.x1, e.y); ctx.lineTo(B.x1 + fs * 0.6, e.ly); ctx.stroke(); ctx.globalAlpha = 1;
+      label(ctx, e.text, B.x1 + fs * 0.75, e.ly, 'left', 'middle', e.isSel ? pal.ink : e.on ? pal.accent : pal.muted, `${e.on ? 700 : 400} ${fs * 0.78}px ${getFont()}`, pal, false);
+    }
+    // cutoff of LP11
+    ctx.save(); ctx.strokeStyle = pal.ok; ctx.lineWidth = 1.5; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.moveTo(sx(2.405), B.y0); ctx.lineTo(sx(2.405), B.y1); ctx.stroke(); ctx.restore();
+    label(ctx, '2.405', sx(2.405) - fs * 0.35, B.y1 - fs * 0.4, 'right', 'bottom', pal.ok, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    // the fiber's V
+    const vx = sx(Math.min(o.V, VMAX));
+    const vcol = o.V < 2.405 ? pal.ok : pal.ray;
+    ctx.strokeStyle = vcol; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.moveTo(vx, B.y0); ctx.lineTo(vx, B.y1); ctx.stroke();
+    if (o.V <= VMAX) {
+      for (const md of o.modes) {
+        const isSel = sel && sel.l === md.l && sel.m === md.m;
+        ctx.fillStyle = isSel ? pal.ink : pal.accent; ctx.strokeStyle = pal.bg; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(vx, sy(md.b), isSel ? fs * 0.45 : fs * 0.32, 0, 2 * PI); ctx.fill(); ctx.stroke();
+      }
+      label(ctx, `V = ${fmt(o.V, 2)}`, vx, B.y0 - fs * 0.3, vx > B.x1 - fs * 4 ? 'right' : 'center', 'bottom', vcol, `700 ${fs}px ${monoFont()}`, pal);
+    } else {
+      label(ctx, `V = ${fmt(o.V, 1)} →  off the chart`, B.x1, B.y0 - fs * 0.3, 'right', 'bottom', vcol, `700 ${fs}px ${monoFont()}`, pal);
+    }
+    ctx.restore();
+    return B;
+  }
+
+  // ---------- mode pictures ----------
+  const CMAP = [[0, 0, 4], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66], [245, 125, 21], [250, 193, 39], [252, 255, 164]];
+  function cmap(v) { const t = Math.max(0, Math.min(1, v)) * (CMAP.length - 1), i = Math.min(CMAP.length - 2, Math.floor(t)), f = t - i, a = CMAP[i], b = CMAP[i + 1]; return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; }
+  const EXT = 2;   // the picture shows r ≤ EXT·a
+  // radial field, normalized to 1 at r = a; returns 256 samples on [0, EXT·a]
+  function radialProfile(md) {
+    const N = 256, prof = new Float64Array(N), Jl = besselJ(md.l, md.u), lKa = md.w > 1e-7 ? logK(md.l, md.w) : 0;
+    for (let i = 0; i < N; i++) {
+      const s = EXT * i / (N - 1);
+      if (s <= 1) prof[i] = besselJ(md.l, md.u * s) / Jl;
+      else prof[i] = md.w > 1e-7 ? Math.exp(logK(md.l, md.w * s) - lKa) : 1;
+    }
+    return prof;
+  }
+  function drawMode(ctx, X, Y, S, md, pal, opts = {}) {
+    const n = Math.max(16, Math.round(S)), img = ctx.createImageData(n, n), prof = radialProfile(md), N = prof.length;
+    let mx = 0;
+    const I = new Float64Array(n * n);
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const x = (i + 0.5) / n * 2 - 1, y = (j + 0.5) / n * 2 - 1, r = Math.hypot(x, y);
+      if (r > 1) continue;
+      const t = r * (N - 1), k = Math.min(N - 2, Math.floor(t)), f = prof[k] + (prof[k + 1] - prof[k]) * (t - k);
+      const ang = md.l ? Math.cos(md.l * Math.atan2(y, x)) : 1;
+      const v = (f * ang) ** 2; I[j * n + i] = v; if (v > mx) mx = v;
+    }
+    for (let p = 0; p < n * n; p++) { const c = cmap(Math.sqrt(I[p] / mx)); img.data[4 * p] = c[0]; img.data[4 * p + 1] = c[1]; img.data[4 * p + 2] = c[2]; img.data[4 * p + 3] = 255; }
+    if (opts.direct) ctx.putImageData(img, X, Y);
+    else { const off = document.createElement('canvas'); off.width = n; off.height = n; off.getContext('2d').putImageData(img, 0, 0); ctx.drawImage(off, X, Y, S, S); }
+    // core boundary
+    ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.setLineDash([3, 3]); ctx.lineWidth = Math.max(1, S / 110);
+    ctx.beginPath(); ctx.arc(X + S / 2, Y + S / 2, S / 2 / EXT, 0, 2 * PI); ctx.stroke(); ctx.restore();
+  }
+
+  // ---------- demo timeline (for the slide animation) ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  // slide 43: n₁ ≈ 1.45, Δ ≈ 0.005, λ = 1.55 µm
+  const K_LAM = [[0, 1.55], [3.5, 1.55], [6.5, 1.45], [9, 1.45], [12, 0.85], [25, 0.85], [32, 1.55], [40, 1.55]];
+  const K_A = [[0, 4], [15, 4], [21, 9], [25, 9], [32, 4], [40, 4]];
+  const CAPTIONS = [
+    [0, 3.5, 'A single-mode fiber at 1550 nm', 'a = 4 µm, NA = 0.145. V is below 2.405, so only LP₀₁ (HE₁₁) is guided.'],
+    [3.5, 6.5, 'A shorter wavelength raises V', 'V = (2π/λ)·a·NA grows as λ falls. Each mode starts at its cutoff value of V.'],
+    [6.5, 9, 'Below λc ≈ 1.52 µm, LP₁₁ appears', 'At V = 2.405 the second mode group (TE₀₁, TM₀₁, HE₂₁) passes its cutoff.'],
+    [9, 15, 'The same fiber at 850 nm is multimode', 'V ≈ 4.3: four LP groups, 12 modes in all. Single-mode only means something at a given λ.'],
+    [15, 25, 'A larger core guides many modes', 'With a = 9 µm, V ≈ 9.6. For large V the count follows M ≈ V²/2.'],
+    [25, 32, 'Design rule: keep V below 2.405', 'At λ = 1.55 µm this needs a < 2.405·λ/(2π·NA) ≈ 4.1 µm.'],
+    [32, 40, 'The fundamental mode', 'b ≈ (1.1428 − 0.996/V)² is close to the exact value for 1.5 < V < 2.5.'],
+  ];
+  const DEMO_DURATION = 40;
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  const demoState = t => ({ lam: track(K_LAM, t), a: track(K_A, t), n1: 1.45, delta: 0.005 });
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const o = fiber(demoState(t));
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.72), pad = W * 0.02;
+    drawChart(ctx, 0, 0, sw, sh, o, { fontSize: W / 76, sel: o.modes[0] });
+    // strip of guided modes
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const S = (H - sh) * 0.62, gapX = S * 0.28, maxN = Math.floor((sw - pad * 2 + gapX) / (S + gapX));
+    const shown = o.modes.slice(0, o.modes.length > maxN ? maxN - 1 : maxN);
+    let x = pad * 1.5;
+    for (const md of shown) {
+      drawMode(ctx, x, sh + (H - sh) * 0.1, S, md, pal);
+      ctx.fillStyle = pal.ink; ctx.font = `700 ${W / 92}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(lpName(md.l, md.m), x + S / 2, sh + (H - sh) * 0.1 + S + W / 300);
+      x += S + gapX;
+    }
+    if (shown.length < o.modes.length) {
+      ctx.fillStyle = pal.muted; ctx.font = `700 ${W / 80}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(`+ ${o.modes.length - shown.length} more`, x + S / 2, sh + (H - sh) * 0.1 + S / 2);
+    }
+    // right panel
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('V number and the mode chart', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 56}px ${getFont()}`;
+    ctx.fillText('V = (2π/λ) · a · NA', px, y); y += W / 56 * 2.0;
+    const rows = [['Wavelength λ', `${fmt(o.lam, 3)} µm`], ['Core radius a', `${fmt(o.a, 2)} µm`], ['NA = n₁√(2Δ)', fmt(o.NA, 3)], ['V', fmt(o.V, 2)],
+      ['Cutoff λc', `${fmt(o.lamC, 2)} µm`], ['LP mode groups', String(o.modes.length)], ['Guided modes', String(o.M)], ['V²/2', fmt(o.V * o.V / 2, 0)], ['b of LP₀₁', fmt(o.f.b, 3)]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = kk === 'V' ? (o.V < 2.405 ? pal.ok : pal.ray) : pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    ctx.fillStyle = o.V < 2.405 ? pal.ok : pal.ray; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`;
+    ctx.fillText(o.V < 2.405 ? '● Single-mode (V < 2.405)' : '● Multimode (V > 2.405)', px, y); y += W / 60 * 1.9;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'Step-index fiber, n₁ = 1.45, Δ = 0.005. LP (weakly guiding) modes.', px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const chart = $('chart');
+  const state = { lam: 1.55, a: 4, n1: 1.45, delta: 0.005 };
+  let cur = fiber(state), sel = { l: 0, m: 1 }, sweep = null, dirty = true, galleryKey = '';
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  const MAX_TILES = 12;
+  function buildGallery(o) {
+    const key = o.modes.map(md => `${md.l},${md.m}`).join(' ') + '|' + o.modes.map(md => md.b.toFixed(3)).join(',') + '|' + sel.l + sel.m;
+    if (key === galleryKey) return; galleryKey = key;
+    const g = $('gallery'), pal = palette();
+    g.textContent = '';
+    const shown = o.modes.slice(0, MAX_TILES);
+    for (const md of shown) {
+      const b = document.createElement('button');
+      b.className = 'tile'; b.setAttribute('aria-pressed', String(sel.l === md.l && sel.m === md.m));
+      const cv = document.createElement('canvas');
+      b.append(cv);
+      b.insertAdjacentHTML('beforeend', `<b>LP<sub>${md.l}${md.m}</sub></b><span>${vectorNames(md.l, md.m).join(', ')}</span><span>b = <span class="num">${fmt(md.b, 3)}</span> · ${deg(md.l)} modes</span>`);
+      b.addEventListener('click', () => { sel = { l: md.l, m: md.m }; galleryKey = ''; dirty = true; syncUI(); });
+      g.append(b);
+      requestAnimationFrame(() => {
+        const dpr = window.devicePixelRatio || 1, S = Math.round(cv.clientWidth * dpr) || 120;
+        cv.width = S; cv.height = S; drawMode(cv.getContext('2d'), 0, 0, S, md, pal, { direct: true });
+      });
+    }
+    if (o.modes.length > MAX_TILES) {
+      const m = document.createElement('div'); m.className = 'more';
+      m.textContent = `+ ${o.modes.length - MAX_TILES} more LP groups (${o.M - shown.reduce((s, md) => s + deg(md.l), 0)} modes)`;
+      g.append(m);
+    }
+    $('galHint').textContent = 'Click a mode to mark its curve on the chart. Dashed circle: the core.';
+  }
+  function syncUI() {
+    cur = fiber(state); const o = cur;
+    if (!o.modes.some(md => md.l === sel.l && md.m === sel.m)) sel = { l: 0, m: 1 };
+    $('lam').value = state.lam; $('rad').value = state.a; $('n1').value = state.n1; $('dl').value = state.delta;
+    $('lamOut').textContent = `${fmt(state.lam, 3)} µm`; $('radOut').textContent = `${fmt(state.a, 2)} µm`;
+    $('n1Out').textContent = fmt(state.n1, 3); $('dlOut').textContent = fmt(state.delta, 4);
+    $('n2Hint').textContent = `Cladding n₂ = n₁√(1 − 2Δ) = ${fmt(o.n2, 4)}`;
+    $('lamHint').textContent = o.lamC > 1.7 ? 'λc is above 1.7 µm: multimode over the whole range.' : o.lamC < 0.6 ? 'λc is below 0.6 µm: single-mode over the whole range.' : `Single-mode for λ > λc = ${fmt(o.lamC, 3)} µm.`;
+    $('radHint').textContent = `Single-mode at this λ if a < ${fmt(o.aMax, 2)} µm (core diameter ${fmt(2 * o.aMax, 1)} µm).`;
+    const st = $('status'), sm = o.V < 2.405;
+    st.className = 'status ' + (sm ? 'ok' : 'bad');
+    st.innerHTML = sm ? `Single-mode<small>V = ${fmt(o.V, 3)} < 2.405. Only LP₀₁ (HE₁₁, two polarizations) is guided.</small>`
+      : `Multimode<small>V = ${fmt(o.V, 3)} > 2.405. ${o.modes.length} LP mode groups, ${o.M} modes in all.</small>`;
+    $('rNA').textContent = fmt(o.NA, 4); $('rV').textContent = fmt(o.V, 3);
+    $('rLc').textContent = `${fmt(o.lamC, 3)} µm`; $('rAmax').textContent = `${fmt(o.aMax, 2)} µm`;
+    $('rLP').textContent = String(o.modes.length); $('rM').textContent = String(o.M); $('rMe').textContent = fmt(o.V * o.V / 2, 0);
+    $('rB').textContent = fmt(o.f.b, 4); $('rBa').textContent = o.V > 1.5 && o.V < 2.5 ? fmt(o.bApprox, 4) : `${fmt(o.bApprox, 4)} *`;
+    $('rBa').title = 'The fit is meant for 1.5 < V < 2.5';
+    $('rNeff').textContent = fmt(o.neff, 5); $('rG').textContent = `${fmt(o.f.G * 100, 1)}%`;
+    const mk = $('markC'); mk.hidden = o.lamC < 0.6 || o.lamC > 1.7; mk.style.left = ((o.lamC - 0.6) / 1.1 * 100) + '%';
+    buildGallery(o); dirty = true;
+  }
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (sweep) {
+      sweep.t += dt; const u = sweep.t / sweep.dur;
+      state.lam = 1.15 + 0.55 * Math.cos(2 * PI * u);
+      if (u >= 1) { sweep = null; state.lam = 1.7; $('sweep').setAttribute('aria-pressed', 'false'); }
+      syncUI();
+    }
+    const { w, h, dpr } = sizeCanvas(chart);
+    const ctx = chart.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (DEMO) { simT += dt; drawDemo(ctx, w, h, simT % DEMO_DURATION); }
+    else if (dirty) { drawChart(ctx, 0, 0, w, h, cur, { sel }); dirty = false; }
+    requestAnimationFrame(frame);
+  }
+  let simT = 0;
+  const stopSweep = () => { if (sweep) { sweep = null; $('sweep').setAttribute('aria-pressed', 'false'); } };
+  // heavy cases (large V) take a few hundred ms, so recompute at most once per frame
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  $('lam').addEventListener('input', e => { stopSweep(); state.lam = +e.target.value; later(); });
+  $('rad').addEventListener('input', e => { state.a = +e.target.value; later(); });
+  $('n1').addEventListener('input', e => { state.n1 = +e.target.value; later(); });
+  $('dl').addEventListener('input', e => { state.delta = +e.target.value; later(); });
+  $('sweep').addEventListener('click', e => {
+    if (sweep) { stopSweep(); return; }
+    state.lam = 1.7; sweep = { t: 0, dur: reduced ? 30 : 14 }; e.currentTarget.setAttribute('aria-pressed', 'true');
+  });
+  // dragging on the chart sets V by changing the core radius
+  let dragging = false;
+  function pointerV(e) {
+    const r = chart.getBoundingClientRect(), fs = Math.max(11, Math.min(16, r.width / 56)), B = chartBox(r.width, r.height, fs);
+    const V = Math.max(0.3, Math.min(VMAX, (e.clientX - r.left - B.x0) / (B.x1 - B.x0) * VMAX));
+    const NA = state.n1 * Math.sqrt(2 * state.delta);
+    state.a = Math.max(1, Math.min(30, V * state.lam / (2 * PI * NA)));
+    later();
+  }
+  chart.addEventListener('pointerdown', e => { if (DEMO) return; dragging = true; chart.setPointerCapture(e.pointerId); pointerV(e); });
+  chart.addEventListener('pointermove', e => { if (dragging) pointerV(e); });
+  chart.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('resize', () => { galleryKey = ''; syncUI(); });
+  new MutationObserver(() => { galleryKey = ''; syncUI(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { galleryKey = ''; syncUI(); });
+
+  // hook for rendering the slide video frame by frame
+  window.vDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(chart); const ctx = chart.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, fiber, solveLP, guidedModes, besselJ, besselK0, besselK1, cutoff };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  // canvas text does not trigger web-font loading on its own
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

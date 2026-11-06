@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Spot Size Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: intensity profile on top, cross-section map and w/a–V chart below it, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* exact mode */
+  --ray: #d8402a;     /* Gaussian */
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#prof { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+#map { display: block; width: 100%; aspect-ratio: 1; max-width: 100%; }
+#wv { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; touch-action: none; cursor: ew-resize; }
+@media (max-width: 600px) { #prof { aspect-ratio: 4 / 3; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .h { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); text-align: right; font-family: var(--font-body); }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.readouts .wide { grid-column: 2 / -1; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #prof { aspect-ratio: 16 / 9; }
+</style>
+
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Spot Size Lab</h1>
+    <p>The fundamental mode LP₀₁ (HE₁₁) of a step-index fiber is close to a Gaussian, <span class="law">I(ρ) ∝ exp(−2ρ²/w²)</span>, with the spot size <span class="law">w/a ≈ 0.65 + 1.619 V^−3/2 + 2.879 V^−6</span>. Lower V and watch the mode spread into the cladding.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="prof" aria-label="Intensity profile across the fiber: exact LP01 mode and its Gaussian approximation"></canvas>
+        <div class="scene-bar">
+          <button id="sweep" aria-pressed="false">Sweep V</button>
+          <span class="hint">The sweep shrinks and grows the core at a fixed λ.</span>
+          <div class="legend"><span><i style="background:var(--accent)"></i>exact LP₀₁</span><span><i style="background:var(--ray)"></i>Gaussian, spot size w</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="map" aria-label="Cross-section of the fiber with the mode intensity, the core edge and the spot-size circle"></canvas></div>
+        <div class="card scene"><canvas id="wv" aria-label="Spot size w/a against V: the fit formula and the exact best Gaussian, with the fiber's V marked"></canvas></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="lam">Wavelength λ <output id="lamOut"></output></label>
+          <input id="lam" type="range" min="0.8" max="1.7" step="0.001" value="1.55">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="rad">Core radius a <output id="radOut"></output></label>
+          <input id="rad" type="range" min="1" max="8" step="0.01" value="4.1">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="n1">Core index n₁ <output id="n1Out"></output></label>
+          <input id="n1" type="range" min="1.44" max="1.5" step="0.001" value="1.45">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="dl">Index contrast Δ <output id="dlOut"></output></label>
+          <input id="dl" type="range" min="0.001" max="0.01" step="0.0001" value="0.0036">
+          <span class="hint" id="n2Hint"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>V</dt><dd class="wide" id="rV"></dd>
+          <dt>Spot size w (fit)</dt><dd class="wide" id="rW"></dd>
+          <dt>Mode field diameter 2w</dt><dd class="wide" id="rMFD"></dd>
+          <dt>Core diameter 2a</dt><dd class="wide" id="rCore"></dd>
+          <div class="sep"></div>
+          <dt></dt><dd class="h">Gaussian</dd><dd class="h">exact</dd>
+          <dt>Power in the core Γ</dt><dd id="rGg"></dd><dd id="rGe"></dd>
+          <dt>Effective area A_eff</dt><dd id="rAg"></dd><dd id="rAe"></dd>
+          <div class="sep"></div>
+          <dt>Overlap with the Gaussian</dt><dd class="wide" id="rEta"></dd>
+          <dt>Effective index n_eff</dt><dd class="wide" id="rNeff"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Exact mode: weakly guiding LP₀₁ field, J₀(uρ/a) in the core and K₀(wρ/a) in the cladding, from u·J₁(u)/J₀(u) = w·K₁(w)/K₀(w). The exact A_eff = (∫I dA)² / ∫I² dA, and the overlap is the fraction of power that a Gaussian beam with the fitted w couples into the mode. The fit (Marcuse, 1977) is meant for 1.2 &lt; V &lt; 2.4; the exact best Gaussian (dots on the w/a chart) is the one with the highest overlap. Δ = (n₁² − n₂²)/(2n₁²).</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- Bessel functions (orders 0 and 1) ----------
+  function besselJ(n, x) {
+    const N = 2 * Math.ceil((24 + Math.abs(x) + n) / 2), h = PI / N;
+    let s = 0.5 * (1 + Math.cos(n * PI));
+    for (let k = 1; k < N; k++) { const t = k * h; s += Math.cos(n * t - x * Math.sin(t)); }
+    return s / N;
+  }
+  function besselI0(x) { const y = (x / 3.75) ** 2; return 1 + y * (3.5156229 + y * (3.0899424 + y * (1.2067492 + y * (0.2659732 + y * (0.360768e-1 + y * 0.45813e-2))))); }
+  function besselI1(x) { const y = (x / 3.75) ** 2; return x * (0.5 + y * (0.87890594 + y * (0.51498869 + y * (0.15084934 + y * (0.2658733e-1 + y * (0.301532e-2 + y * 0.32411e-3)))))); }
+  // e^x K₀(x) and e^x K₁(x), scaled so that the far cladding never underflows
+  function k0s(x) {
+    if (x <= 2) { const y = x * x / 4; return Math.exp(x) * (-Math.log(x / 2) * besselI0(x) + (-0.57721566 + y * (0.42278420 + y * (0.23069756 + y * (0.3488590e-1 + y * (0.262698e-2 + y * (0.10750e-3 + y * 0.74e-5))))))); }
+    const y = 2 / x; return (1.25331414 + y * (-0.7832358e-1 + y * (0.2189568e-1 + y * (-0.1062446e-1 + y * (0.587872e-2 + y * (-0.251540e-2 + y * 0.53208e-3)))))) / Math.sqrt(x);
+  }
+  function k1s(x) {
+    if (x <= 2) { const y = x * x / 4; return Math.exp(x) * (Math.log(x / 2) * besselI1(x) + (1 / x) * (1 + y * (0.15443144 + y * (-0.67278579 + y * (-0.18156897 + y * (-0.1919402e-1 + y * (-0.110404e-2 + y * -0.4686e-4))))))); }
+    const y = 2 / x; return (1.25331414 + y * (0.23498619 + y * (-0.3655620e-1 + y * (0.1504268e-1 + y * (-0.780353e-2 + y * (0.325614e-2 + y * -0.68245e-3)))))) / Math.sqrt(x);
+  }
+
+  // ---------- LP₀₁ mode ----------
+  function lp01(V) {
+    const f = u => { const w = Math.sqrt(Math.max(1e-30, V * V - u * u)); return u * besselJ(1, u) / besselJ(0, u) - w * k1s(w) / k0s(w); };
+    let lo = 1e-9, hi = Math.min(V, 2.404825557695773) - 1e-12;
+    for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (f(m) < 0) lo = m; else hi = m; }
+    const u = (lo + hi) / 2, w = Math.sqrt(Math.max(1e-30, V * V - u * u)), J0u = besselJ(0, u);
+    // field F(s), s = ρ/a, F(0) = 1
+    const F = s => s <= 1 ? besselJ(0, u * s) : J0u * k0s(w * s) / k0s(w) * Math.exp(-w * (s - 1));
+    // power in the core (Gloge): Γ = 1 − (u²/V²)(1 − K₀²/K₁²)
+    const kr = k0s(w) / k1s(w), G = 1 - (u * u) / (V * V) * (1 - kr * kr);
+    return { V, u, w, b: (w * w) / (V * V), F, G };
+  }
+  // radial sample points (s = ρ/a) and weights for ∫ g(s) s ds over [0, ∞)
+  function quad(md) {
+    const S = [], Wt = [], nc = 300;
+    for (let i = 0; i < nc; i++) { const s = (i + 0.5) / nc; S.push(s); Wt.push(s / nc); }
+    const smax = 1 + Math.min(4e5, 40 / Math.max(md.w, 1e-6)), nl = 2400, L = Math.log(smax);
+    for (let i = 0; i < nl; i++) { const t = (i + 0.5) / nl * L, s = Math.exp(t); S.push(s); Wt.push(s * s * L / nl); }
+    return { S, Wt, Fs: S.map(md.F) };
+  }
+  // exact effective area (in a²) and overlap with a Gaussian of spot size wg (in a)
+  function aeffExact(q) { let p2 = 0, p4 = 0; for (let i = 0; i < q.S.length; i++) { const f2 = q.Fs[i] ** 2; p2 += f2 * q.Wt[i]; p4 += f2 * f2 * q.Wt[i]; } return 2 * PI * p2 * p2 / p4; }
+  function overlap(q, wg) {
+    let fg = 0, ff = 0, gg = 0;
+    for (let i = 0; i < q.S.length; i++) { const g = Math.exp(-((q.S[i] / wg) ** 2)); fg += q.Fs[i] * g * q.Wt[i]; ff += q.Fs[i] ** 2 * q.Wt[i]; gg += g * g * q.Wt[i]; }
+    return fg * fg / (ff * gg);
+  }
+  function bestW(q, guess) {
+    let lo = guess * 0.5, hi = guess * 2;
+    const gr = 0.6180339887;
+    let c = hi - gr * (hi - lo), d = lo + gr * (hi - lo), fc = overlap(q, c), fd = overlap(q, d);
+    for (let i = 0; i < 40; i++) { if (fc > fd) { hi = d; d = c; fd = fc; c = hi - gr * (hi - lo); fc = overlap(q, c); } else { lo = c; c = d; fc = fd; d = lo + gr * (hi - lo); fd = overlap(q, d); } }
+    return (lo + hi) / 2;
+  }
+  const marcuse = V => 0.65 + 1.619 / V ** 1.5 + 2.879 / V ** 6;
+  // st: { lam (µm), a (µm), n1, delta }
+  function fiber(st) {
+    const NA = st.n1 * Math.sqrt(2 * st.delta), n2 = st.n1 * Math.sqrt(1 - 2 * st.delta), V = 2 * PI / st.lam * st.a * NA;
+    const md = lp01(V), q = quad(md), wa = marcuse(V);
+    return { ...st, NA, n2, V, md, wa, w: wa * st.a, Gg: 1 - Math.exp(-2 / (wa * wa)), Ge: md.G, Ag: PI * (wa * st.a) ** 2, Ae: aeffExact(q) * st.a * st.a, eta: overlap(q, wa), neff: n2 + md.b * (st.n1 - n2) };
+  }
+  // exact best-fit spot size against V, for the chart (computed once)
+  const VLO = 0.8, VHI = 3.2;
+  const BEST = (() => { const out = []; for (let V = VLO; V <= VHI + 1e-9; V += 0.1) { const md = lp01(V), q = quad(md); out.push([V, bestW(q, marcuse(V))]); } return out; })();
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => v.toFixed(n);
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, p = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - p, ty - p, w + 2 * p, h + 2 * p, p) : ctx.rect(lx - p, ty - p, w + 2 * p, h + 2 * p); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  // half-width of the plotted window, in µm
+  const span = o => Math.min(Math.max(2.4 * o.a, 2.6 * o.w), 9 * o.a);
+
+  // ---------- intensity profile ----------
+  function drawProfile(ctx, X, Y, W, H, o, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const B = { x0: fs * 4.4, x1: W - fs * 1.2, y0: fs * 2.2, y1: H - fs * 3.2 }, R = span(o);
+    const sx = r => B.x0 + (B.x1 - B.x0) * (r + R) / (2 * R), sy = v => B.y1 - (B.y1 - B.y0) * v / 1.08;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.clad; ctx.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.fillStyle = pal.core; ctx.fillRect(sx(-o.a), B.y0, sx(o.a) - sx(-o.a), B.y1 - B.y0);
+    // grid
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1;
+    const step = R > 30 ? 10 : R > 12 ? 5 : R > 6 ? 2 : 1;
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.8}px ${monoFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let r = -Math.floor(R / step) * step; r <= R + 1e-9; r += step) { ctx.beginPath(); ctx.moveTo(sx(r), B.y0); ctx.lineTo(sx(r), B.y1); ctx.stroke(); ctx.fillText(String(r), sx(r), B.y1 + fs * 0.35); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const v of [0, 0.25, 0.5, 0.75, 1]) { ctx.beginPath(); ctx.moveTo(B.x0, sy(v)); ctx.lineTo(B.x1, sy(v)); ctx.stroke(); ctx.fillText(fmt(v, 2), B.x0 - fs * 0.3, sy(v)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.88}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Radial position x (µm)', (B.x0 + B.x1) / 2, H - fs * 0.25);
+    ctx.save(); ctx.translate(fs * 0.9, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('Intensity I / I(0)', 0, 0); ctx.restore();
+    // 1/e² level and ±w
+    ctx.save(); ctx.setLineDash([6, 5]); ctx.strokeStyle = pal.ray; ctx.lineWidth = 1.4; ctx.globalAlpha = 0.8;
+    ctx.beginPath(); ctx.moveTo(B.x0, sy(Math.exp(-2))); ctx.lineTo(B.x1, sy(Math.exp(-2))); ctx.stroke();
+    for (const s of [-1, 1]) if (o.w < R) { ctx.beginPath(); ctx.moveTo(sx(s * o.w), B.y0); ctx.lineTo(sx(s * o.w), B.y1); ctx.stroke(); }
+    ctx.restore();
+    label(ctx, '1/e²', B.x1 - fs * 0.3, sy(Math.exp(-2)) - fs * 0.2, 'right', 'bottom', pal.ray, `700 ${fs * 0.8}px ${getFont()}`, pal);
+    // curves
+    const n = 400;
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = pal.ray; ctx.lineWidth = Math.max(2, W / 500); ctx.setLineDash([9, 6]);
+    ctx.beginPath(); for (let i = 0; i <= n; i++) { const r = -R + 2 * R * i / n, v = Math.exp(-2 * (r / o.w) ** 2); i ? ctx.lineTo(sx(r), sy(v)) : ctx.moveTo(sx(r), sy(v)); } ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = Math.max(2.6, W / 380);
+    ctx.beginPath(); for (let i = 0; i <= n; i++) { const r = -R + 2 * R * i / n, v = o.md.F(Math.abs(r) / o.a) ** 2; i ? ctx.lineTo(sx(r), sy(v)) : ctx.moveTo(sx(r), sy(v)); } ctx.stroke();
+    // labels
+    if (o.w < R) {
+      label(ctx, `w = ${fmt(o.w, 2)} µm`, sx(o.w) + fs * 0.3, sy(0.62), 'left', 'middle', pal.ray, `700 ${fs * 0.85}px ${getFont()}`, pal);
+      const yy = sy(0.04);
+      ctx.save(); ctx.strokeStyle = pal.ray; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(-o.w), yy); ctx.lineTo(sx(o.w), yy); ctx.stroke(); ctx.restore();
+      label(ctx, `MFD = 2w = ${fmt(2 * o.w, 1)} µm`, sx(0), yy - fs * 0.25, 'center', 'bottom', pal.ray, `700 ${fs * 0.8}px ${getFont()}`, pal);
+    }
+    label(ctx, `core, 2a = ${fmt(2 * o.a, 1)} µm`, sx(0), B.y0 + fs * 0.4, 'center', 'top', pal.ink, `${fs * 0.8}px ${getFont()}`, pal);
+    label(ctx, 'cladding', B.x0 + fs * 0.4, B.y0 + fs * 0.4, 'left', 'top', pal.muted, `${fs * 0.8}px ${getFont()}`, pal);
+    label(ctx, `V = ${fmt(o.V, 3)}`, B.x0, fs * 0.35, 'left', 'top', o.V < 2.405 ? pal.ok : pal.ray, `700 ${fs}px ${monoFont()}`, pal, false);
+    label(ctx, `power in core ${fmt(o.Ge * 100, 1)}%   overlap with Gaussian ${fmt(o.eta * 100, 1)}%`, B.x1, fs * 0.45, 'right', 'top', pal.muted, `${fs * 0.82}px ${monoFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- cross-section map ----------
+  const CMAP = [[0, 0, 4], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66], [245, 125, 21], [250, 193, 39], [252, 255, 164]];
+  function cmap(v) { const t = Math.max(0, Math.min(1, v)) * (CMAP.length - 1), i = Math.min(CMAP.length - 2, Math.floor(t)), f = t - i, a = CMAP[i], b = CMAP[i + 1]; return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f]; }
+  let mapCache = null;
+  function drawMap(ctx, X, Y, S, o, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(15, S / 24)), R = span(o);
+    const n = 200, key = [o.V, o.a, R].join();
+    if (!mapCache || mapCache.key !== key) {
+      const prof = new Float64Array(512), off = mapCache?.off || document.createElement('canvas');
+      for (let i = 0; i < 512; i++) prof[i] = o.md.F(R * Math.SQRT2 * i / 511 / o.a) ** 2;
+      const img = new ImageData(n, n);
+      for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+        const x = ((i + 0.5) / n * 2 - 1), y = ((j + 0.5) / n * 2 - 1), r = Math.hypot(x, y) / Math.SQRT2, t = r * 511, k = Math.min(510, Math.floor(t));
+        const c = cmap(Math.sqrt(prof[k] + (prof[k + 1] - prof[k]) * (t - k))), p = 4 * (j * n + i);
+        img.data[p] = c[0]; img.data[p + 1] = c[1]; img.data[p + 2] = c[2]; img.data[p + 3] = 255;
+      }
+      off.width = n; off.height = n; off.getContext('2d').putImageData(img, 0, 0);
+      mapCache = { key, off };
+    }
+    ctx.save(); ctx.translate(X, Y);
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(mapCache.off, 0, 0, S, S);
+    const c = S / 2, sc = S / 2 / R;
+    ctx.lineWidth = Math.max(1.5, S / 200);
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(c, c, o.a * sc, 0, 2 * PI); ctx.stroke();
+    ctx.strokeStyle = '#7fe0a0'; ctx.setLineDash([]); ctx.beginPath(); ctx.arc(c, c, o.w * sc, 0, 2 * PI); ctx.stroke();
+    ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.fillText('- - core edge', fs * 0.5, fs * 0.5);
+    ctx.fillStyle = '#7fe0a0'; ctx.fillText('— spot size w', fs * 0.5, fs * 1.7);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.font = `${fs * 0.75}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(`window ±${fmt(R, 1)} µm`, S - fs * 0.5, S - fs * 0.4);
+    ctx.restore();
+  }
+
+  // ---------- w/a against V ----------
+  function wvBox(W, H, fs) { return { x0: fs * 3.2, x1: W - fs * 1, y0: fs * 1.8, y1: H - fs * 2.8 }; }
+  const WAMAX = 3;
+  function drawWV(ctx, X, Y, W, H, o, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 34)), B = wvBox(W, H, fs);
+    const sx = V => B.x0 + (B.x1 - B.x0) * (V - VLO) / (VHI - VLO), sy = v => B.y1 - (B.y1 - B.y0) * (v - 0.5) / (WAMAX - 0.5);
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ok; ctx.globalAlpha = 0.09; ctx.fillRect(sx(1.2), B.y0, sx(2.4) - sx(1.2), B.y1 - B.y0); ctx.globalAlpha = 1;
+    label(ctx, 'fit range', (sx(1.2) + sx(2.4)) / 2, B.y0 + fs * 0.3, 'center', 'top', pal.ok, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let V = 1; V <= 3; V += 0.5) { ctx.beginPath(); ctx.moveTo(sx(V), B.y0); ctx.lineTo(sx(V), B.y1); ctx.stroke(); ctx.fillText(fmt(V, 1), sx(V), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let v = 0.5; v <= WAMAX + 1e-9; v += 0.5) { ctx.beginPath(); ctx.moveTo(B.x0, sy(v)); ctx.lineTo(B.x1, sy(v)); ctx.stroke(); ctx.fillText(fmt(v, 1), B.x0 - fs * 0.3, sy(v)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText('V', (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('w / a', 0, 0); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    ctx.strokeStyle = pal.ray; ctx.lineWidth = 2.2; ctx.beginPath();
+    for (let i = 0; i <= 200; i++) { const V = VLO + (VHI - VLO) * i / 200, y = sy(marcuse(V)); i ? ctx.lineTo(sx(V), y) : ctx.moveTo(sx(V), y); }
+    ctx.stroke();
+    ctx.fillStyle = pal.accent;
+    for (const [V, w] of BEST) { ctx.beginPath(); ctx.arc(sx(V), sy(w), fs * 0.24, 0, 2 * PI); ctx.fill(); }
+    ctx.restore();
+    // current V
+    if (o.V >= VLO && o.V <= VHI) {
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(o.V), B.y0); ctx.lineTo(sx(o.V), B.y1); ctx.stroke();
+      if (o.wa <= WAMAX) { ctx.fillStyle = pal.ray; ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(o.V), sy(o.wa), fs * 0.42, 0, 2 * PI); ctx.fill(); ctx.stroke(); }
+    } else label(ctx, o.V < VLO ? `← V = ${fmt(o.V, 2)}` : `V = ${fmt(o.V, 2)} →`, o.V < VLO ? B.x0 + 4 : B.x1 - 4, B.y1 - fs * 0.5, o.V < VLO ? 'left' : 'right', 'bottom', pal.ink, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    label(ctx, '— fit   ● exact best Gaussian', B.x1, fs * 0.4, 'right', 'top', pal.muted, `${fs * 0.78}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+    return B;
+  }
+
+  // ---------- demo timeline (for the slide animation) ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  // a standard single-mode fiber: a = 4.1 µm, n₁ = 1.45, Δ = 0.0036, λ = 1.55 µm
+  const K_A = [[0, 4.1], [5, 4.1], [12, 2.6], [16, 2.6], [22, 5.3], [26, 5.3], [31, 4.1], [40, 4.1]];
+  const CAPTIONS = [
+    [0, 5, 'A standard single-mode fiber at 1550 nm', 'V ≈ 2.0. The mode is wider than the core: MFD ≈ 10 µm for an 8.2 µm core.'],
+    [5, 16, 'Lower V: the mode spreads out', 'As the core shrinks, w grows and more of the power travels in the cladding. Such a mode bends out of the fiber easily.'],
+    [16, 26, 'Higher V: the mode is confined', 'w approaches 0.65a and almost all the power is in the core. Above V = 2.405, LP₁₁ is guided too.'],
+    [26, 33, 'The Gaussian is a good model', 'Near V = 2 a Gaussian beam with this w couples more than 99% of its power into the mode.'],
+    [33, 40, 'Effective area A_eff = πw²', 'About 80 µm² for this fiber. It sets the intensity in the core, so it controls the nonlinear effects.'],
+  ];
+  const DEMO_DURATION = 40;
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const o = fiber({ lam: 1.55, a: track(K_A, t), n1: 1.45, delta: 0.0036 });
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.58), pad = W * 0.02;
+    drawProfile(ctx, 0, 0, sw, sh, o, { fontSize: W / 80 });
+    const mS = H - sh - pad * 1.2;
+    drawMap(ctx, pad * 0.6, sh + pad * 0.6, mS, o, { fontSize: W / 110 });
+    drawWV(ctx, mS + pad * 1.4, sh + pad * 0.3, sw - mS - pad * 1.8, H - sh - pad * 0.6, o, { fontSize: W / 96 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Spot size of the HE₁₁ mode', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 64}px ${getFont()}`;
+    ctx.fillText('w/a ≈ 0.65 + 1.619 V^−3/2 + 2.879 V^−6', px, y); y += W / 64 * 2.0;
+    const rows = [['Core radius a', `${fmt(o.a, 2)} µm`], ['V', fmt(o.V, 2)], ['Spot size w', `${fmt(o.w, 2)} µm`], ['MFD = 2w', `${fmt(2 * o.w, 1)} µm`],
+      ['A_eff = πw²', `${fmt(o.Ag, 0)} µm²`], ['Power in the core', `${fmt(o.Ge * 100, 1)}%`], ['Overlap with Gaussian', `${fmt(o.eta * 100, 1)}%`]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    ctx.fillStyle = o.V < 2.405 ? pal.ok : pal.ray; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`;
+    ctx.fillText(o.V < 2.405 ? '● Single-mode (V < 2.405)' : '● LP₁₁ also guided (V > 2.405)', px, y); y += W / 60 * 1.9;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'Step-index fiber, n₁ = 1.45, Δ = 0.0036, λ = 1.55 µm. Exact LP₀₁ mode (solid) and Gaussian (dashed).', px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const prof = $('prof'), map = $('map'), wv = $('wv');
+  const state = { lam: 1.55, a: 4.1, n1: 1.45, delta: 0.0036 };
+  let cur = fiber(state), dirty = true, sweep = null, simT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    cur = fiber(state); const o = cur;
+    $('lam').value = state.lam; $('rad').value = state.a; $('n1').value = state.n1; $('dl').value = state.delta;
+    $('lamOut').textContent = `${fmt(state.lam, 3)} µm`; $('radOut').textContent = `${fmt(state.a, 2)} µm`;
+    $('n1Out').textContent = fmt(state.n1, 3); $('dlOut').textContent = fmt(state.delta, 4);
+    $('n2Hint').textContent = `Cladding n₂ = ${fmt(o.n2, 4)}, NA = ${fmt(o.NA, 3)}`;
+    const st = $('status'), inFit = o.V >= 1.2 && o.V <= 2.4;
+    st.className = 'status ' + (inFit ? 'ok' : 'bad');
+    st.innerHTML = inFit ? `Inside the fit range<small>1.2 &lt; V = ${fmt(o.V, 2)} &lt; 2.4: the Gaussian is a good model of the mode.</small>`
+      : o.V > 2.405 ? `Outside the fit range<small>V = ${fmt(o.V, 2)} &gt; 2.405, so LP₁₁ is guided too. The fit for LP₀₁ is still close.</small>`
+      : `Outside the fit range<small>V = ${fmt(o.V, 2)} is small: the mode spreads far into the cladding and its tail is not Gaussian.</small>`;
+    $('rV').textContent = fmt(o.V, 3);
+    $('rW').textContent = `${fmt(o.w, 2)} µm (${fmt(o.wa, 2)}a)`;
+    $('rMFD').textContent = `${fmt(2 * o.w, 2)} µm`;
+    $('rCore').textContent = `${fmt(2 * o.a, 2)} µm`;
+    $('rGg').textContent = `${fmt(o.Gg * 100, 1)}%`; $('rGe').textContent = `${fmt(o.Ge * 100, 1)}%`;
+    const ar = v => v >= 1000 ? Math.round(v).toLocaleString('en-US') : fmt(v, v >= 100 ? 0 : 1);
+    $('rAg').textContent = `${ar(o.Ag)} µm²`; $('rAe').textContent = `${ar(o.Ae)} µm²`;
+    $('rEta').textContent = `${fmt(o.eta * 100, 2)}%`;
+    $('rNeff').textContent = fmt(o.neff, 5);
+    dirty = true;
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (sweep) {
+      sweep.t += dt; const u = sweep.t / sweep.dur;
+      // V from about 2.6 down to 1.0 and back, by changing the core radius
+      const NA = state.n1 * Math.sqrt(2 * state.delta), V = 1.8 + 0.8 * Math.cos(2 * PI * Math.min(1, u));
+      state.a = Math.max(1, Math.min(8, V * state.lam / (2 * PI * NA)));
+      if (u >= 1) { sweep = null; state.a = sweep0; $('sweep').setAttribute('aria-pressed', 'false'); }
+      syncUI();
+    }
+    if (DEMO) {
+      simT += dt; const { w, h, dpr } = sizeCanvas(prof); const ctx = prof.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    } else if (dirty) {
+      let { w, h, dpr } = sizeCanvas(prof), ctx = prof.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawProfile(ctx, 0, 0, w, h, cur);
+      ({ w, h, dpr } = sizeCanvas(map)); ctx = map.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawMap(ctx, 0, 0, w, cur);
+      ({ w, h, dpr } = sizeCanvas(wv)); ctx = wv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawWV(ctx, 0, 0, w, h, cur);
+      dirty = false;
+    }
+    requestAnimationFrame(frame);
+  }
+  let sweep0 = state.a;
+  const stopSweep = () => { if (sweep) { sweep = null; $('sweep').setAttribute('aria-pressed', 'false'); } };
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  const onInput = (id, key) => $(id).addEventListener('input', e => { stopSweep(); state[key] = +e.target.value; later(); });
+  onInput('lam', 'lam'); onInput('rad', 'a'); onInput('n1', 'n1'); onInput('dl', 'delta');
+  $('sweep').addEventListener('click', e => { if (sweep) { stopSweep(); return; } sweep0 = state.a; sweep = { t: 0, dur: reduced ? 30 : 14 }; e.currentTarget.setAttribute('aria-pressed', 'true'); });
+  // drag on the w/a chart sets V by changing the core radius
+  let dragging = false;
+  function pointerV(e) {
+    const r = wv.getBoundingClientRect(), fs = Math.max(11, Math.min(14, r.width / 34)), B = wvBox(r.width, r.height, fs);
+    const V = Math.max(VLO, Math.min(VHI, VLO + (e.clientX - r.left - B.x0) / (B.x1 - B.x0) * (VHI - VLO)));
+    const NA = state.n1 * Math.sqrt(2 * state.delta);
+    state.a = Math.max(1, Math.min(8, V * state.lam / (2 * PI * NA))); stopSweep(); later();
+  }
+  wv.addEventListener('pointerdown', e => { if (DEMO) return; dragging = true; wv.setPointerCapture(e.pointerId); pointerV(e); });
+  wv.addEventListener('pointermove', e => { if (dragging) pointerV(e); });
+  wv.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('resize', () => { dirty = true; });
+  new MutationObserver(() => { dirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { dirty = true; });
+
+  // hook for rendering the slide video frame by frame
+  window.ssDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(prof); const ctx = prof.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, fiber, lp01, BEST };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
