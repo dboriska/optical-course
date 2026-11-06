@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Three Processes Animation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; align-items: center; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px) !important; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status.neutral { color: var(--accent); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+canvas.hero { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.sub { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.hero { aspect-ratio: 4 / 3; } }
+.seg { display: inline-flex; gap: 0; flex-wrap: wrap; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; }
+.seg button + button { border-left: 0; }
+.status.hot { color: var(--ray); }
+select { font: inherit; font-size: 0.9rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 5px 8px; }
+body.demo canvas.hero { aspect-ratio: 16 / 9; }
+
+canvas.hero { aspect-ratio: 16 / 9 !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Three Ways Light Meets Electrons</h1>
+    <p>Absorption, spontaneous emission and stimulated emission between two levels E₁ and E₂ (slide 31). Each transition absorbs or emits one photon of energy hν = E₂ − E₁.</p>
+  </header>
+  <div class="grid" style="display:block"><div class="card scene">
+    <canvas id="v" class="hero" aria-label="Animation of absorption, spontaneous emission and stimulated emission in a two-level atom"></canvas>
+    <div class="scene-bar" style="gap:12px">
+      <button id="pp" aria-pressed="true">Pause</button>
+      <input id="sc" type="range" min="0" max="10" step="0.01" value="0" aria-label="Position in the animation" style="flex:1; min-width:120px">
+      <output id="tm" style="font-family:var(--font-mono); font-size:0.85rem"></output>
+    </div>
+  </div></div>
+  <p class="note">ρ(ν): photon energy density per unit frequency. N₁, N₂: densities of electrons in the lower and upper levels. B₁₂, B₂₁ and A₂₁ are the Einstein coefficients; with equal degeneracies B₁₂ = B₂₁ and A₂₁/B₂₁ = 8πhν³n³/c³ (slide 33).</p>
+</div>
+
+<script>
+(() => {
+  // ---------- shared helpers (same in every lab of the course) ----------
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+  const CREDIT = 'Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov';
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7', dark: false };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) if (k !== 'dark') p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    const th = document.documentElement.dataset.theme;
+    p.dark = th === 'dark' || (th !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtS = (v, n = 2) => (Math.abs(v) < 0.5 * 10 ** -n ? '' : v > 0 ? '+' : '−') + fmt(Math.abs(v), n);
+  const fmtT = v => Math.abs(v) >= 1000 ? `${fmt(v / 1000, 2)} ns` : `${fmt(v, Math.abs(v) >= 100 ? 0 : 1)} ps`;
+  const fmtKm = v => !isFinite(v) ? '∞' : v >= 1000 ? `${fmt(v, 0)} km` : v >= 100 ? `${fmt(v, 0)} km` : v >= 10 ? `${fmt(v, 1)} km` : `${fmt(v, 2)} km`;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  // linear or log axes; opts: xLog, yLog, xStep, yStep, xf, yf, xTicks [[v, text]], noGridX, noGridY
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const tx = v => opts.xLog ? Math.log10(v) : v, ty = v => opts.yLog ? Math.log10(v) : v;
+    const sx = x => B.x0 + (B.x1 - B.x0) * (tx(x) - tx(xr[0])) / (tx(xr[1]) - tx(xr[0])), sy = y => B.y1 - (B.y1 - B.y0) * (ty(y) - ty(yr[0])) / (ty(yr[1]) - ty(yr[0]));
+    ctx.save(); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const ticks = (r, log, step) => {
+      const out = [];
+      if (log) { for (let e = Math.floor(Math.log10(r[0])); e <= Math.ceil(Math.log10(r[1])); e++) { const v = 10 ** e; if (v >= r[0] * 0.999 && v <= r[1] * 1.001) out.push(v); } }
+      else { const s = step || niceStep(r[1] - r[0], 5); for (let v = Math.ceil(r[0] / s - 1e-9) * s; v <= r[1] + 1e-9; v += s) out.push(v); }
+      return out;
+    };
+    const lf = v => { if (v === 0) return '0'; const e = Math.log10(Math.abs(v)); return Math.abs(e) >= 4 ? `1e${Math.round(e)}` : String(+v.toPrecision(6)); };
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const xt = opts.xTicks || ticks(xr, opts.xLog, opts.xStep).map(v => [v, (opts.xf || (opts.xLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [x, t] of xt) { if (!opts.noGridX) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); } ctx.fillText(t, sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yt = opts.yTicks || ticks(yr, opts.yLog, opts.yStep).map(v => [v, (opts.yf || (opts.yLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [y, t] of yt) { if (!opts.noGridY) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); } ctx.fillText(t, B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    if (xl) ctx.fillText(xl, (B.x0 + B.x1) / 2, (opts.xlY ?? H) - fs * 0.15);
+    if (yl) { ctx.save(); ctx.translate(B.x0 - (opts.ylOff ?? fs * 3.6) + fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore(); }
+    ctx.restore();
+    return { sx, sy };
+  }
+  function frameBox(ctx, B, pal) { ctx.save(); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.restore(); }
+  function clipBox(ctx, B) { ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip(); }
+  function panelStart(ctx, X, Y, W, H, pal) { ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); }
+  function polyline(ctx, n, f) { ctx.beginPath(); let started = false; for (let i = 0; i <= n; i++) { const p = f(i / n); if (!p) { started = false; continue; } started ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); started = true; } ctx.stroke(); }
+  // ---------- timeline helpers for the slide animation ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const step = (keys, t) => { let v = keys[0][1]; for (const [t0, a] of keys) if (t >= t0) v = a; return v; };
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  // right-hand column of the slide animation: title, formulas, readouts, status, caption, footnote, credit
+  function sidePanel(ctx, W, H, x0, o) {
+    const pal = LIGHT, pad = W * 0.02, px = x0 + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.save(); ctx.textBaseline = 'top';
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left';
+    y = wrapText(ctx, o.title, px, y, pw, W / 46 * 1.2) + W / 46 * 0.35;
+    ctx.fillStyle = pal.ink;
+    for (const f of o.formulas || []) { ctx.font = `${W / 76}px ${monoFont()}`; ctx.fillText(f, px, y); y += W / 76 * 1.55; }
+    y += W / 76 * 0.5;
+    for (const [k, v] of o.rows || []) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(k, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 70}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    if (o.status) { ctx.fillStyle = o.status[1]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`; y = wrapText(ctx, '● ' + o.status[0], px, y, pw, W / 60 * 1.25) + W / 60 * 0.5; }
+    if (o.cap) {
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+      ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textAlign = 'left';
+      y = wrapText(ctx, o.cap[0], px, y, pw, W / 54 * 1.25) + W / 160;
+      ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+      wrapText(ctx, o.cap[1], px, y, pw, W / 68 * 1.4);
+    }
+    if (o.foot) { ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`; ctx.textAlign = 'left'; wrapText(ctx, o.foot, px, H - H * 0.115, pw, W / 100 * 1.4); }
+    ctx.restore();
+    credit(ctx, W, H);
+  }
+  function credit(ctx, W, H) {
+    ctx.save(); ctx.fillStyle = LIGHT.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(CREDIT, W - W * 0.02, H - H * 0.022); ctx.restore();
+  }
+  const captionAt = (caps, t) => caps.find(c => t >= c[0] && t < c[1]) || caps[caps.length - 1];
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function ctxOf(c) { const { w, h, dpr } = sizeCanvas(c), ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, w, h]; }
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // app loop: draw() when dirty (or every frame when animating), demo mode draws the slide animation
+  function runApp({ name, duration, drawDemo, draw, animating = () => false, tick = () => {} }) {
+    let dirty = true, simT = 0, last = performance.now();
+    const hero = document.querySelector('canvas.hero');
+    const api = { markDirty() { dirty = true; } };
+    function frame(now) {
+      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      if (DEMO) { simT += dt; const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, simT % duration); }
+      else { tick(dt); if (dirty || animating()) { draw(now / 1000); dirty = false; } }
+      requestAnimationFrame(frame);
+    }
+    window.addEventListener('resize', api.markDirty);
+    new MutationObserver(api.markDirty).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', api.markDirty);
+    window[name] = { duration, draw(t) { const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, t); } };
+    if (!window.__noLoop) requestAnimationFrame(frame);
+    if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(api.markDirty);
+    return api;
+  }
+  // slider wiring: ids → state keys, with optional transform (e.g. log sliders)
+  function bindRange(id, onValue) { const el = $(id); el.addEventListener('input', () => onValue(+el.value)); return el; }
+  function bindSeg(ids, onPick) { ids.forEach((id, i) => $(id).addEventListener('click', () => { ids.forEach((j, k) => $(j).setAttribute('aria-pressed', String(k === i))); onPick(i); })); }
+  // radix-2 FFT in place on Float64Array re, im (n a power of two); inverse when inv
+  function fft(re, im, inv = false) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = 2 * PI / len * (inv ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ar = re[i + j], ai = im[i + j], br = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci, bi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ar + br; im[i + j] = ai + bi; re[i + j + len / 2] = ar - br; im[i + j + len / 2] = ai - bi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+  }
+  // seeded random numbers, so the slide animation is the same every time
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const C_NM_PS = 299792.458;   // speed of light in nm/ps
+  const beta2Of = (D, lam = 1550) => -lam * lam * D / (2 * PI * C_NM_PS);   // ps²/km from ps/(nm·km)
+  // animation-only pages: play / pause / scrub of drawDemo on the hero canvas
+  function videoPlayer(name, duration, drawDemo) {
+    let t = 0, playing = !reducedMotion;
+    const sc = $('sc'), pp = $('pp'), tm = $('tm');
+    sc.max = duration;
+    const show = () => { sc.value = t; tm.textContent = `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')} / ${Math.floor(duration / 60)}:${String(Math.round(duration % 60)).padStart(2, '0')}`; pp.textContent = playing ? 'Pause' : 'Play'; pp.setAttribute('aria-pressed', String(playing)); };
+    const app = runApp({ name, duration, drawDemo, animating: () => playing,
+      tick(dt) { if (playing) { t = (t + dt) % duration; show(); } },
+      draw() { const [c, w, h] = ctxOf($('v')); drawDemo(c, w, h, t); } });
+    pp.addEventListener('click', () => { playing = !playing; show(); app.markDirty(); });
+    sc.addEventListener('input', () => { playing = false; t = +sc.value; show(); app.markDirty(); });
+    show();
+  }
+
+  const AMBER = '#b7791f';
+  const PROC = [
+    { key: 'abs', name: 'Absorption', rate: 'R = B₁₂ N₁ ρ(ν)', col: LIGHT.accent, t0: 2, t1: 12 },
+    { key: 'spon', name: 'Spontaneous emission', rate: 'R = A₂₁ N₂', col: AMBER, t0: 12, t1: 22 },
+    { key: 'stim', name: 'Stimulated emission', rate: 'R = B₂₁ N₂ ρ(ν)', col: LIGHT.ok, t0: 22, t1: 34 },
+  ];
+  // a photon: a sine wave packet centred at (x, y) moving along angle th
+  function photon(ctx, x, y, th, L, amp, col, phase, alpha = 1) {
+    const ux = Math.cos(th), uy = Math.sin(th);
+    ctx.save(); ctx.globalAlpha *= alpha; ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, L / 22); ctx.lineCap = 'round'; ctx.beginPath();
+    for (let i = 0; i <= 60; i++) { const u = i / 60 - 0.5, s = Math.sin(2 * PI * (3.5 * u) - phase) * amp * Math.sin(PI * (u + 0.5)); const px = x + ux * u * L - uy * s, py = y + uy * u * L + ux * s; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+    ctx.stroke();
+    // arrow head
+    const hx = x + ux * L * 0.55, hy = y + uy * L * 0.55, a = L * 0.09;
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx - ux * a * 1.6 - uy * a, hy - uy * a * 1.6 + ux * a); ctx.lineTo(hx - ux * a * 1.6 + uy * a, hy - uy * a * 1.6 - ux * a); ctx.fill();
+    ctx.restore();
+  }
+  function column(ctx, X, Y, W, H, p, u, active, t) {
+    const pal = LIGHT, fs = W / 15, cx = X + W / 2, yE2 = Y + H * 0.36, yE1 = Y + H * 0.64, lw = W * 0.34;
+    ctx.save(); ctx.beginPath(); ctx.rect(X + W * 0.03, Y, W * 0.94, H); ctx.clip(); ctx.globalAlpha = active ? 1 : 0.38;
+    ctx.fillStyle = active ? '#f4f8fc' : '#fafbfc'; ctx.fillRect(X + W * 0.03, Y, W * 0.94, H);
+    if (active) { ctx.strokeStyle = p.col; ctx.lineWidth = 3; ctx.strokeRect(X + W * 0.03, Y, W * 0.94, H); }
+    ctx.fillStyle = p.col; ctx.font = `700 ${fs * 1.05}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(p.name, cx, Y + fs * 0.6);
+    // levels
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 3;
+    for (const y of [yE2, yE1]) { ctx.beginPath(); ctx.moveTo(cx - lw / 2, y); ctx.lineTo(cx + lw / 2, y); ctx.stroke(); }
+    ctx.fillStyle = pal.muted; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('E₂', cx + lw / 2 + fs * 0.4, yE2); ctx.fillText('E₁', cx + lw / 2 + fs * 0.4, yE1);
+    // electron position
+    const ph = 2 * PI * 1.6 * t, L = W * 0.3, amp = H * 0.03, drop = (a, b) => yE2 + (yE1 - yE2) * ease(clamp((u - a) / (b - a), 0, 1)), rise = (a, b) => yE1 - (yE1 - yE2) * ease(clamp((u - a) / (b - a), 0, 1));
+    let ey, flash = -1;
+    if (p.key === 'abs') {
+      ey = rise(0.48, 0.62);
+      if (u < 0.48) photon(ctx, X + W * 0.06 + L * 0.5 + (cx - L * 0.6 - X - W * 0.06 - L * 0.5) * (u / 0.48), (yE1 + yE2) / 2, 0, L, amp, LIGHT.ray, ph);
+      flash = u - 0.48;
+      ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.75}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      if (u > 0.62) ctx.fillText('photon gone, electron up', cx, Y + H * 0.76);
+    } else if (p.key === 'spon') {
+      ey = drop(0.45, 0.58);
+      if (u < 0.45) { // waiting: a little clock
+        const r = fs * 0.7, a = -PI / 2 + 2 * PI * (u / 0.45) * 2; ctx.strokeStyle = pal.muted; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx - lw * 0.75, yE2, r, 0, 2 * PI); ctx.moveTo(cx - lw * 0.75, yE2); ctx.lineTo(cx - lw * 0.75 + r * 0.8 * Math.cos(a), yE2 + r * 0.8 * Math.sin(a)); ctx.stroke();
+      }
+      if (u > 0.5) { const th = -PI * 0.28, d = (u - 0.5) / 0.5 * W * 0.3; photon(ctx, cx + Math.cos(th) * d, (yE1 + yE2) / 2 + Math.sin(th) * d * 0.9, th, L, amp, AMBER, ph * 0.83 + 1.3); }
+      flash = u - 0.45;
+      ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.75}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      ctx.fillText(u < 0.45 ? 'waits a random time (τ)' : 'random direction and phase', cx, Y + H * 0.76);
+    } else {
+      ey = drop(0.45, 0.58);
+      const x0 = X + W * 0.06 + L * 0.5, xa = cx - L * 0.6;
+      if (u < 0.45) photon(ctx, x0 + (xa - x0) * (u / 0.45), (yE1 + yE2) / 2, 0, L, amp, LIGHT.ray, ph);
+      else { const x = xa + (u - 0.45) / 0.55 * (cx + W * 0.22 - xa), dy = H * 0.055 * ease(clamp((u - 0.45) / 0.15, 0, 1)); photon(ctx, x, (yE1 + yE2) / 2 - dy, 0, L, amp, LIGHT.ray, ph); photon(ctx, x, (yE1 + yE2) / 2 + dy, 0, L, amp, LIGHT.ok, ph);
+        if (u > 0.62) { ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.75}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('a copy: same direction and phase', cx, Y + H * 0.76); } }
+      flash = u - 0.45;
+    }
+    if (flash > 0 && flash < 0.25) { ctx.strokeStyle = p.col; ctx.globalAlpha = (active ? 1 : 0.38) * (1 - flash / 0.25); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, (yE1 + yE2) / 2, fs * (0.6 + 6 * flash), 0, 2 * PI); ctx.stroke(); ctx.globalAlpha = active ? 1 : 0.38; }
+    ctx.fillStyle = LIGHT.accent; ctx.beginPath(); ctx.arc(cx, ey, fs * 0.38, 0, 2 * PI); ctx.fill();
+    // hν arrow
+    const hx = cx + lw / 2 + fs * 0.75;
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(hx, yE2 + fs * 0.75); ctx.lineTo(hx, yE1 - fs * 0.75); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.7}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('hν', hx + fs * 0.25, (yE1 + yE2) / 2);
+    // rate formula
+    ctx.fillStyle = pal.ink; ctx.font = `600 ${fs * 0.85}px ${monoFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(p.rate, cx, Y + H - fs * 0.6);
+    ctx.restore();
+  }
+  const CAPS = [
+    [0, 2, 'Two levels, three processes', 'An electron can sit in the lower level E₁ or the upper level E₂. A photon with hν = E₂ − E₁ can be absorbed or emitted.'],
+    [2, 12, 'Absorption', 'A photon arrives, the electron in E₁ takes its energy and jumps to E₂. The photon is gone. The rate grows with the number of lower electrons N₁ and with the light ρ(ν).'],
+    [12, 22, 'Spontaneous emission', 'An electron in E₂ falls back by itself after a random time, about the lifetime τ = 1/A₂₁. The photon leaves in a random direction with a random phase. This is the light of an LED.'],
+    [22, 34, 'Stimulated emission', 'A passing photon makes an electron in E₂ fall. The new photon is an exact copy: same frequency, direction, phase and polarization. This is the light of a laser.'],
+    [34, 42, 'Compare the rates', 'Absorption and stimulated emission both need light (ρ) and have equal coefficients. Which one wins depends only on N₁ versus N₂: gain needs N₂ > N₁, a population inversion.'],
+  ];
+  const DUR = 42;
+  function drawDemo(ctx, W, H, t) {
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    const sw = Math.round(W * 0.64), cw = sw / 3, top = H * 0.06, ch = H * 0.86;
+    for (let i = 0; i < 3; i++) {
+      const p = PROC[i], u = t < p.t0 ? 0 : t >= p.t1 ? 1 : (t - p.t0) / (p.t1 - p.t0), act = (t >= p.t0 && t < p.t1) || t >= 34 || t < 2;
+      column(ctx, i * cw, top, cw, ch, p, t >= 34 ? 1 : t < 2 ? (p.key === 'abs' ? 0 : 0) : u, act, t);
+    }
+    ctx.strokeStyle = LIGHT.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const c = captionAt(CAPS, t);
+    sidePanel(ctx, W, H, sw, { title: 'Light meets electrons', formulas: ['hν = E₂ − E₁', 'absorption:  B₁₂ N₁ ρ(ν)', 'spontaneous: A₂₁ N₂', 'stimulated:  B₂₁ N₂ ρ(ν)'], cap: [c[2], c[3]], foot: 'Slide 31. Equal degeneracies: B₁₂ = B₂₁.' });
+  }
+  videoPlayer('vpDemo', DUR, drawDemo);
+
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

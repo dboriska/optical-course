@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Semiconductor Gain Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: bands E(k) with their filling on top, gain spectrum and peak gain vs carrier density below it, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* electrons */
+  --ray: #d8402a;     /* holes, absorption */
+  --ok: #1d8a3a;      /* gain */
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#bands { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+#gain, #gn { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+#gain { touch-action: none; cursor: ew-resize; }
+@media (max-width: 600px) { #bands { aspect-ratio: 4 / 3; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; align-items: center; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #bands { aspect-ratio: 16 / 9; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Semiconductor Gain Lab</h1>
+    <p>Pumping injects electrons into the conduction band and holes into the valence band. Each band fills up to its own quasi-Fermi level (labels give E_fc from E_c and E_fv from E_v), and light is amplified only where stimulated emission beats absorption: <span class="law">E_g &lt; hν &lt; E_fc − E_fv</span>. Raise the carrier density and watch the gain window open.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="bands" aria-label="Conduction and valence bands against wave number, filled according to the quasi-Fermi levels, with the vertical transition at the chosen photon energy"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Material">
+            <button id="mQ" aria-pressed="true">InGaAsP (1.55 µm)</button>
+            <button id="mG" aria-pressed="false">GaAs (0.87 µm)</button>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>electron</span><span><i style="border:2px solid var(--ray)"></i>hole (empty state)</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="gain" aria-label="Gain spectrum against photon energy, with the gain window between the band gap and the quasi-Fermi level separation; drag to choose the photon energy"></canvas></div>
+        <div class="card scene"><canvas id="gn" aria-label="Peak gain against carrier density, with the transparency density"></canvas></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="nn">Carrier density N = P <output id="nnOut"></output></label>
+          <input id="nn" type="range" min="15" max="18.75" step="0.01" value="18.3">
+          <span class="hint">Electrons and holes are injected in pairs, so N = P.</span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="tt">Temperature T <output id="ttOut"></output></label>
+          <input id="tt" type="range" min="150" max="450" step="5" value="300">
+          <span class="hint" id="ktHint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="hv">Photon energy hν <output id="hvOut"></output></label>
+          <input id="hv" type="range" min="0" max="1" step="0.001" value="0.15">
+          <span class="hint" id="hvHint"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Band gap E_g</dt><dd id="rEg"></dd>
+          <dt>E_fc − E_fv</dt><dd id="rSplit"></dd>
+          <dt>Gain window</dt><dd id="rWin"></dd>
+          <dt>in wavelength</dt><dd id="rWinL"></dd>
+          <div class="sep"></div>
+          <dt>Peak gain</dt><dd id="rGp"></dd>
+          <dt>at</dt><dd id="rGpAt"></dd>
+          <dt>Transparency density N_T</dt><dd id="rNT"></dd>
+          <div class="sep"></div>
+          <dt>At hν: f_c(E₂)</dt><dd id="rFc"></dd>
+          <dt>f_v(E₁)</dt><dd id="rFv"></dd>
+          <dt>gain g(hν)</dt><dd id="rG"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Parabolic bands (slide 37) with electron and heavy-hole effective masses m_c, m_v; InGaAsP lattice-matched to InP: E_g = 0.80 eV, m_c = 0.045 m₀, m_v = 0.45 m₀; GaAs: E_g = 1.42 eV, m_c = 0.067 m₀, m_v = 0.48 m₀. The quasi-Fermi levels are found from N = ∫ρ_c f_c dE and P = ∫ρ_v (1 − f_v) dE with N = P. A photon hν links E₂ = E_c + (m_r/m_c)(hν − E_g) to E₁ = E₂ − hν at the same k (slide 47). Gain (slides 39–41): g(ν) = (λ²/8πn²τ_r) ρ_cv(ν) [f_c(E₂) − f_v(E₁)], with ρ_cv ∝ √(hν − E_g), n = 3.5 and τ_r = 1 ns. No spectral broadening is included, so the gain starts sharply at E_g; real spectra are smoothed by a few k_BT.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- physics (eV, cm⁻³, cm⁻¹) ----------
+  const HBAR = 1.054571817e-34, M0 = 9.1093837e-31, Q = 1.602176634e-19, KB = 8.617333e-5, H = 6.62607015e-34, CL = 2.99792458e8;
+  const NREF = 3.5, TAU = 1e-9;
+  const MATS = { Q: { name: 'InGaAsP', Eg: 0.80, mc: 0.045, mv: 0.45 }, G: { name: 'GaAs', Eg: 1.42, mc: 0.067, mv: 0.48 } };
+  // density of states per cm³ per eV at E (eV) above the band edge
+  const dosK = m => (1 / (2 * PI * PI)) * Math.pow(2 * m * M0 / (HBAR * HBAR), 1.5) * Math.sqrt(Q) * Q * 1e-6;
+  const fermi = (E, Ef, kT) => 1 / (1 + Math.exp((E - Ef) / kT));
+  // carriers in a band whose quasi-Fermi level sits at eta (eV) above its edge (into the band = positive)
+  function carriers(m, eta, kT) {
+    const K = dosK(m), Emax = Math.max(0.05, eta) + 30 * kT, n = 600, dE = Emax / n; let s = 0;
+    for (let i = 0; i < n; i++) { const E = (i + 0.5) * dE; s += Math.sqrt(E) * fermi(E, eta, kT); }
+    return K * s * dE;
+  }
+  function solveEta(m, N, kT) { let lo = -1.5, hi = 1.5; for (let i = 0; i < 48; i++) { const mid = (lo + hi) / 2; carriers(m, mid, kT) > N ? hi = mid : lo = mid; } return (lo + hi) / 2; }
+  // st: { mat, N (cm⁻³), T, x (0…1 position of hν in the plotted range) }
+  function model(st) {
+    const M = MATS[st.mat], kT = KB * st.T, mr = M.mc * M.mv / (M.mc + M.mv);
+    const ec = solveEta(M.mc, st.N, kT), ev = solveEta(M.mv, st.N, kT);
+    const Efc = M.Eg + ec, Efv = -ev;   // energies measured from E_v = 0
+    const k2E = m => HBAR * HBAR / (2 * m * M0) / Q * 1e18;   // eV per nm⁻²
+    const g = hv => {
+      const x = hv - M.Eg; if (x <= 0) return 0;
+      const E2 = M.Eg + mr / M.mc * x, E1 = -mr / M.mv * x;
+      const fc = fermi(E2, Efc, kT), fv = fermi(E1, Efv, kT);
+      const nu = hv * Q / H, lam = CL / nu, rho = Math.pow(2 * mr * M0, 1.5) / (PI * HBAR * HBAR) * Math.sqrt(x * Q);
+      return lam * lam / (8 * PI * NREF * NREF * TAU) * rho * (fc - fv) / 100;
+    };
+    const hvMin = M.Eg - 0.04, hvMax = M.Eg + 0.32;
+    let gmax = -Infinity, hpk = M.Eg, gmin = 0;
+    for (let i = 0; i <= 600; i++) { const hv = M.Eg + 1e-5 + 0.32 * i / 600, v = g(hv); if (v > gmax) { gmax = v; hpk = hv; } gmin = Math.min(gmin, v); }
+    const hv = hvMin + (hvMax - hvMin) * st.x, x = hv - M.Eg;
+    const E2 = M.Eg + mr / M.mc * Math.max(0, x), E1 = -mr / M.mv * Math.max(0, x);
+    const fc = fermi(E2, Efc, kT), fv = fermi(E1, Efv, kT);
+    return { ...st, M, kT, mr, ec, ev, Efc, Efv, split: Efc - Efv, g, gmax, hpk, gmin, hvMin, hvMax, hv, E2, E1, fc, fv, gv: g(hv), k2Ec: k2E(M.mc), k2Ev: k2E(M.mv) };
+  }
+  // peak gain against N (slide 53), cached per material and temperature
+  const gnCache = new Map();
+  function gainCurve(mat, T) {
+    const key = mat + T; if (gnCache.has(key)) return gnCache.get(key);
+    const pts = []; for (let i = 0; i <= 50; i++) { const lg = 17 + 1.75 * i / 50, m = model({ mat, T, N: 10 ** lg, x: 0.5 }); pts.push([10 ** lg, m.gmax > 0 ? m.gmax : 0, m.split - m.M.Eg]); }
+    let NT = NaN; for (let i = 1; i < pts.length; i++) if (pts[i - 1][2] < 0 && pts[i][2] >= 0) { const u = -pts[i - 1][2] / (pts[i][2] - pts[i - 1][2]); NT = pts[i - 1][0] + u * (pts[i][0] - pts[i - 1][0]); }
+    const out = { pts, NT }; if (gnCache.size > 40) gnCache.clear(); gnCache.set(key, out); return out;
+  }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const SUP = { '-': '⁻', 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹' };
+  const fmtN = v => { const e = Math.floor(Math.log10(v)), m = v / 10 ** e; return `${m.toFixed(1)}×10${String(e).split('').map(c => SUP[c]).join('')} cm⁻³`; };
+  const nm = hv => 1239.84 / hv;
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    if (opts.xTicks) for (const [x, t] of opts.xTicks) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText(t, sx(x), B.y1 + fs * 0.3); }
+    else for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    return { sx, sy };
+  }
+
+  // ---------- bands E(k) ----------
+  function drawBands(ctx, X, Y, W, H, m, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const B = { x0: fs * 4.4, x1: W - fs * 8.5, y0: fs * 2.2, y1: H - fs * 3.0 };
+    const Eg = m.M.Eg, top = 0.28, eMin = -0.22, eMax = Eg + top;
+    // the energy axis is broken across the gap so that both bands get room
+    const gapShow = 0.16, mapE = E => E <= Eg / 2 ? Math.min(E, gapShow / 2) : E - Eg + gapShow;   // display energy
+    const dMin = mapE(eMin), dMax = mapE(eMax);
+    const kmax = Math.sqrt(top / m.k2Ec);
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const yt = [[0, 'E_v'], [eMin, fmt(eMin, 2)], [-0.1, '−0.10'], [Eg, `E_c`], [Eg + 0.1, `+0.10`], [Eg + 0.2, `+0.20`]];
+    const { sx, sy: syd } = axes(ctx, B, [-kmax, kmax], [dMin, dMax], pal, fs, 'Wave number k (nm⁻¹)', 'Energy', H, { xStep: niceStep(2 * kmax, 6), xf: v => fmt(v, 2), yStep: 1e9, yf: () => '' });
+    const sy = E => syd(mapE(E));
+    // energy ticks by hand
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.75}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (const [E, t] of yt) { ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(B.x0, sy(E)); ctx.lineTo(B.x1, sy(E)); ctx.stroke(); ctx.fillText(t, B.x0 - fs * 0.3, sy(E)); }
+    // gap break marks
+    const yb = syd(gapShow / 2);
+    ctx.save(); ctx.fillStyle = pal.clad; ctx.fillRect(B.x0, yb - fs * 0.4, B.x1 - B.x0, fs * 0.8); ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.2;
+    for (const d of [-1, 1]) { ctx.beginPath(); for (let x = B.x0; x <= B.x1; x += fs * 0.8) { const yy = yb + d * fs * 0.4 + ((x - B.x0) / (fs * 0.8) % 2 ? fs * 0.12 : -fs * 0.12); x === B.x0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy); } ctx.stroke(); }
+    ctx.restore();
+    label(ctx, `E_g = ${fmt(Eg, 2)} eV (gap not to scale)`, (B.x0 + B.x1) / 2, yb, 'center', 'middle', pal.muted, `${fs * 0.75}px ${getFont()}`, pal);
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    // states: one dot per k sample, filled with probability f
+    const nk = Math.max(28, Math.round((B.x1 - B.x0) / (fs * 0.95))), r = fs * 0.28;
+    const Ec = k => Eg + m.k2Ec * k * k, Ev = k => -m.k2Ev * k * k;
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.4;
+    for (const f of [Ec, Ev]) { ctx.beginPath(); for (let i = 0; i <= 200; i++) { const k = -kmax + 2 * kmax * i / 200; i ? ctx.lineTo(sx(k), sy(f(k))) : ctx.moveTo(sx(k), sy(f(k))); } ctx.stroke(); }
+    for (let i = 0; i < nk; i++) {
+      const k = -kmax + 2 * kmax * (i + 0.5) / nk;
+      const e2 = Ec(k), p2 = fermi(e2, m.Efc, m.kT);
+      if (e2 < eMax) { ctx.fillStyle = pal.accent; ctx.globalAlpha = Math.max(0.06, p2); ctx.beginPath(); ctx.arc(sx(k), sy(e2), r, 0, 2 * PI); ctx.fill(); ctx.globalAlpha = 1; }
+      const e1 = Ev(k), p1 = fermi(e1, m.Efv, m.kT);
+      if (e1 > eMin) {
+        ctx.fillStyle = pal.accent; ctx.globalAlpha = p1; ctx.beginPath(); ctx.arc(sx(k), sy(e1), r, 0, 2 * PI); ctx.fill(); ctx.globalAlpha = 1;
+        if (1 - p1 > 0.03) { ctx.strokeStyle = pal.ray; ctx.globalAlpha = Math.min(1, Math.sqrt(1 - p1) * 1.2); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(k), sy(e1), r, 0, 2 * PI); ctx.stroke(); ctx.globalAlpha = 1; }
+      }
+    }
+    // the transition at hν: vertical in k
+    if (m.hv > Eg) {
+      const kk = Math.sqrt((m.E2 - Eg) / m.k2Ec), gainWins = m.fc > m.fv;
+      const col = gainWins ? pal.ok : pal.ray;
+      for (const s of [-1, 1]) {
+        const x = sx(s * kk); if (Math.abs(s * kk) > kmax) continue;
+        ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(x, sy(m.E1)); ctx.lineTo(x, sy(m.E2)); ctx.stroke();
+        const yh = gainWins ? sy(m.E1) : sy(m.E2), d = gainWins ? 1 : -1;
+        ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x, yh); ctx.lineTo(x - fs * 0.45, yh - d * fs * 0.8); ctx.lineTo(x + fs * 0.45, yh - d * fs * 0.8); ctx.closePath(); ctx.fill();
+      }
+    }
+    ctx.restore();
+    // quasi-Fermi levels
+    const qf = (E, name, col) => {
+      const inPlot = E > eMin && E < eMax, yy = inPlot ? sy(Math.max(eMin, Math.min(eMax, E))) : null;
+      if (yy === null) return;
+      ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash([8, 5]); ctx.beginPath(); ctx.moveTo(B.x0, yy); ctx.lineTo(B.x1 + fs * 0.4, yy); ctx.stroke(); ctx.setLineDash([]);
+      label(ctx, name, B.x1 + fs * 0.6, yy, 'left', 'middle', col, `700 ${fs * 0.85}px ${monoFont()}`, pal, false);
+    };
+    // a level deep in the gap falls inside the axis break: name it instead of drawing it
+    const hideC = m.Efc < Eg - gapShow / 2, hideV = m.Efv > gapShow / 2;   // labels: offset from E_c and from E_v
+    if (!hideC) qf(m.Efc, `E_fc ${m.ec >= 0 ? '+' : '−'}${fmt(Math.abs(m.ec) * 1000, 0)} meV`, pal.accent);
+    if (!hideV) qf(m.Efv, `E_fv ${m.ev >= 0 ? '−' : '+'}${fmt(Math.abs(m.ev) * 1000, 0)} meV`, pal.ray);
+    if (hideC) label(ctx, `E_fc −${fmt(-m.ec * 1000, 0)} meV`, B.x1 + fs * 0.6, syd(gapShow / 2) - fs * 1.1, 'left', 'middle', pal.accent, `700 ${fs * 0.72}px ${getFont()}`, pal, false);
+    if (hideV) label(ctx, `E_fv +${fmt(-m.ev * 1000, 0)} meV`, B.x1 + fs * 0.6, syd(gapShow / 2) + fs * 1.1, 'left', 'middle', pal.ray, `700 ${fs * 0.72}px ${getFont()}`, pal, false);
+    // headline
+    label(ctx, `${m.M.name}, N = P = ${fmtN(m.N)}, T = ${fmt(m.T, 0)} K`, B.x0, B.y0 - fs * 0.4, 'left', 'bottom', pal.ink, `700 ${fs * 0.85}px ${monoFont()}`, pal, false);
+    if (m.hv > Eg) label(ctx, m.fc > m.fv ? `hν = ${fmt(m.hv, 3)} eV: stimulated emission wins` : `hν = ${fmt(m.hv, 3)} eV: absorption wins`, B.x1, B.y0 - fs * 0.4, 'right', 'bottom', m.fc > m.fv ? pal.ok : pal.ray, `700 ${fs * 0.85}px ${getFont()}`, pal, false);
+    else label(ctx, `hν = ${fmt(m.hv, 3)} eV < E_g: no transition`, B.x1, B.y0 - fs * 0.4, 'right', 'bottom', pal.muted, `700 ${fs * 0.85}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- gain spectrum ----------
+  function gainBox(W, H, fs) { return { x0: fs * 4.2, x1: W - fs * 1, y0: fs * 2.0, y1: H - fs * 2.8 }; }
+  function drawGain(ctx, X, Y, W, H, m, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 34)), B = gainBox(W, H, fs);
+    const ymax = opts.ymax || Math.max(300, Math.ceil(m.gmax * 1.25 / 100) * 100), ymin = -ymax;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const { sx, sy } = axes(ctx, B, [m.hvMin, m.hvMax], [ymin, ymax], pal, fs, 'Photon energy hν (eV)', 'Gain (cm⁻¹)', H, { xStep: 0.05, xf: v => fmt(v, 2) });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    // gain window
+    if (m.split > m.M.Eg) { ctx.fillStyle = pal.ok; ctx.globalAlpha = 0.1; ctx.fillRect(sx(m.M.Eg), B.y0, sx(m.split) - sx(m.M.Eg), B.y1 - B.y0); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(B.x0, sy(0)); ctx.lineTo(B.x1, sy(0)); ctx.stroke(); ctx.globalAlpha = 1;
+    for (const [E, col] of [[m.M.Eg, pal.muted], [m.split, pal.ok]]) { ctx.strokeStyle = col; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(E), B.y0); ctx.lineTo(sx(E), B.y1); ctx.stroke(); ctx.setLineDash([]); }
+    // curve, green above zero, red below
+    ctx.lineWidth = 2.8; ctx.lineJoin = 'round'; let prev = null;
+    for (let i = 0; i <= 500; i++) {
+      const hv = m.hvMin + (m.hvMax - m.hvMin) * i / 500, v = m.g(hv), pt = [sx(hv), sy(Math.max(ymin * 1.05, v))];
+      if (prev) { ctx.strokeStyle = v > 0 ? pal.ok : v < 0 ? pal.ray : pal.ink; ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(pt[0], pt[1]); ctx.stroke(); }
+      prev = pt;
+    }
+    // chosen photon energy
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(m.hv), B.y0); ctx.lineTo(sx(m.hv), B.y1); ctx.stroke();
+    ctx.fillStyle = m.gv > 0 ? pal.ok : m.gv < 0 ? pal.ray : pal.ink; ctx.strokeStyle = pal.bg; ctx.beginPath(); ctx.arc(sx(m.hv), sy(Math.max(ymin, m.gv)), fs * 0.42, 0, 2 * PI); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    label(ctx, 'E_g', sx(m.M.Eg), B.y1 - fs * 0.3, 'center', 'bottom', pal.muted, `700 ${fs * 0.78}px ${monoFont()}`, pal);
+    if (m.split > m.hvMin && m.split < m.hvMax) label(ctx, 'E_fc − E_fv', sx(m.split), B.y0 + fs * 0.3, m.split > m.M.Eg ? 'left' : 'right', 'top', pal.ok, `700 ${fs * 0.78}px ${monoFont()}`, pal);
+    if (m.gmin < ymin) label(ctx, `absorption reaches ${fmt(m.gmin, 0)} cm⁻¹`, B.x1 - fs * 0.3, B.y1 - fs * 0.3, 'right', 'bottom', pal.ray, `${fs * 0.72}px ${getFont()}`, pal);
+    label(ctx, m.split > m.M.Eg ? `gain window ${fmt(m.M.Eg, 2)}–${fmt(m.split, 3)} eV` : 'no gain: E_fc − E_fv < E_g', B.x0 + fs * 0.1, B.y0 - fs * 0.35, 'left', 'bottom', m.split > m.M.Eg ? pal.ok : pal.ray, `700 ${fs * 0.82}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- peak gain against N ----------
+  function drawGN(ctx, X, Y, W, H, m, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 34));
+    const B = { x0: fs * 4.2, x1: W - fs * 1, y0: fs * 2.0, y1: H - fs * 2.8 };
+    const { pts, NT } = gainCurve(m.mat, m.T), xr = [0, 5.6e18], ymax = opts.ymax || Math.max(400, Math.ceil(Math.max(...pts.map(p => p[1])) / 500) * 500);
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const { sx, sy } = axes(ctx, B, xr, [0, ymax], pal, fs, 'Carrier density N (10¹⁸ cm⁻³)', 'Peak gain g_p (cm⁻¹)', H, { xStep: 1e18, xf: v => fmt(v / 1e18, 0) });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    if (isFinite(NT)) { ctx.strokeStyle = pal.muted; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(NT), B.y0); ctx.lineTo(sx(NT), B.y1); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.strokeStyle = pal.ok; ctx.lineWidth = 2.6; ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); ctx.stroke();
+    const gnow = Math.max(0, m.gmax);
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(m.N), B.y0); ctx.lineTo(sx(m.N), B.y1); ctx.stroke();
+    ctx.fillStyle = gnow > 0 ? pal.ok : pal.muted; ctx.strokeStyle = pal.bg; ctx.beginPath(); ctx.arc(sx(m.N), sy(gnow), fs * 0.42, 0, 2 * PI); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    if (isFinite(NT)) label(ctx, `N_T = ${fmt(NT / 1e18, 2)}×10¹⁸`, sx(NT) + fs * 0.3, B.y0 + fs * 0.4, 'left', 'top', pal.muted, `700 ${fs * 0.75}px ${monoFont()}`, pal);
+    label(ctx, 'g_p ≈ σ_g (N − N_T) near N_T', B.x0 + fs * 0.1, B.y0 - fs * 0.35, 'left', 'bottom', pal.ok, `700 ${fs * 0.82}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- demo timeline ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const K_LGN = [[0, 16], [4, 16], [12, 17.9], [15, 17.9], [21, 18.4], [44, 18.4]];
+  const K_X = [[0, 0.3], [21, 0.3], [27, 0.05], [29, 0.05], [35, 0.75], [37, 0.75], [39, 0.3], [44, 0.3]];
+  const K_T = [[0, 300], [39, 300], [42, 400], [46, 400], [52, 400]];
+  const CAPTIONS = [
+    [0, 4, 'Little pumping: one Fermi level', 'Electrons fill the valence band and almost none sit in the conduction band. A photon above E_g is absorbed.'],
+    [4, 15, 'Pumping splits the Fermi level', 'Injected electrons fill the bottom of the conduction band up to E_fc; holes empty the top of the valence band down to E_fv.'],
+    [15, 21, 'Transparency, then gain', 'Once E_fc − E_fv exceeds E_g, photons just above the gap find full upper and empty lower states: stimulated emission beats absorption.'],
+    [21, 39, 'Gain only inside the window', 'For E_g < hν < E_fc − E_fv the transition is green (gain). Above the window the lower state is still full and the upper one empty: absorption.'],
+    [39, 52, 'A hot laser needs more current', 'At 400 K the carriers spread over more states, the quasi-Fermi levels sink, and the same N gives less gain.'],
+  ];
+  const DEMO_DURATION = 52;
+  function demoState(t) { return { mat: 'Q', N: 10 ** track(K_LGN, t), T: track(K_T, t), x: track(K_X, t) }; }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), m = model(st);
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
+    drawBands(ctx, 0, 0, sw, sh, m, { fontSize: W / 80 });
+    const bw = (sw - pad) / 2;
+    drawGain(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, m, { fontSize: W / 100, ymax: 1500 });
+    drawGN(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, m, { fontSize: W / 100, ymax: 2500 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Population inversion', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 70}px ${monoFont()}`;
+    ctx.fillText('gain:  E_g < hν < E_fc − E_fv', px, y); y += W / 70 * 2.1;
+    const rows = [['Carrier density', fmtN(m.N)], ['Temperature', `${fmt(m.T, 0)} K`], ['E_fc − E_fv', `${fmt(m.split, 3)} eV`], ['Photon hν', `${fmt(m.hv, 3)} eV (${fmt(nm(m.hv), 0)} nm)`], ['f_c(E₂), f_v(E₁)', `${fmt(m.fc, 2)}, ${fmt(m.fv, 2)}`]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 70}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    const gw = m.split > m.M.Eg;
+    ctx.fillStyle = gw ? pal.ok : pal.ray; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`;
+    ctx.fillText(gw ? `● Gain up to ${fmt(m.gmax, 0)} cm⁻¹` : '● Absorption at every hν', px, y); y += W / 60 * 1.9;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'InGaAsP on InP, E_g = 0.80 eV (1550 nm), parabolic bands, no spectral broadening.', px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const bc = $('bands'), gc = $('gain'), nc = $('gn');
+  const state = { mat: 'Q', N: 10 ** 18.3, T: 300, x: 0.15 };
+  let cur = model(state), dirty = true;
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    const m = cur = model(state), { NT } = gainCurve(state.mat, state.T);
+    $('nn').value = Math.log10(state.N); $('tt').value = state.T; $('hv').value = state.x;
+    $('nnOut').textContent = fmtN(state.N); $('ttOut').textContent = `${fmt(state.T, 0)} K`;
+    $('hvOut').textContent = `${fmt(m.hv, 3)} eV`; $('hvHint').textContent = `λ = ${fmt(nm(m.hv), 0)} nm` + (m.hv <= m.M.Eg ? ' (below the gap: the material is transparent)' : '');
+    $('ktHint').textContent = `k_BT = ${fmt(m.kT * 1000, 1)} meV`;
+    const s = $('status');
+    if (m.split > m.M.Eg) { s.className = 'status ok'; s.innerHTML = `Population inversion<small>E_fc − E_fv = ${fmt(m.split, 3)} eV exceeds E_g = ${fmt(m.M.Eg, 2)} eV. Peak gain ${fmt(m.gmax, 0)} cm⁻¹.</small>`; }
+    else { s.className = 'status bad'; s.innerHTML = `No inversion: absorption<small>E_fc − E_fv = ${fmt(m.split, 3)} eV is below E_g = ${fmt(m.M.Eg, 2)} eV. Light at every hν above the gap is absorbed.</small>`; }
+    $('rEg').textContent = `${fmt(m.M.Eg, 2)} eV (${fmt(nm(m.M.Eg), 0)} nm)`; $('rSplit').textContent = `${fmt(m.split, 3)} eV`;
+    $('rWin').textContent = m.split > m.M.Eg ? `${fmt(m.M.Eg, 2)}–${fmt(m.split, 3)} eV` : 'none';
+    $('rWinL').textContent = m.split > m.M.Eg ? `${fmt(nm(m.split), 0)}–${fmt(nm(m.M.Eg), 0)} nm` : '—';
+    $('rGp').textContent = m.gmax > 0 ? `${fmt(m.gmax, 0)} cm⁻¹` : '—'; $('rGpAt').textContent = m.gmax > 0 ? `${fmt(m.hpk, 3)} eV (${fmt(nm(m.hpk), 0)} nm)` : '—';
+    $('rNT').textContent = isFinite(NT) ? fmtN(NT) : '—';
+    $('rFc').textContent = m.hv > m.M.Eg ? fmt(m.fc, 3) : '—'; $('rFv').textContent = m.hv > m.M.Eg ? fmt(m.fv, 3) : '—';
+    $('rG').textContent = m.hv > m.M.Eg ? `${fmt(m.gv, 0)} cm⁻¹` : '0';
+    dirty = true;
+  }
+  let simT = 0, last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (DEMO) {
+      simT += dt; const { w, h, dpr } = sizeCanvas(bc); const ctx = bc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    } else if (dirty) {
+      let { w, h, dpr } = sizeCanvas(bc), ctx = bc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawBands(ctx, 0, 0, w, h, cur);
+      ({ w, h, dpr } = sizeCanvas(gc)); ctx = gc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawGain(ctx, 0, 0, w, h, cur);
+      ({ w, h, dpr } = sizeCanvas(nc)); ctx = nc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawGN(ctx, 0, 0, w, h, cur);
+      dirty = false;
+    }
+    requestAnimationFrame(frame);
+  }
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  $('nn').addEventListener('input', e => { state.N = 10 ** +e.target.value; later(); });
+  $('tt').addEventListener('input', e => { state.T = +e.target.value; later(); });
+  $('hv').addEventListener('input', e => { state.x = +e.target.value; later(); });
+  function setMat(k) { state.mat = k; $('mQ').setAttribute('aria-pressed', String(k === 'Q')); $('mG').setAttribute('aria-pressed', String(k === 'G')); later(); }
+  $('mQ').addEventListener('click', () => setMat('Q'));
+  $('mG').addEventListener('click', () => setMat('G'));
+  let dragging = false;
+  function pointerHv(e) { const r = gc.getBoundingClientRect(), fs = Math.max(11, Math.min(14, r.width / 34)), B = gainBox(r.width, r.height, fs); state.x = Math.max(0, Math.min(1, (e.clientX - r.left - B.x0) / (B.x1 - B.x0))); later(); }
+  gc.addEventListener('pointerdown', e => { if (DEMO) return; dragging = true; gc.setPointerCapture(e.pointerId); pointerHv(e); });
+  gc.addEventListener('pointermove', e => { if (dragging) pointerHv(e); });
+  gc.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('resize', () => { dirty = true; });
+  new MutationObserver(() => { dirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { dirty = true; });
+
+  window.sgDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(bc); const ctx = bc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, model, demoState, gainCurve };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

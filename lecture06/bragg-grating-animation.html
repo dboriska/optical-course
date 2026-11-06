@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Bragg Grating Animation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; align-items: center; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px) !important; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status.neutral { color: var(--accent); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+canvas.hero { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.sub { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.hero { aspect-ratio: 4 / 3; } }
+.seg { display: inline-flex; gap: 0; flex-wrap: wrap; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; }
+.seg button + button { border-left: 0; }
+.status.hot { color: var(--ray); }
+select { font: inherit; font-size: 0.9rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 5px 8px; }
+body.demo canvas.hero { aspect-ratio: 16 / 9; }
+
+canvas.hero { aspect-ratio: 16 / 9 !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>How a Bragg Grating Picks One Wavelength</h1>
+    <p>A periodic ripple in a waveguide reflects a little light at every tooth (slide 61). Only at the Bragg wavelength λ<sub>B</sub> = 2nΛ do all these small reflections return in phase and build a strong mirror. This is how DFB and DBR lasers select a single mode.</p>
+  </header>
+  <div class="grid" style="display:block"><div class="card scene">
+    <canvas id="v" class="hero" aria-label="Animation of light in a waveguide Bragg grating, with the phasor sum of the reflections and the reflection spectrum"></canvas>
+    <div class="scene-bar" style="gap:12px">
+      <button id="pp" aria-pressed="true">Pause</button>
+      <input id="sc" type="range" min="0" max="10" step="0.01" value="0" aria-label="Position in the animation" style="flex:1; min-width:120px">
+      <output id="tm" style="font-family:var(--font-mono); font-size:0.85rem"></output>
+    </div>
+  </div></div>
+  <p class="note">A short grating of 40 periods with coupling κL = 1.44 (peak reflectance 80%), so the band is wide enough to see; real gratings have thousands of periods and a band below 1 nm. Wave amplitudes and the reflection spectrum come from coupled-mode theory: R = κ² sinh²(sL)/(s² cosh²(sL) + Δβ² sinh²(sL)), s² = κ² − Δβ². The phasor diagram is the weak-grating picture: one small reflection per tooth, each delayed by the round trip 2βΛ = 2π λ<sub>B</sub>/λ.</p>
+</div>
+
+<script>
+(() => {
+  // ---------- shared helpers (same in every lab of the course) ----------
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+  const CREDIT = 'Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov';
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7', dark: false };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) if (k !== 'dark') p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    const th = document.documentElement.dataset.theme;
+    p.dark = th === 'dark' || (th !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtS = (v, n = 2) => (Math.abs(v) < 0.5 * 10 ** -n ? '' : v > 0 ? '+' : '−') + fmt(Math.abs(v), n);
+  const fmtT = v => Math.abs(v) >= 1000 ? `${fmt(v / 1000, 2)} ns` : `${fmt(v, Math.abs(v) >= 100 ? 0 : 1)} ps`;
+  const fmtKm = v => !isFinite(v) ? '∞' : v >= 1000 ? `${fmt(v, 0)} km` : v >= 100 ? `${fmt(v, 0)} km` : v >= 10 ? `${fmt(v, 1)} km` : `${fmt(v, 2)} km`;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  // linear or log axes; opts: xLog, yLog, xStep, yStep, xf, yf, xTicks [[v, text]], noGridX, noGridY
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const tx = v => opts.xLog ? Math.log10(v) : v, ty = v => opts.yLog ? Math.log10(v) : v;
+    const sx = x => B.x0 + (B.x1 - B.x0) * (tx(x) - tx(xr[0])) / (tx(xr[1]) - tx(xr[0])), sy = y => B.y1 - (B.y1 - B.y0) * (ty(y) - ty(yr[0])) / (ty(yr[1]) - ty(yr[0]));
+    ctx.save(); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const ticks = (r, log, step) => {
+      const out = [];
+      if (log) { for (let e = Math.floor(Math.log10(r[0])); e <= Math.ceil(Math.log10(r[1])); e++) { const v = 10 ** e; if (v >= r[0] * 0.999 && v <= r[1] * 1.001) out.push(v); } }
+      else { const s = step || niceStep(r[1] - r[0], 5); for (let v = Math.ceil(r[0] / s - 1e-9) * s; v <= r[1] + 1e-9; v += s) out.push(v); }
+      return out;
+    };
+    const lf = v => { if (v === 0) return '0'; const e = Math.log10(Math.abs(v)); return Math.abs(e) >= 4 ? `1e${Math.round(e)}` : String(+v.toPrecision(6)); };
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const xt = opts.xTicks || ticks(xr, opts.xLog, opts.xStep).map(v => [v, (opts.xf || (opts.xLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [x, t] of xt) { if (!opts.noGridX) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); } ctx.fillText(t, sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yt = opts.yTicks || ticks(yr, opts.yLog, opts.yStep).map(v => [v, (opts.yf || (opts.yLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [y, t] of yt) { if (!opts.noGridY) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); } ctx.fillText(t, B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    if (xl) ctx.fillText(xl, (B.x0 + B.x1) / 2, (opts.xlY ?? H) - fs * 0.15);
+    if (yl) { ctx.save(); ctx.translate(B.x0 - (opts.ylOff ?? fs * 3.6) + fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore(); }
+    ctx.restore();
+    return { sx, sy };
+  }
+  function frameBox(ctx, B, pal) { ctx.save(); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.restore(); }
+  function clipBox(ctx, B) { ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip(); }
+  function panelStart(ctx, X, Y, W, H, pal) { ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); }
+  function polyline(ctx, n, f) { ctx.beginPath(); let started = false; for (let i = 0; i <= n; i++) { const p = f(i / n); if (!p) { started = false; continue; } started ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); started = true; } ctx.stroke(); }
+  // ---------- timeline helpers for the slide animation ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const step = (keys, t) => { let v = keys[0][1]; for (const [t0, a] of keys) if (t >= t0) v = a; return v; };
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  // right-hand column of the slide animation: title, formulas, readouts, status, caption, footnote, credit
+  function sidePanel(ctx, W, H, x0, o) {
+    const pal = LIGHT, pad = W * 0.02, px = x0 + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.save(); ctx.textBaseline = 'top';
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left';
+    y = wrapText(ctx, o.title, px, y, pw, W / 46 * 1.2) + W / 46 * 0.35;
+    ctx.fillStyle = pal.ink;
+    for (const f of o.formulas || []) { ctx.font = `${W / 76}px ${monoFont()}`; ctx.fillText(f, px, y); y += W / 76 * 1.55; }
+    y += W / 76 * 0.5;
+    for (const [k, v] of o.rows || []) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(k, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 70}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    if (o.status) { ctx.fillStyle = o.status[1]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`; y = wrapText(ctx, '● ' + o.status[0], px, y, pw, W / 60 * 1.25) + W / 60 * 0.5; }
+    if (o.cap) {
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+      ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textAlign = 'left';
+      y = wrapText(ctx, o.cap[0], px, y, pw, W / 54 * 1.25) + W / 160;
+      ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+      wrapText(ctx, o.cap[1], px, y, pw, W / 68 * 1.4);
+    }
+    if (o.foot) { ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`; ctx.textAlign = 'left'; wrapText(ctx, o.foot, px, H - H * 0.115, pw, W / 100 * 1.4); }
+    ctx.restore();
+    credit(ctx, W, H);
+  }
+  function credit(ctx, W, H) {
+    ctx.save(); ctx.fillStyle = LIGHT.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(CREDIT, W - W * 0.02, H - H * 0.022); ctx.restore();
+  }
+  const captionAt = (caps, t) => caps.find(c => t >= c[0] && t < c[1]) || caps[caps.length - 1];
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function ctxOf(c) { const { w, h, dpr } = sizeCanvas(c), ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, w, h]; }
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // app loop: draw() when dirty (or every frame when animating), demo mode draws the slide animation
+  function runApp({ name, duration, drawDemo, draw, animating = () => false, tick = () => {} }) {
+    let dirty = true, simT = 0, last = performance.now();
+    const hero = document.querySelector('canvas.hero');
+    const api = { markDirty() { dirty = true; } };
+    function frame(now) {
+      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      if (DEMO) { simT += dt; const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, simT % duration); }
+      else { tick(dt); if (dirty || animating()) { draw(now / 1000); dirty = false; } }
+      requestAnimationFrame(frame);
+    }
+    window.addEventListener('resize', api.markDirty);
+    new MutationObserver(api.markDirty).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', api.markDirty);
+    window[name] = { duration, draw(t) { const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, t); } };
+    if (!window.__noLoop) requestAnimationFrame(frame);
+    if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(api.markDirty);
+    return api;
+  }
+  // slider wiring: ids → state keys, with optional transform (e.g. log sliders)
+  function bindRange(id, onValue) { const el = $(id); el.addEventListener('input', () => onValue(+el.value)); return el; }
+  function bindSeg(ids, onPick) { ids.forEach((id, i) => $(id).addEventListener('click', () => { ids.forEach((j, k) => $(j).setAttribute('aria-pressed', String(k === i))); onPick(i); })); }
+  // radix-2 FFT in place on Float64Array re, im (n a power of two); inverse when inv
+  function fft(re, im, inv = false) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = 2 * PI / len * (inv ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ar = re[i + j], ai = im[i + j], br = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci, bi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ar + br; im[i + j] = ai + bi; re[i + j + len / 2] = ar - br; im[i + j + len / 2] = ai - bi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+  }
+  // seeded random numbers, so the slide animation is the same every time
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const C_NM_PS = 299792.458;   // speed of light in nm/ps
+  const beta2Of = (D, lam = 1550) => -lam * lam * D / (2 * PI * C_NM_PS);   // ps²/km from ps/(nm·km)
+  // animation-only pages: play / pause / scrub of drawDemo on the hero canvas
+  function videoPlayer(name, duration, drawDemo) {
+    let t = 0, playing = !reducedMotion;
+    const sc = $('sc'), pp = $('pp'), tm = $('tm');
+    sc.max = duration;
+    const show = () => { sc.value = t; tm.textContent = `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')} / ${Math.floor(duration / 60)}:${String(Math.round(duration % 60)).padStart(2, '0')}`; pp.textContent = playing ? 'Pause' : 'Play'; pp.setAttribute('aria-pressed', String(playing)); };
+    const app = runApp({ name, duration, drawDemo, animating: () => playing,
+      tick(dt) { if (playing) { t = (t + dt) % duration; show(); } },
+      draw() { const [c, w, h] = ctxOf($('v')); drawDemo(c, w, h, t); } });
+    pp.addEventListener('click', () => { playing = !playing; show(); app.markDirty(); });
+    sc.addEventListener('input', () => { playing = false; t = +sc.value; show(); app.markDirty(); });
+    show();
+  }
+
+  const N = 40, KL = 1.44, LB = 1550, DMAX = 0.06;
+  // complex helpers
+  const C = (re, im = 0) => ({ re, im }), add = (a, b) => C(a.re + b.re, a.im + b.im), sub = (a, b) => C(a.re - b.re, a.im - b.im), mul = (a, b) => C(a.re * b.re - a.im * b.im, a.re * b.im + a.im * b.re);
+  const div = (a, b) => { const d = b.re * b.re + b.im * b.im; return C((a.re * b.re + a.im * b.im) / d, (a.im * b.re - a.re * b.im) / d); };
+  const csinh = z => C(Math.sinh(z.re) * Math.cos(z.im), Math.cosh(z.re) * Math.sin(z.im)), ccosh = z => C(Math.cosh(z.re) * Math.cos(z.im), Math.sinh(z.re) * Math.sin(z.im));
+  const abs = z => Math.hypot(z.re, z.im);
+  function cmt(d) {   // d = λ/λB − 1; returns forward and backward amplitude functions of z ∈ [0,1] and R
+    const D = Math.PI * N * (1 / (1 + d) - 1), s2 = KL * KL - D * D, S = s2 >= 0 ? C(Math.sqrt(s2)) : C(0, Math.sqrt(-s2));
+    const den = sub(mul(S, ccosh(S)), mul(C(0, D), csinh(S)));
+    const A = z => abs(div(sub(mul(S, ccosh(mul(S, C(1 - z)))), mul(C(0, D), csinh(mul(S, C(1 - z))))), den));
+    const Bz = z => abs(div(mul(C(0, -KL), csinh(mul(S, C(1 - z)))), den));
+    return { A, B: Bz, R: Bz(0) ** 2, D };
+  }
+  const pal = LIGHT, BLUE = '#0b6bc0', RED = '#d8402a';
+  function drawGuide(ctx, X, Y, W, H, d, t) {
+    const fs = W / 64, m = cmt(d);
+    const gx0 = X + W * 0.2, gx1 = X + W * 0.86, lx0 = X + W * 0.03, lx1 = X + W * 0.97, p = (gx1 - gx0) / N;
+    const cy = Y + H * 0.42, ch = H * 0.16, tooth = ch * 0.22;
+    ctx.save();
+    // cladding and core with teeth on the top boundary
+    ctx.fillStyle = '#edf3f7'; ctx.fillRect(lx0, Y + H * 0.12, lx1 - lx0, H * 0.78);
+    ctx.fillStyle = '#d6e8f6'; ctx.fillRect(lx0, cy - ch / 2, lx1 - lx0, ch);
+    ctx.fillStyle = '#b9d6ee'; for (let k = 0; k < N; k++) ctx.fillRect(gx0 + k * p, cy - ch / 2 - tooth, p / 2, tooth);
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(`grating: ${N} periods of Λ`, (gx0 + gx1) / 2, cy - ch / 2 - tooth - fs * 1.6);
+    // Λ marker
+    const mx = gx0 + p * 3; ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(mx, cy - ch / 2 - tooth - fs * 1.9); ctx.lineTo(mx + p, cy - ch / 2 - tooth - fs * 1.9); ctx.stroke();
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.fillText('Λ', mx + p / 2, cy - ch / 2 - tooth - fs * 2.0);
+    // waves: forward in the core, reflected in a lane below
+    const per = 2 * p * (1 + d), kx = 2 * PI / per, w = 2 * PI * 0.9 * t, ampF = ch * 0.36, laneR = cy + ch / 2 + H * 0.16, ampR = H * 0.07;
+    const zOf = x => (x - gx0) / (gx1 - gx0), envF = x => { const z = zOf(x); return z < 0 ? 1 : z > 1 ? m.A(1) : m.A(z); }, envB = x => { const z = zOf(x); return z < 0 ? m.B(0) : z > 1 ? 0 : m.B(z); };
+    ctx.lineWidth = Math.max(2, W / 500);
+    ctx.strokeStyle = RED; ctx.beginPath(); for (let x = lx0; x <= lx1; x += 1.5) { const y = cy + ampF * envF(x) * Math.sin(kx * (x - lx0) - w); x === lx0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } ctx.stroke();
+    ctx.strokeStyle = BLUE; ctx.beginPath(); for (let x = lx0; x <= lx1; x += 1.5) { const y = laneR + ampR * 1.5 * envB(x) * Math.sin(-kx * (x - lx0) - w); x === lx0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } ctx.stroke();
+    ctx.strokeStyle = pal.line; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(lx0, laneR); ctx.lineTo(lx1, laneR); ctx.stroke(); ctx.setLineDash([]);
+    // small reflection arrows at a few teeth
+    const r = m.B(0); for (let k = 2; k < N; k += 6) { const x = gx0 + k * p, a = clamp(envF(x), 0, 1); ctx.strokeStyle = BLUE; ctx.globalAlpha = 0.25 + 0.6 * a; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, cy + ch / 2 + fs * 0.3); ctx.quadraticCurveTo(x - fs * 0.8, cy + ch / 2 + fs * 1.4, x - fs * 1.8, cy + ch / 2 + fs * 1.6); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = RED; ctx.font = `700 ${fs * 0.95}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('incident →', lx0 + fs * 0.4, cy - ch / 2 - tooth - fs * 0.3);
+    ctx.textAlign = 'right'; ctx.fillText(`transmitted ${fmt(100 * (1 - m.R), 0)}% →`, lx1 - fs * 0.4, cy - ch / 2 - tooth - fs * 0.3);
+    ctx.fillStyle = BLUE; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(`← reflected ${fmt(100 * m.R, 0)}%`, lx0 + fs * 0.4, laneR + ampR * 1.7 + fs * 0.2);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 1.0}px ${monoFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(`λ = ${fmt(LB * (1 + d), 0)} nm   (λB = ${LB} nm)`, lx0, Y + fs * 0.6);
+    ctx.restore();
+    return m;
+  }
+  function drawPhasors(ctx, X, Y, W, H, d, m) {
+    const fs = W / 34, B = { x0: X + fs * 1.2, x1: X + W - fs * 1.2, y0: Y + fs * 2.4, y1: Y + H - fs * 1.4 };
+    ctx.save(); ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.82}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('reflection from each tooth (phasors)', B.x0, B.y0 - fs * 0.5);
+    const l = (B.x1 - B.x0) * 0.92 / N, dphi = 2 * PI * (1 / (1 + d) - 1);
+    let x = B.x0 + (B.x1 - B.x0) * 0.04, y = (B.y0 + B.y1) / 2; const sx0 = x, sy0 = y;
+    // centre the curl: precompute the extent
+    let px = 0, py = 0, mnx = 0, mxx = 0, mny = 0, mxy = 0;
+    for (let k = 0; k < N; k++) { px += l * Math.cos(k * dphi); py -= l * Math.sin(k * dphi); mnx = Math.min(mnx, px); mxx = Math.max(mxx, px); mny = Math.min(mny, py); mxy = Math.max(mxy, py); }
+    x = (B.x0 + B.x1) / 2 - (mnx + mxx) / 2; y = (B.y0 + B.y1) / 2 - (mny + mxy) / 2; const ox = x, oy = y;
+    ctx.lineWidth = 2;
+    for (let k = 0; k < N; k++) { const nx = x + l * Math.cos(k * dphi), ny = y - l * Math.sin(k * dphi); ctx.strokeStyle = `hsl(${210 - 160 * k / N}, 65%, 45%)`; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, ny); ctx.stroke(); x = nx; y = ny; }
+    ctx.strokeStyle = BLUE; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(x, y); ctx.stroke();
+    const ang = Math.atan2(y - oy, x - ox), a = fs * 0.6; if (Math.hypot(x - ox, y - oy) > a * 2) { ctx.fillStyle = BLUE; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - a * Math.cos(ang - 0.4), y - a * Math.sin(ang - 0.4)); ctx.lineTo(x - a * Math.cos(ang + 0.4), y - a * Math.sin(ang + 0.4)); ctx.fill(); }
+    ctx.fillStyle = BLUE; ctx.font = `700 ${fs * 0.8}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    const sum = Math.hypot(x - ox, y - oy) / (l * N); ctx.fillText(`|sum| = ${fmt(100 * sum, 0)}% of in-phase`, B.x1, B.y0 - fs * 0.5);
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.75}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(`phase step between teeth: ${fmt(((dphi * 180 / PI) % 360 + 540) % 360 - 180, 1)}°`, B.x0, B.y1 + fs * 0.9);
+    ctx.restore();
+  }
+  function drawSpec(ctx, X, Y, W, H, d) {
+    const fs = W / 34, B = { x0: X + fs * 3.4, x1: X + W - fs * 1, y0: Y + fs * 2.4, y1: Y + H - fs * 2.6 };
+    const { sx, sy } = axes(ctx, B, [LB * (1 - DMAX), LB * (1 + DMAX)], [0, 1], pal, fs, 'Wavelength (nm)', 'Reflectance R', Y + H, { yStep: 0.25, ylOff: fs * 3.4 });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    ctx.strokeStyle = BLUE; ctx.lineWidth = 2.5; polyline(ctx, 400, u => { const dd = -DMAX + 2 * DMAX * u; return [sx(LB * (1 + dd)), sy(cmt(dd).R)]; });
+    ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx(LB), B.y0); ctx.lineTo(sx(LB), B.y1); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    const R = cmt(d).R; ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(sx(LB * (1 + d)), sy(R), fs * 0.42, 0, 2 * PI); ctx.fill();
+    ctx.strokeStyle = RED; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(sx(LB * (1 + d)), B.y1); ctx.lineTo(sx(LB * (1 + d)), sy(R)); ctx.stroke();
+    ctx.save(); ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.82}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('reflection spectrum', B.x0, B.y0 - fs * 0.5);
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.fillText('λB = 2nΛ', B.x1, B.y0 - fs * 0.5); ctx.restore();
+    frameBox(ctx, B, pal);
+  }
+  const KD = [[0, -0.05], [4, -0.05], [16, 0], [26, 0], [36, 0.05], [38, 0.05], [41, 0], [46, 0]];
+  const CAPS = [
+    [0, 4, 'A grating in the waveguide', 'The core has a periodic ripple of period Λ. Every tooth reflects a tiny part of the light travelling along the guide.'],
+    [4, 16, 'Off Bragg: the reflections cancel', 'Each reflection comes back with a slightly different phase. The phasors (bottom left) curl into a circle and add up to almost nothing. Most light passes through.'],
+    [16, 26, 'At λB = 2nΛ: a mirror', 'The round trip between neighbouring teeth is exactly one wavelength, so all reflections add in phase. The phasors line up, the forward wave decays inside the grating and most light is reflected.'],
+    [26, 38, 'Only a narrow band', 'Past λB the phasors curl again. More teeth make the band narrower: real gratings with thousands of periods reflect less than 1 nm.'],
+    [38, 46, 'DFB and DBR lasers', 'A grating along the gain region (DFB) or in place of the mirrors (DBR) feeds back only λB, so the laser runs on a single mode. For 1550 nm in InP (n ≈ 3.2), Λ ≈ 240 nm.'],
+  ];
+  const DUR = 46;
+  function drawDemo(ctx, W, H, t) {
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    const d = track(KD, t), sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02, bw = (sw - pad) / 2;
+    const m = drawGuide(ctx, 0, 0, sw, sh, d, t);
+    drawPhasors(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, d, m);
+    drawSpec(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, d);
+    ctx.strokeStyle = LIGHT.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.moveTo(bw + pad / 2, sh + pad * 0.3); ctx.lineTo(bw + pad / 2, H - pad * 0.3); ctx.stroke();
+    const c = captionAt(CAPS, t);
+    sidePanel(ctx, W, H, sw, { title: 'Bragg grating', formulas: ['λB = 2 n Λ', 'phase step = 2βΛ = 2π λB/λ'],
+      rows: [['Wavelength λ', `${fmt(LB * (1 + d), 0)} nm`], ['Detuning', `${fmtS(100 * d, 1)}%`], ['Reflectance', `${fmt(100 * m.R, 0)}%`]],
+      cap: [c[2], c[3]], foot: 'Slide 61. 40 periods, κL = 1.44, so the band is wide enough to see.' });
+  }
+  videoPlayer('vbDemo', DUR, drawDemo);
+
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

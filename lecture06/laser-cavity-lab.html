@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Laser Cavity Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: gain and loss against wavelength on top, cavity round trip and output spectrum below, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* gain */
+  --ray: #d8402a;     /* light, lasing modes */
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#gain { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+#cav, #out { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { #gain { aspect-ratio: 4 / 3; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+input[type=range]:disabled { opacity: 0.4; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--muted); }
+.status.hot { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #gain { aspect-ratio: 16 / 9; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Laser Cavity Lab</h1>
+    <p>A semiconductor chip between two cleaved facets is a Fabry–Perot cavity. Only frequencies that fit a whole number of half-waves are allowed, <span class="law">ν_m = m c/(2nL)</span>, and a mode lases when its gain reaches the cavity loss, <span class="law">g_th = α_int + (1/2L) ln(1/R₁R₂)</span>. Pump the chip, change the cavity, and replace the facets with a Bragg grating.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="gain" aria-label="Gain against wavelength with the cavity loss line and the comb of cavity modes; modes above the line lase"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Feedback">
+            <button id="mFP" aria-pressed="true">Fabry–Perot</button>
+            <button id="mDFB" aria-pressed="false">DFB grating</button>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>gain g(λ)</span><span><i style="background:var(--muted)"></i>cavity loss g_th</span><span><i style="background:var(--ray)"></i>lasing mode</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="cav" aria-label="The cavity with its facets and the field amplitude along three round trips"></canvas></div>
+        <div class="card scene"><canvas id="out" aria-label="Output spectrum of the laser in decibels"></canvas></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="pump">Pump: carrier density N/N_T <output id="pumpOut"></output></label>
+          <input id="pump" type="range" min="0.5" max="2.5" step="0.01" value="1.75">
+          <span class="hint" id="pumpHint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="len">Cavity length L <output id="lenOut"></output></label>
+          <input id="len" type="range" min="100" max="1000" step="10" value="300">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="nn">Refractive index n <output id="nnOut"></output></label>
+          <input id="nn" type="range" min="3.0" max="4.0" step="0.01" value="3.5">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="r1">Front facet R₁ <output id="r1Out"></output></label>
+          <input id="r1" type="range" min="0.01" max="0.99" step="0.01" value="0.31">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="r2">Rear facet R₂ <output id="r2Out"></output></label>
+          <input id="r2" type="range" min="0.01" max="0.99" step="0.01" value="0.31">
+          <span class="hint">Cleaved InP facet: R = ((n − 1)/(n + 1))² ≈ 0.31</span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="ai">Internal loss α_int <output id="aiOut"></output></label>
+          <input id="ai" type="range" min="0" max="40" step="1" value="10">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="lb">Bragg wavelength λ_B (DFB) <output id="lbOut"></output></label>
+          <input id="lb" type="range" min="1520" max="1580" step="0.5" value="1550" disabled>
+          <span class="hint" id="lbHint"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Mode spacing Δν = c/2nL</dt><dd id="rDnu"></dd>
+          <dt>in wavelength Δλ</dt><dd id="rDl"></dd>
+          <div class="sep"></div>
+          <dt>Mirror loss α_mir</dt><dd id="rAm"></dd>
+          <dt>Threshold gain g_th</dt><dd id="rGth"></dd>
+          <dt>Small-signal peak gain g_p</dt><dd id="rGp"></dd>
+          <dt>Round-trip power gain</dt><dd id="rGrt"></dd>
+          <div class="sep"></div>
+          <dt>Lasing modes</dt><dd id="rNm"></dd>
+          <dt>Spectral width (rms)</dt><dd id="rW"></dd>
+          <dt>Reach at 2.5 Gb/s, D = 17</dt><dd id="rReach"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Gain model of slide 53: peak gain g_p = σ_g(N − N_T) with σ_g N_T = 100 cm⁻¹. The gain spectrum is a parabola around the peak whose width grows with the pump, and the peak moves to shorter wavelength as the bands fill. The modes and the threshold are exact for the cavity; above threshold the carrier density, and with it the gain, clamps at its threshold value, and each mode gets spontaneous emission amplified ∝ 1/(g_th − g + ε), with ε shrinking as the pump grows. That gives the familiar Fabry–Perot comb under a smooth envelope; the dashed curve is the gain the pump would give without clamping (the picture of slide 59). Modes within 20 dB of the strongest count as lasing. The output spectrum is qualitative. The DFB grating is modeled as low loss in a narrow band around λ_B = 2nΛ and high loss elsewhere. The reach uses B·L·|D|·σ_λ ≤ 1/4 with the rms width of the source, or the transform limit of the 2.5 Gb/s signal when the source is narrower.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- physics (µm for L, nm for λ, cm⁻¹ for gain) ----------
+  const C = 299792458, SIG_NT = 100, LAM_MIN = 1490, LAM_MAX = 1610;
+  const DFB_LOSS = 12, DFB_OFF = 120, DFB_W = 0.8, EPS0 = 0.01;   // cm⁻¹ at λ_B, extra loss away from it, notch width (nm)
+  function gainParams(N) {
+    const gp = SIG_NT * (N - 1), lp = 1565 - 12 * (N - 1);                        // peak (cm⁻¹), peak λ (nm)
+    const w = 12 + 10 * Math.max(0, N - 0.6);                                    // half-width where g = g_p − σN_T (nm)
+    return { gp, lp, a: SIG_NT / (w * w) };
+  }
+  const gainAt = (gpar, lam) => gpar.gp - gpar.a * (lam - gpar.lp) ** 2;
+  // st: { N, L (µm), n, R1, R2, ai (cm⁻¹), dfb, lb (nm) }
+  function cavity(st) {
+    const Lcm = st.L * 1e-4, am = Math.log(1 / (st.R1 * st.R2)) / (2 * Lcm), gthFP = st.ai + am;
+    const dnu = C / (2 * st.n * st.L * 1e-6);                                    // Hz
+    const dl = 1550 * 1550 / (2 * st.n * st.L * 1000);                          // nm
+    const gpar = gainParams(st.N);
+    const gth = lam => st.dfb ? st.ai + DFB_LOSS + DFB_OFF * (1 - Math.exp(-(((lam - st.lb) / DFB_W) ** 2))) : gthFP;
+    // modes: m c/(2nL) → λ_m = 2nL/m
+    const modes = [];
+    const twoNL = 2 * st.n * st.L * 1000;                                         // nm
+    for (let m = Math.ceil(twoNL / LAM_MAX); m <= Math.floor(twoNL / LAM_MIN); m++) modes.push(twoNL / m);
+    if (st.dfb) {   // the grating picks one wavelength: keep the comb for the side modes, add λ_B
+      for (let i = modes.length - 1; i >= 0; i--) if (Math.abs(modes[i] - st.lb) < dl / 2) modes.splice(i, 1);
+      modes.push(st.lb); modes.sort((a, b) => a - b);
+    }
+    const isB = l => st.dfb && Math.abs(l - st.lb) < 1e-9;
+    // loss each mode sees: in a DFB only λ_B sits in the low-loss band
+    const loss = l => st.dfb ? (isB(l) ? st.ai + DFB_LOSS : st.ai + DFB_LOSS + DFB_OFF) : gthFP;
+    const excess = N => { const gp = gainParams(N); let b = -Infinity; for (const l of modes) b = Math.max(b, gainAt(gp, l) - loss(l)); return b; };
+    // threshold carrier density: the best mode just reaches its loss
+    let lo = 0.3, hi = 6; for (let i = 0; i < 50; i++) { const mid = (lo + hi) / 2; excess(mid) > 0 ? hi = mid : lo = mid; }
+    const Nth = hi, above = st.N > Nth;
+    const gsat = above ? gainParams(Nth) : gpar;                                  // above threshold the gain clamps at its threshold value
+    const eps = above ? Math.min(1, EPS0 / (st.N - Nth)) : 0;
+    const md = modes.map(l => { const g = gainAt(gsat, l), g0 = gainAt(gpar, l), t = loss(l); return { lam: l, g, g0, t, dfb: isB(l) }; });
+    // the strongest mode, and its round trip at switch-on (unsaturated gain)
+    let best = md[0]; for (const m of md) if (m.g0 - m.t > best.g0 - best.t) best = m;
+    const Grt = Math.exp(2 * (best.g0 - best.t) * Lcm);                           // R₁R₂ e^{2(g − α_int)L} = e^{2(g − g_th)L}
+    // output spectrum: each mode gets spontaneous emission amplified by 1/(loss − gain)
+    const P = md.map(m => above ? 1 / (m.t - m.g + eps) : 1 / Math.max(0.5, m.t - m.g0));
+    const Pmax = Math.max(...P), ref = above ? Pmax : 1 / EPS0 * 4;
+    const atTh = above && st.N - Nth < 0.02;
+    md.forEach((m, i) => { m.db = 10 * Math.log10(P[i] / ref); m.lase = above && !atTh && m.db > -20; });
+    const lasing = md.filter(m => m.lase);
+    let sum = 0, s1 = 0, s2 = 0;
+    md.forEach((m, i) => { if (above) { sum += P[i]; s1 += P[i] * m.lam; s2 += P[i] * m.lam * m.lam; } });
+    const rms = above ? Math.sqrt(Math.max(0, s2 / sum - (s1 / sum) ** 2)) : NaN;
+    let smsr = Infinity; if (above) { const i0 = P.indexOf(Pmax); P.forEach((q, i) => { if (i !== i0) smsr = Math.min(smsr, 10 * Math.log10(Pmax / q)); }); }
+    return { ...st, atTh, Lcm, am, gthFP, gth, loss, dnu, dl, gpar, gsat, Nth, above, md, best, Grt, P, Pmax, lasing, rms, smsr, nLase: lasing.length, period: st.lb / (2 * st.n) };
+  }
+  // reach at 2.5 Gb/s in standard fiber: source-limited or signal-limited (transform-limited Gaussian)
+  function reach(c) {
+    if (!c.nLase) return NaN;
+    const B = 2.5e9, D = 17e-12 / 1e-9, b2 = 21.7e-24;                             // s/(m·m)… units handled below
+    const srcRms = Math.max(c.rms, c.dfb ? 0 : 0);
+    const Lsig = 1 / (16 * B * B * b2);                                            // km (β₂ in s²/km)
+    if (srcRms < 1e-3) return Lsig;
+    const Lsrc = 1 / (4 * B * 17e-12 * srcRms);                                    // km: D in s/(nm·km)
+    return Math.min(Lsrc, Lsig);
+  }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtKm = v => !isFinite(v) ? '—' : v >= 100 ? `${fmt(v, 0)} km` : v >= 10 ? `${fmt(v, 1)} km` : `${fmt(v, 2)} km`;
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    return { sx, sy };
+  }
+
+  // ---------- gain, loss and modes ----------
+  function drawGain(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const B = { x0: fs * 4.4, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
+    const ymin = -100, ymax = 160;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const { sx, sy } = axes(ctx, B, [LAM_MIN, LAM_MAX], [ymin, ymax], pal, fs, 'Wavelength λ (nm)', 'Gain or loss (cm⁻¹)', H, { xStep: 20, yStep: 50 });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(B.x0, sy(0)); ctx.lineTo(B.x1, sy(0)); ctx.stroke(); ctx.globalAlpha = 1;
+    // mode comb: thin ticks, lasing ones red and tall
+    const comb = c.md.length > 220 ? 0.5 : 1;
+    for (const m of c.md) {
+      const x = sx(m.lam);
+      if (m.lase) { ctx.strokeStyle = pal.ray; ctx.lineWidth = m.dfb ? 3 : 2; ctx.beginPath(); ctx.moveTo(x, sy(ymin)); ctx.lineTo(x, sy(m.g)); ctx.stroke(); }
+      else if (!c.dfb || m.dfb) { ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.35 * comb; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, sy(ymin)); ctx.lineTo(x, sy(ymin) - fs * 0.9); ctx.stroke(); ctx.globalAlpha = 1; }
+      else { ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.18 * comb; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x, sy(ymin)); ctx.lineTo(x, sy(ymin) - fs * 0.6); ctx.stroke(); ctx.globalAlpha = 1; }
+    }
+    // threshold (cavity loss)
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 2.4; ctx.beginPath();
+    for (let i = 0; i <= 1200; i++) { const l = LAM_MIN + (LAM_MAX - LAM_MIN) * i / 1200, y = sy(Math.min(ymax + 50, c.gth(l))); i ? ctx.lineTo(sx(l), y) : ctx.moveTo(sx(l), y); }
+    ctx.stroke();
+    // gain curves: the pump's small-signal gain (dashed, above threshold) and the actual gain, clamped at threshold
+    const N = 600, curve = gp => { ctx.beginPath(); for (let i = 0; i <= N; i++) { const l = LAM_MIN + (LAM_MAX - LAM_MIN) * i / N, y = sy(Math.max(ymin - 20, gainAt(gp, l))); i ? ctx.lineTo(sx(l), y) : ctx.moveTo(sx(l), y); } ctx.stroke(); };
+    ctx.lineJoin = 'round';
+    if (c.above) { ctx.strokeStyle = pal.accent; ctx.globalAlpha = 0.55; ctx.lineWidth = 1.8; ctx.setLineDash([7, 5]); curve(c.gpar); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = Math.max(2.6, W / 380); curve(c.gsat);
+    ctx.restore();
+    // labels
+    const gp = c.gpar;
+    if (gp.gp > ymin + 10 && (!c.above || gp.gp - gainAt(c.gsat, c.gsat.lp) > 10)) label(ctx, c.above ? `without clamping g_p = ${fmt(gp.gp, 0)} cm⁻¹` : `g_p = ${fmt(gp.gp, 0)} cm⁻¹`, sx(gp.lp), sy(Math.min(gp.gp, ymax - 12)) - fs * 0.5, 'center', 'bottom', pal.accent, `700 ${fs * (c.above ? 0.75 : 0.85)}px ${monoFont()}`, pal);
+    if (c.above) label(ctx, 'gain clamps at the loss', sx(c.gsat.lp) + (c.dfb ? (c.gsat.lp > c.lb ? 1 : -1) * fs * 6 : 0), sy(gainAt(c.gsat, c.gsat.lp)) + fs * 0.9, 'center', 'top', pal.accent, `700 ${fs * 0.8}px ${getFont()}`, pal);
+    const thY = c.dfb ? c.ai + DFB_LOSS + DFB_OFF : c.gthFP;
+    label(ctx, c.dfb ? `loss outside the grating band` : `g_th = α_int + α_mir = ${fmt(c.gthFP, 1)} cm⁻¹`, B.x1 - fs * 0.4, sy(Math.min(thY, ymax - 5)) - fs * 0.4, 'right', 'bottom', pal.muted, `700 ${fs * 0.8}px ${getFont()}`, pal);
+    if (c.dfb) label(ctx, `λ_B = ${fmt(c.lb, 1)} nm`, sx(c.lb), sy(c.ai + DFB_LOSS) + fs * 0.6, 'center', 'top', pal.ink, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    label(ctx, 'cavity modes', B.x0 + fs * 0.4, sy(ymin) - fs * 1.3, 'left', 'bottom', pal.muted, `${fs * 0.75}px ${getFont()}`, pal);
+    // headline
+    label(ctx, c.dfb ? `DFB: one mode at λ_B` : `Δν = c/2nL = ${fmt(c.dnu / 1e9, 0)} GHz  (Δλ = ${fmt(c.dl, 2)} nm)`, B.x0, B.y0 - fs * 0.4, 'left', 'bottom', pal.ink, `700 ${fs * 0.9}px ${monoFont()}`, pal, false);
+    label(ctx, c.nLase ? (c.nLase > 1 ? `${c.nLase} modes within 20 dB` : 'single mode') : c.atTh ? 'at threshold' : 'below threshold', B.x1, B.y0 - fs * 0.4, 'right', 'bottom', c.nLase ? pal.ray : pal.muted, `700 ${fs * 0.9}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- cavity and round trip ----------
+  function drawCav(ctx, X, Y, W, H, c, phase, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 34));
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    // chip
+    const cx0 = W * 0.2, cx1 = W * 0.8, cy = H * 0.2, ch = H * 0.14;
+    ctx.fillStyle = pal.clad; ctx.fillRect(cx0, cy - ch, cx1 - cx0, 2 * ch);
+    ctx.fillStyle = pal.core; ctx.fillRect(cx0, cy - ch * 0.35, cx1 - cx0, ch * 0.7);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(cx0, cy - ch, cx1 - cx0, 2 * ch); ctx.globalAlpha = 1;
+    // grating teeth (DFB) or mirrors (FP)
+    if (c.dfb) {
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 1;
+      for (let x = cx0 + 3; x < cx1; x += Math.max(4, (cx1 - cx0) / 60)) { ctx.beginPath(); ctx.moveTo(x, cy - ch * 0.35); ctx.lineTo(x, cy - ch * 0.6); ctx.stroke(); }
+    } else {
+      for (const [x, R] of [[cx0, c.R2], [cx1, c.R1]]) { ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.25 + 0.75 * R; ctx.lineWidth = 2 + 4 * R; ctx.beginPath(); ctx.moveTo(x, cy - ch * 1.15); ctx.lineTo(x, cy + ch * 1.15); ctx.stroke(); ctx.globalAlpha = 1; }
+    }
+    // standing wave inside (drawn with fewer half-waves than the real ~1400)
+    const nh = 14, swA = ch * 0.3, lit = c.nLase > 0;
+    ctx.strokeStyle = lit ? pal.ray : pal.muted; ctx.lineWidth = 1.6; ctx.globalAlpha = lit ? 0.9 : 0.45;
+    const tw = Math.cos(phase * 2 * PI * 3);
+    ctx.beginPath(); for (let i = 0; i <= 300; i++) { const u = i / 300, x = cx0 + (cx1 - cx0) * u, y = cy - swA * tw * Math.sin(PI * nh * u); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+    ctx.globalAlpha = 1;
+    // output beams, width ∝ (1 − R) × power
+    if (lit) {
+      const pw = Math.min(1, 0.3 + 0.9 * (c.N - c.Nth));
+      for (const [x, dir, R] of [[cx1, 1, c.dfb ? 0.05 : c.R1], [cx0, -1, c.dfb ? 0.05 : c.R2]]) {
+        const w = ch * 0.9 * (1 - R) * pw + 1; ctx.fillStyle = pal.ray; ctx.globalAlpha = 0.6;
+        ctx.beginPath(); ctx.moveTo(x, cy - w / 2); ctx.lineTo(x + dir * W * 0.13, cy - w); ctx.lineTo(x + dir * W * 0.13, cy + w); ctx.lineTo(x, cy + w / 2); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+      }
+    }
+    ctx.font = `700 ${fs * 0.8}px ${monoFont()}`; ctx.fillStyle = pal.muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(`L = ${fmt(c.L, 0)} µm, n = ${fmt(c.n, 2)}`, (cx0 + cx1) / 2, cy + ch + fs * 0.3);
+    if (!c.dfb) { ctx.textBaseline = 'bottom'; ctx.fillText(`R₂ = ${fmt(c.R2, 2)}`, cx0, cy - ch * 1.2); ctx.fillText(`R₁ = ${fmt(c.R1, 2)}`, cx1, cy - ch * 1.2); }
+    else { ctx.textBaseline = 'bottom'; ctx.fillText(`grating Λ = λ_B/2n = ${fmt(c.period, 1)} nm`, (cx0 + cx1) / 2, cy - ch * 1.2); }
+    // round trip: field amplitude along three round trips, for the strongest mode
+    const B = { x0: fs * 3.6, x1: W - fs * 1, y0: H * 0.47, y1: H - fs * 2.8 };
+    const g = c.best.g0, Lc = c.Lcm, a1 = Math.sqrt(c.dfb ? 1 : c.R1), a2 = Math.sqrt(c.dfb ? 1 : c.R2);
+    // amplitude after a distance s (in units of L) of travel, starting just after mirror 1
+    const net = c.dfb ? (g - c.best.t) : (g - c.ai);
+    function amp(s) {
+      let A = 1, k = Math.floor(s), r = s - k;
+      for (let i = 0; i < k; i++) A *= Math.exp(net * Lc / 2) * (i % 2 ? a1 : a2);
+      return A * Math.exp(net * Lc / 2 * r);
+    }
+    const trips = 3, smax = 2 * trips, yTop = Math.max(1.6, Math.min(8, amp(smax - 1e-9) * 1.15, Math.max(...Array.from({ length: 61 }, (_, i) => amp(smax * i / 60 - 1e-9))) * 1.1));
+    const { sx, sy } = axes(ctx, B, [0, smax], [0, yTop], pal, fs, 'Distance traveled (cavity lengths)', 'Field', H, { xStep: 1, yStep: yTop > 4 ? 2 : yTop > 2 ? 1 : 0.5 });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    ctx.strokeStyle = pal.muted; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(B.x0, sy(1)); ctx.lineTo(B.x1, sy(1)); ctx.stroke(); ctx.setLineDash([]);
+    const col = c.Grt > 1.02 ? pal.ray : c.Grt > 0.98 ? pal.ok : pal.accent;
+    ctx.strokeStyle = col; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.beginPath();
+    for (let k = 0; k < smax; k++) {
+      for (let i = 0; i <= 40; i++) { const s = k + i / 40 * 0.9999, y = sy(amp(s)); (k === 0 && i === 0) ? ctx.moveTo(sx(s), y) : ctx.lineTo(sx(s), y); }
+      ctx.lineTo(sx(k + 1), sy(amp(k + 1)));
+    }
+    ctx.stroke();
+    // moving dot
+    const sd = (phase % 1) * smax, xd = sx(sd);
+    ctx.fillStyle = col; ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(xd, sy(amp(sd)), fs * 0.4, 0, 2 * PI); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    // the packet in the chip
+    const k = Math.floor(sd), r = sd - k, u = k % 2 ? 1 - r : r, xp = cx0 + (cx1 - cx0) * u;
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(xp, cy, fs * 0.35 * Math.min(2.2, Math.sqrt(amp(sd))), 0, 2 * PI); ctx.fill();
+    const word = c.Grt > 1.02 ? 'grows each round trip' : c.Grt > 0.98 ? 'repeats itself: threshold' : 'dies out';
+    label(ctx, `${c.above ? 'at switch-on, ' : ''}round trip ×${fmt(c.Grt, c.Grt < 10 ? 2 : 0)} in power: ${word}`, B.x0 + fs * 0.2, B.y0 - fs * 0.4, 'left', 'bottom', col, `700 ${fs * 0.8}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- output spectrum ----------
+  function drawOut(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 34));
+    const B = { x0: fs * 3.6, x1: W - fs * 1, y0: fs * 2.0, y1: H - fs * 2.8 };
+    const lp = c.lasing.length ? c.lasing.reduce((a, m) => a + m.lam, 0) / c.lasing.length : c.gpar.lp;
+    const span = opts.span || 24, x0 = lp - span / 2, x1 = lp + span / 2, dbMin = -45;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const { sx, sy } = axes(ctx, B, [x0, x1], [dbMin, 3], pal, fs, 'Wavelength λ (nm)', 'Power (dB)', H, { xStep: span > 30 ? 10 : 5, yStep: 10 });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    c.md.forEach((m, i) => {
+      if (m.lam < x0 - 1 || m.lam > x1 + 1) return;
+      if (c.dfb && !m.dfb && m.t - m.g > 0 && false) return;
+      const db = Math.max(dbMin, m.db), x = sx(m.lam);
+      ctx.strokeStyle = m.lase ? pal.ray : pal.accent; ctx.globalAlpha = m.lase ? 1 : 0.55; ctx.lineWidth = m.lase ? 3 : 1.6;
+      ctx.beginPath(); ctx.moveTo(x, sy(dbMin)); ctx.lineTo(x, sy(db)); ctx.stroke(); ctx.globalAlpha = 1;
+    });
+    ctx.restore();
+    const txt = !c.above ? 'below threshold: weak spontaneous emission' : c.atTh ? 'at threshold: broad and still weak' : c.nLase === 1 ? `single mode, side modes ${fmt(c.smsr, 0)} dB down` : `${c.nLase} modes within 20 dB, rms width ${fmt(c.rms, 2)} nm`;
+    label(ctx, 'output spectrum', B.x0 + fs * 0.1, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.82}px ${getFont()}`, pal, false);
+    label(ctx, txt, B.x1 - fs * 0.3, B.y0 + fs * 0.35, 'right', 'top', c.nLase ? pal.ray : pal.muted, `700 ${fs * 0.75}px ${getFont()}`, pal);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- demo timeline ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const K_N = [[0, 1.15], [3, 1.15], [9, 1.493], [11, 1.493], [16, 1.9], [20, 1.9], [23, 2.3], [27, 2.3], [29, 1.9], [52, 1.9]];
+  const K_L = [[0, 300], [20, 300], [23, 150], [27, 150], [29, 300], [52, 300]];
+  const K_R2 = [[0, 0.31], [29, 0.31], [32, 0.9], [36, 0.9], [37, 0.31], [52, 0.31]];
+  const K_LB = [[0, 1550], [43, 1550], [47, 1535], [52, 1535]];
+  const CAPTIONS = [
+    [0, 4, 'Below threshold', 'Pumped above transparency, the chip already amplifies, but less than the facets let out. Each round trip the field shrinks: the chip is an LED.'],
+    [4, 11, 'Threshold: gain = loss', 'Pump harder until the peak gain reaches g_th = α_int + (1/2L) ln(1/R₁R₂). The field now returns to its value after every round trip.'],
+    [11, 20, 'A Fabry–Perot laser is multimode', 'Above threshold the gain clamps at the loss. The gain band is tens of nm wide and the modes are only c/2nL = 143 GHz (1.1 nm) apart, so the modes near the peak all share the power.'],
+    [20, 29, 'A shorter cavity', 'L = 150 µm doubles the mode spacing and the mirror loss. The threshold rises, so it takes more pump; then fewer modes fit under the gain.'],
+    [29, 37, 'A high-reflection rear facet', 'R₂ = 0.9 cuts the mirror loss: the threshold drops and more of the light leaves through the front facet.'],
+    [37, 44, 'A Bragg grating picks one wavelength', 'A DFB grating along the gain gives low loss only near λ_B = 2nΛ. One mode lases and the side modes are far below.'],
+    [44, 52, 'Tune λ_B with the grating period', 'The grating, not the gain peak, sets the wavelength. A narrow line also means far less chromatic dispersion in the fiber.'],
+  ];
+  const DEMO_DURATION = 52;
+  function demoState(t) { return { N: track(K_N, t), L: track(K_L, t), n: 3.5, R1: 0.31, R2: track(K_R2, t), ai: 10, dfb: t >= 38, lb: track(K_LB, t) }; }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), c = cavity(st);
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
+    drawGain(ctx, 0, 0, sw, sh, c, { fontSize: W / 80 });
+    const bw = (sw - pad) / 2;
+    drawCav(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, (t / 6) % 1, { fontSize: W / 100 });
+    drawOut(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Gain, feedback, modes', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 74}px ${monoFont()}`;
+    ctx.fillText('g_th = α_int + (1/2L) ln(1/R₁R₂)', px, y); y += W / 74 * 1.5;
+    ctx.fillText('Δν = c / 2nL', px, y); y += W / 74 * 2.0;
+    const rows = [['Pump N/N_T', fmt(st.N, 2)], ['Cavity length L', `${fmt(st.L, 0)} µm`], ['Facets R₁, R₂', st.dfb ? 'grating' : `${fmt(st.R1, 2)}, ${fmt(st.R2, 2)}`], ['Threshold gain', `${fmt(c.dfb ? c.ai + DFB_LOSS : c.gthFP, 1)} cm⁻¹`], ['Mode spacing', `${fmt(c.dnu / 1e9, 0)} GHz`]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    ctx.fillStyle = c.nLase ? pal.ray : pal.muted; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`;
+    ctx.fillText(c.nLase ? (c.nLase > 1 ? `● Lasing: ${c.nLase} modes within 20 dB` : '● Lasing: single mode') : c.atTh ? '● At threshold' : '● Below threshold', px, y); y += W / 60 * 1.9;
+    const cap = CAPTIONS.find(cc => t >= cc[0] && t < cc[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'InGaAsP laser near 1550 nm, n = 3.5, α_int = 10 cm⁻¹, cleaved facets R = 0.31. Output spectrum is qualitative.', px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const gc = $('gain'), cc = $('cav'), oc = $('out');
+  const state = { N: 1.75, L: 300, n: 3.5, R1: 0.31, R2: 0.31, ai: 10, dfb: false, lb: 1550 };
+  let cur = cavity(state), dirty = true, simT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    const c = cur = cavity(state);
+    $('pump').value = state.N; $('len').value = state.L; $('nn').value = state.n; $('r1').value = state.R1; $('r2').value = state.R2; $('ai').value = state.ai; $('lb').value = state.lb;
+    $('pumpOut').textContent = fmt(state.N, 2); $('lenOut').textContent = `${fmt(state.L, 0)} µm`; $('nnOut').textContent = fmt(state.n, 2);
+    $('r1Out').textContent = fmt(state.R1, 2); $('r2Out').textContent = fmt(state.R2, 2); $('aiOut').textContent = `${fmt(state.ai, 0)} cm⁻¹`; $('lbOut').textContent = `${fmt(state.lb, 1)} nm`;
+    $('r1').disabled = $('r2').disabled = state.dfb; $('lb').disabled = !state.dfb;
+    $('pumpHint').textContent = state.N < 1 ? 'Below transparency: the chip absorbs at every wavelength' : `Peak gain g_p = σ_g(N − N_T) = ${fmt(c.gpar.gp, 0)} cm⁻¹`;
+    $('lbHint').textContent = state.dfb ? `Grating period Λ = λ_B/2n = ${fmt(c.period, 1)} nm (first order)` : 'Switch to DFB grating to use it';
+    const s = $('status');
+    if (c.atTh) { s.className = 'status ok'; s.innerHTML = `At threshold<small>Gain equals loss for the best mode (N/N_T = ${fmt(c.Nth, 2)}). Pump a little more and it lases.</small>`; }
+    else if (!c.above) { s.className = 'status bad'; s.innerHTML = `Below threshold<small>The best mode has ${fmt(c.best.g0, 0)} cm⁻¹ of gain against ${fmt(c.best.t, 0)} cm⁻¹ of loss. Threshold at N/N_T = ${fmt(c.Nth, 2)}.</small>`; }
+    else if (c.nLase === 1) { s.className = 'status ok'; s.innerHTML = `Single-mode laser<small>One mode at ${fmt(c.lasing[0].lam, 2)} nm; the side modes are ${fmt(c.smsr, 0)} dB down.</small>`; }
+    else { s.className = 'status hot'; s.innerHTML = `Multimode laser<small>${c.nLase} modes within 20 dB of the strongest, ${fmt(c.dl, 2)} nm apart. Threshold at N/N_T = ${fmt(c.Nth, 2)}.</small>`; }
+    $('rDnu').textContent = `${fmt(c.dnu / 1e9, 0)} GHz`; $('rDl').textContent = `${fmt(c.dl, 2)} nm`;
+    $('rAm').textContent = state.dfb ? 'grating' : `${fmt(c.am, 1)} cm⁻¹`; $('rGth').textContent = `${fmt(state.dfb ? c.ai + DFB_LOSS : c.gthFP, 1)} cm⁻¹`;
+    $('rGp').textContent = `${fmt(c.gpar.gp, 0)} cm⁻¹`; $('rGrt').textContent = `× ${fmt(c.Grt, c.Grt < 10 ? 2 : 0)}`;
+    $('rNm').textContent = c.above ? `${c.nLase} (within 20 dB)` : '0'; $('rW').textContent = c.nLase ? `${fmt(c.rms, 2)} nm` : '—';
+    $('rReach').textContent = fmtKm(reach(c));
+    dirty = true;
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now; simT += dt;
+    if (DEMO) {
+      const { w, h, dpr } = sizeCanvas(gc); const ctx = gc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    } else {
+      let { w, h, dpr } = sizeCanvas(gc), ctx;
+      if (dirty) { ctx = gc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawGain(ctx, 0, 0, w, h, cur);
+        ({ w, h, dpr } = sizeCanvas(oc)); ctx = oc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawOut(ctx, 0, 0, w, h, cur); }
+      if (dirty || !reduced) { ({ w, h, dpr } = sizeCanvas(cc)); ctx = cc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawCav(ctx, 0, 0, w, h, cur, reduced ? 0.17 : (simT / 6) % 1); }
+      dirty = false;
+    }
+    requestAnimationFrame(frame);
+  }
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  const onInput = (id, key) => $(id).addEventListener('input', e => { state[key] = +e.target.value; later(); });
+  onInput('pump', 'N'); onInput('len', 'L'); onInput('nn', 'n'); onInput('r1', 'R1'); onInput('r2', 'R2'); onInput('ai', 'ai'); onInput('lb', 'lb');
+  function setMode(dfb) { state.dfb = dfb; $('mFP').setAttribute('aria-pressed', String(!dfb)); $('mDFB').setAttribute('aria-pressed', String(dfb)); later(); }
+  $('mFP').addEventListener('click', () => setMode(false));
+  $('mDFB').addEventListener('click', () => setMode(true));
+  window.addEventListener('resize', () => { dirty = true; });
+  new MutationObserver(() => { dirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { dirty = true; });
+
+  window.lcDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(gc); const ctx = gc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, cavity, demoState };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
