@@ -11,7 +11,7 @@ Each lab is a single HTML page that runs in any browser, on a laptop or a phone,
 | Page | What it is |
 |---|---|
 | `index.html` | Home page: one square tile per lecture |
-| `lecture-02.html` … `lecture-05.html` | One page per lecture, listing its labs with a short description |
+| `lecture-02.html` … `lecture-06.html` | One page per lecture, listing its labs with a short description |
 | `*.html` in the root | The labs themselves. The home page and lecture pages link to these. |
 | `lecture02/` … `lecture06/` | A copy of each lecture's labs, plus a `movies/` folder with the animations for slides |
 
@@ -54,16 +54,16 @@ The labs in the root and in the lecture folders are identical copies. Both work 
 
 `lecture05/movies/` also holds animations for labs that are not on the site yet: dispersion map (`disp-map.mp4`), source vs signal width (`src-width.mp4`) and third-order dispersion (`beta3.mp4`).
 
-### Lecture 06 · Semiconductor Lasers (folder only, not linked from the home page yet)
+### Lecture 06 · Semiconductor Lasers
 | Lab | Movie |
 |---|---|
-| [Einstein's Three Processes](lecture06/einstein-processes.html): absorption, spontaneous and stimulated emission | `einstein.mp4` |
-| [Three Processes animation](lecture06/three-processes-animation.html) | `three-processes.mp4` |
-| [Direct vs Indirect Band Gap](lecture06/direct-indirect-gap-animation.html) | `direct-indirect-gap.mp4` |
-| [III-V Materials Lab](lecture06/iii-v-materials.html): InGaAsP lattice matched to InP, 1310 and 1550 nm | `iii-v.mp4` |
-| [Semiconductor Gain Lab](lecture06/semiconductor-gain-lab.html): gain spectrum vs carrier density, transparency | `gain-lab.mp4` |
-| [Laser Cavity Lab](lecture06/laser-cavity-lab.html): Fabry–Perot modes, threshold, gain clamping | `laser-cavity.mp4` |
-| [Bragg Grating animation](lecture06/bragg-grating-animation.html): DFB laser grating | `bragg-grating.mp4` |
+| [Einstein's Three Processes](einstein-processes.html): absorption, spontaneous and stimulated emission | `einstein.mp4` |
+| [Three Processes animation](three-processes-animation.html) | `three-processes.mp4` |
+| [Direct vs Indirect Band Gap](direct-indirect-gap-animation.html) | `direct-indirect-gap.mp4` |
+| [III-V Materials Lab](iii-v-materials.html): InGaAsP lattice matched to InP, 1310 and 1550 nm | `iii-v.mp4` |
+| [Semiconductor Gain Lab](semiconductor-gain-lab.html): gain spectrum vs carrier density, transparency | `gain-lab.mp4` |
+| [Laser Cavity Lab](laser-cavity-lab.html): Fabry–Perot modes, threshold, gain clamping | `laser-cavity.mp4` |
+| [Bragg Grating animation](bragg-grating-animation.html): DFB laser grating | `bragg-grating.mp4` |
 
 ## About the labs
 

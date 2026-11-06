@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Einstein Processes Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; align-items: center; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px) !important; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status.neutral { color: var(--accent); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+canvas.hero { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.sub { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.hero { aspect-ratio: 4 / 3; } }
+.seg { display: inline-flex; gap: 0; flex-wrap: wrap; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; }
+.seg button + button { border-left: 0; }
+.status.hot { color: var(--ray); }
+select { font: inherit; font-size: 0.9rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 5px 8px; }
+body.demo canvas.hero { aspect-ratio: 16 / 9; }
+
+.pop { display: grid; grid-template-columns: auto 1fr auto; gap: 4px 8px; align-items: center; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Einstein Processes Lab</h1>
+    <p>Light meets two-level atoms in three ways. <em>Absorption</em> lifts an electron from E₁ to E₂ and removes a photon. <em>Spontaneous emission</em> drops it back at a random time and sends a photon in a random direction. <em>Stimulated emission</em> is triggered by a passing photon and adds an exact copy of it. Send a beam through the atoms, then pump them and watch the beam start to grow.</p>
+  </header>
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="box" class="hero" aria-label="Two-level atoms in a box with a photon beam passing from left to right"></canvas>
+        <div class="scene-bar">
+          <div class="legend"><span><i style="background:var(--ray)"></i>beam photon</span><span><i style="background:#b7791f"></i>spontaneous photon</span><span><i style="background:var(--accent)"></i>absorption</span><span><i style="background:var(--ok)"></i>stimulated</span><span><i style="background:#8a4fc8"></i>pump</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="rates" class="sub" aria-label="Measured rates of absorption, stimulated emission, spontaneous emission and pumping"></canvas></div>
+        <div class="card scene"><canvas id="planck" class="sub" aria-label="Ratio of stimulated to spontaneous emission in thermal equilibrium against wavelength"></canvas></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Atoms and beam</p>
+        <div class="ctl"><label for="pw">Pump rate W <output id="pwOut"></output></label><input id="pw" type="range" min="0" max="8" step="0.1" value="0"><span class="hint">Lifts electrons from E₁ to E₂ through other levels (not shown)</span></div>
+        <div class="ctl" style="margin-top:8px"><label for="bm">Input beam <output id="bmOut"></output></label><input id="bm" type="range" min="0" max="20" step="0.5" value="6"></div>
+        <div class="ctl" style="margin-top:8px"><label for="tau">Spontaneous lifetime τ <output id="tauOut"></output></label><input id="tau" type="range" min="0.2" max="4" step="0.1" value="1"></div>
+        <p class="section-title" style="margin-top:14px">Thermal equilibrium (right panel)</p>
+        <div class="ctl"><label for="tk">Temperature T <output id="tkOut"></output></label><input id="tk" type="range" min="0.5" max="4" step="0.01" value="2.477"></div>
+        <div class="ctl" style="margin-top:8px"><label for="lm">Wavelength λ <output id="lmOut"></output></label><input id="lm" type="range" min="-7" max="-1" step="0.01" value="-5.81"></div>
+      </div>
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>N₁ (lower) / N₂ (upper)</dt><dd id="rN"></dd>
+          <dt>Absorption rate B·N₁·ρ</dt><dd id="rAb"></dd>
+          <dt>Stimulated rate B·N₂·ρ</dt><dd id="rSt"></dd>
+          <dt>Spontaneous rate A·N₂</dt><dd id="rSp"></dd>
+          <dt>Beam out / beam in</dt><dd id="rG"></dd>
+          <div class="sep"></div>
+          <dt>Equilibrium R<sub>st</sub>/R<sub>sp</sub></dt><dd id="rRat"></dd>
+          <dt>Equilibrium N₂/N₁</dt><dd id="rBz"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <p class="note">A toy model: 70 two-level atoms, B₁₂ = B₂₁ (equal degeneracy), so a beam photon that crosses an atom interacts with the same probability (12%) whether the atom is up or down: absorbed if it is down, copied if it is up. Up atoms decay spontaneously with lifetime τ; the pump lifts down atoms at rate W. Rates are counted over the last 3 seconds of simulation time. Right panel, thermal equilibrium only (slides 32–33): R<sub>st</sub>/R<sub>sp</sub> = 1/(e<sup>hν/kT</sup> − 1) and N₂/N₁ = e<sup>−hν/kT</sup>. At 1550 nm and 300 K the ratio is about 4·10⁻¹⁴: without pumping, spontaneous emission wins by far. Thermal excitation is left out of the simulation for the same reason.</p>
+</div>
+
+<script>
+(() => {
+  // ---------- shared helpers (same in every lab of the course) ----------
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+  const CREDIT = 'Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov';
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7', dark: false };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) if (k !== 'dark') p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    const th = document.documentElement.dataset.theme;
+    p.dark = th === 'dark' || (th !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtS = (v, n = 2) => (Math.abs(v) < 0.5 * 10 ** -n ? '' : v > 0 ? '+' : '−') + fmt(Math.abs(v), n);
+  const fmtT = v => Math.abs(v) >= 1000 ? `${fmt(v / 1000, 2)} ns` : `${fmt(v, Math.abs(v) >= 100 ? 0 : 1)} ps`;
+  const fmtKm = v => !isFinite(v) ? '∞' : v >= 1000 ? `${fmt(v, 0)} km` : v >= 100 ? `${fmt(v, 0)} km` : v >= 10 ? `${fmt(v, 1)} km` : `${fmt(v, 2)} km`;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  // linear or log axes; opts: xLog, yLog, xStep, yStep, xf, yf, xTicks [[v, text]], noGridX, noGridY
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const tx = v => opts.xLog ? Math.log10(v) : v, ty = v => opts.yLog ? Math.log10(v) : v;
+    const sx = x => B.x0 + (B.x1 - B.x0) * (tx(x) - tx(xr[0])) / (tx(xr[1]) - tx(xr[0])), sy = y => B.y1 - (B.y1 - B.y0) * (ty(y) - ty(yr[0])) / (ty(yr[1]) - ty(yr[0]));
+    ctx.save(); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const ticks = (r, log, step) => {
+      const out = [];
+      if (log) { for (let e = Math.floor(Math.log10(r[0])); e <= Math.ceil(Math.log10(r[1])); e++) { const v = 10 ** e; if (v >= r[0] * 0.999 && v <= r[1] * 1.001) out.push(v); } }
+      else { const s = step || niceStep(r[1] - r[0], 5); for (let v = Math.ceil(r[0] / s - 1e-9) * s; v <= r[1] + 1e-9; v += s) out.push(v); }
+      return out;
+    };
+    const lf = v => { if (v === 0) return '0'; const e = Math.log10(Math.abs(v)); return Math.abs(e) >= 4 ? `1e${Math.round(e)}` : String(+v.toPrecision(6)); };
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const xt = opts.xTicks || ticks(xr, opts.xLog, opts.xStep).map(v => [v, (opts.xf || (opts.xLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [x, t] of xt) { if (!opts.noGridX) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); } ctx.fillText(t, sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yt = opts.yTicks || ticks(yr, opts.yLog, opts.yStep).map(v => [v, (opts.yf || (opts.yLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [y, t] of yt) { if (!opts.noGridY) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); } ctx.fillText(t, B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    if (xl) ctx.fillText(xl, (B.x0 + B.x1) / 2, (opts.xlY ?? H) - fs * 0.15);
+    if (yl) { ctx.save(); ctx.translate(B.x0 - (opts.ylOff ?? fs * 3.6) + fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore(); }
+    ctx.restore();
+    return { sx, sy };
+  }
+  function frameBox(ctx, B, pal) { ctx.save(); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.restore(); }
+  function clipBox(ctx, B) { ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip(); }
+  function panelStart(ctx, X, Y, W, H, pal) { ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); }
+  function polyline(ctx, n, f) { ctx.beginPath(); let started = false; for (let i = 0; i <= n; i++) { const p = f(i / n); if (!p) { started = false; continue; } started ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); started = true; } ctx.stroke(); }
+  // ---------- timeline helpers for the slide animation ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const step = (keys, t) => { let v = keys[0][1]; for (const [t0, a] of keys) if (t >= t0) v = a; return v; };
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  // right-hand column of the slide animation: title, formulas, readouts, status, caption, footnote, credit
+  function sidePanel(ctx, W, H, x0, o) {
+    const pal = LIGHT, pad = W * 0.02, px = x0 + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.save(); ctx.textBaseline = 'top';
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left';
+    y = wrapText(ctx, o.title, px, y, pw, W / 46 * 1.2) + W / 46 * 0.35;
+    ctx.fillStyle = pal.ink;
+    for (const f of o.formulas || []) { ctx.font = `${W / 76}px ${monoFont()}`; ctx.fillText(f, px, y); y += W / 76 * 1.55; }
+    y += W / 76 * 0.5;
+    for (const [k, v] of o.rows || []) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(k, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 70}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    if (o.status) { ctx.fillStyle = o.status[1]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`; y = wrapText(ctx, '● ' + o.status[0], px, y, pw, W / 60 * 1.25) + W / 60 * 0.5; }
+    if (o.cap) {
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+      ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textAlign = 'left';
+      y = wrapText(ctx, o.cap[0], px, y, pw, W / 54 * 1.25) + W / 160;
+      ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+      wrapText(ctx, o.cap[1], px, y, pw, W / 68 * 1.4);
+    }
+    if (o.foot) { ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`; ctx.textAlign = 'left'; wrapText(ctx, o.foot, px, H - H * 0.115, pw, W / 100 * 1.4); }
+    ctx.restore();
+    credit(ctx, W, H);
+  }
+  function credit(ctx, W, H) {
+    ctx.save(); ctx.fillStyle = LIGHT.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(CREDIT, W - W * 0.02, H - H * 0.022); ctx.restore();
+  }
+  const captionAt = (caps, t) => caps.find(c => t >= c[0] && t < c[1]) || caps[caps.length - 1];
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function ctxOf(c) { const { w, h, dpr } = sizeCanvas(c), ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, w, h]; }
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // app loop: draw() when dirty (or every frame when animating), demo mode draws the slide animation
+  function runApp({ name, duration, drawDemo, draw, animating = () => false, tick = () => {} }) {
+    let dirty = true, simT = 0, last = performance.now();
+    const hero = document.querySelector('canvas.hero');
+    const api = { markDirty() { dirty = true; } };
+    function frame(now) {
+      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      if (DEMO) { simT += dt; const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, simT % duration); }
+      else { tick(dt); if (dirty || animating()) { draw(now / 1000); dirty = false; } }
+      requestAnimationFrame(frame);
+    }
+    window.addEventListener('resize', api.markDirty);
+    new MutationObserver(api.markDirty).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', api.markDirty);
+    window[name] = { duration, draw(t) { const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, t); } };
+    if (!window.__noLoop) requestAnimationFrame(frame);
+    if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(api.markDirty);
+    return api;
+  }
+  // slider wiring: ids → state keys, with optional transform (e.g. log sliders)
+  function bindRange(id, onValue) { const el = $(id); el.addEventListener('input', () => onValue(+el.value)); return el; }
+  function bindSeg(ids, onPick) { ids.forEach((id, i) => $(id).addEventListener('click', () => { ids.forEach((j, k) => $(j).setAttribute('aria-pressed', String(k === i))); onPick(i); })); }
+  // radix-2 FFT in place on Float64Array re, im (n a power of two); inverse when inv
+  function fft(re, im, inv = false) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = 2 * PI / len * (inv ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ar = re[i + j], ai = im[i + j], br = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci, bi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ar + br; im[i + j] = ai + bi; re[i + j + len / 2] = ar - br; im[i + j + len / 2] = ai - bi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+  }
+  // seeded random numbers, so the slide animation is the same every time
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const C_NM_PS = 299792.458;   // speed of light in nm/ps
+  const beta2Of = (D, lam = 1550) => -lam * lam * D / (2 * PI * C_NM_PS);   // ps²/km from ps/(nm·km)
+
+  const COLS = 14, ROWS = 5, P_INT = 0.12, V = 0.5, WIN = 3, MAXPH = 600, DT = 1 / 60;
+  const AMBER = '#b7791f', PURPLE = '#8a4fc8';
+  const HC_K = 1.4388e-2;   // hc/k in m·K
+  const ax = c => 0.1 + 0.8 * (c + 0.5) / COLS, ay = r => (r + 0.5) / ROWS;
+  function newSim(seed) {
+    const atoms = []; for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) atoms.push({ x: ax(c), y: ay(r), r, up: false });
+    return { t: 0, atoms, ph: [], ev: [], log: [], acc: 0, rnd: rng(seed) };
+  }
+  function simStep(S, dt, par) {
+    const R = S.rnd; S.t += dt;
+    S.acc += par.beam * dt;
+    while (S.acc >= 1) { S.acc -= 1; const r = Math.floor(R() * ROWS); S.ph.push({ x: 0, y: ay(r), vx: V, vy: 0, r, beam: true, dy: 0, ph: R() }); S.log.push([S.t, 'in']); }
+    const keep = [], born = [];
+    for (const p of S.ph) {
+      const x0 = p.x; p.x += p.vx * dt; p.y += p.vy * dt; let alive = true;
+      if (p.beam) {
+        for (let c = 0; c < COLS && alive; c++) {
+          const xa = ax(c); if (!(xa > x0 && xa <= p.x)) continue;
+          const a = S.atoms[p.r * COLS + c]; if (R() >= P_INT) continue;
+          if (!a.up) { a.up = true; alive = false; S.log.push([S.t, 'abs']); S.ev.push({ x: a.x, y: a.y, k: 'abs', t: S.t }); }
+          else if (S.ph.length + born.length < MAXPH) { a.up = false; born.push({ ...p, dy: p.dy >= 0 ? -(Math.abs(p.dy) + 0.018) : Math.abs(p.dy) + 0.018 }); S.log.push([S.t, 'stim']); S.ev.push({ x: a.x, y: a.y, k: 'stim', t: S.t }); }
+        }
+        if (alive && p.x > 1) { alive = false; S.log.push([S.t, 'out']); }
+      } else if (p.x < -0.05 || p.x > 1.05 || p.y < -0.1 || p.y > 1.1) alive = false;
+      if (alive) keep.push(p);
+    }
+    for (const b of born) { if (Math.abs(b.dy) > 0.06) b.dy = (R() - 0.5) * 0.08; keep.push(b); }
+    S.ph = keep;
+    for (const a of S.atoms) {
+      if (a.up) { if (R() < dt / par.tau) { a.up = false; const th = R() * 2 * PI; S.ph.push({ x: a.x, y: a.y, vx: V * 0.8 * Math.cos(th), vy: V * 0.8 * Math.sin(th) * 1.6, beam: false, dy: 0, ph: R() }); S.log.push([S.t, 'spon']); S.ev.push({ x: a.x, y: a.y, k: 'spon', t: S.t }); } }
+      else if (par.pump > 0 && R() < dt * par.pump) { a.up = true; S.log.push([S.t, 'pump']); S.ev.push({ x: a.x, y: a.y, k: 'pump', t: S.t }); }
+    }
+    const tc = S.t - WIN; while (S.log.length && S.log[0][0] < tc) S.log.shift();
+    while (S.ev.length && S.ev[0].t < S.t - 0.6) S.ev.shift();
+  }
+  function stats(S) {
+    const n = { in: 0, out: 0, abs: 0, stim: 0, spon: 0, pump: 0 }; for (const [, k] of S.log) n[k]++;
+    const w = Math.min(WIN, Math.max(S.t, 1e-6)), N2 = S.atoms.filter(a => a.up).length;
+    return { r: Object.fromEntries(Object.entries(n).map(([k, v]) => [k, v / w])), N2, N1: S.atoms.length - N2, gain: n.in ? n.out / n.in : NaN };
+  }
+  const evCol = (k, pal) => k === 'abs' ? pal.accent : k === 'stim' ? pal.ok : k === 'spon' ? AMBER : PURPLE;
+  function drawBox(ctx, X, Y, W, H, S, st, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(16, W / 58));
+    panelStart(ctx, X, Y, W, H, pal);
+    const bw = W - fs * 7.5, B = { x0: fs * 1.0, x1: bw, y0: fs * 2.4, y1: H - fs * 1.2 }, sx = x => B.x0 + (B.x1 - B.x0) * x, sy = y => B.y0 + (B.y1 - B.y0) * y;
+    const cw = (B.x1 - B.x0) * 0.8 / COLS, chh = (B.y1 - B.y0) / ROWS, lw = cw * 0.55, gap = Math.min(chh * 0.32, cw * 0.4);
+    ctx.fillStyle = pal.dark ? '#121a21' : '#f7f9fb'; ctx.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    // events: rings
+    for (const e of S.ev) { const a = (S.t - e.t) / 0.6, faint = e.k === 'pump' || e.k === 'spon'; ctx.strokeStyle = evCol(e.k, pal); ctx.globalAlpha = (1 - a) * (faint ? 0.35 : 1); ctx.lineWidth = faint ? 1.5 : 3; ctx.beginPath(); ctx.arc(sx(e.x), sy(e.y), cw * (0.3 + 0.5 * a), 0, 2 * PI); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    // atoms
+    for (const a of S.atoms) {
+      const x = sx(a.x), y = sy(a.y);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x - lw / 2, y + gap / 2); ctx.lineTo(x + lw / 2, y + gap / 2); ctx.moveTo(x - lw / 2, y - gap / 2); ctx.lineTo(x + lw / 2, y - gap / 2); ctx.stroke();
+      ctx.fillStyle = a.up ? pal.ok : pal.accent; ctx.beginPath(); ctx.arc(x, a.up ? y - gap / 2 : y + gap / 2, Math.max(2.5, cw * 0.11), 0, 2 * PI); ctx.fill();
+    }
+    // photons
+    clipBox(ctx, B);
+    const L = cw * 0.42, amp = Math.max(2, chh * 0.06);
+    for (const p of S.ph) {
+      const sp = Math.hypot(p.vx, p.vy * (B.y1 - B.y0) / (B.x1 - B.x0)) || 1, ux = p.vx / sp, uy = p.vy * (B.y1 - B.y0) / (B.x1 - B.x0) / sp;
+      const cx = sx(p.x), cy = sy(p.y + p.dy);
+      ctx.strokeStyle = p.beam ? pal.ray : AMBER; ctx.lineWidth = 2; ctx.beginPath();
+      for (let i = 0; i <= 18; i++) { const u = i / 18 - 1, s = Math.sin(2 * PI * (3 * u + (p.beam ? 0 : p.ph))) * amp * Math.sin(PI * (u + 1)); const px = cx + ux * u * L - uy * s, py = cy + uy * u * L + ux * s; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.globalAlpha = 1;
+    // population bars
+    const s = stats(S), px0 = bw + fs * 1.4, pw = fs * 2.2, py0 = B.y0 + fs * 1.6, ph = B.y1 - py0 - fs * 1.8, N = S.atoms.length;
+    for (const [i, nm, v, col] of [[0, 'N₁', s.N1, pal.accent], [1, 'N₂', s.N2, pal.ok]]) {
+      const x = px0 + i * (pw + fs * 0.8); ctx.fillStyle = pal.line; ctx.fillRect(x, py0, pw, ph);
+      ctx.fillStyle = col; ctx.fillRect(x, py0 + ph * (1 - v / N), pw, ph * v / N);
+      label(ctx, nm, x + pw / 2, py0 + ph + fs * 0.3, 'center', 'top', pal.ink, `700 ${fs * 0.9}px ${getFont()}`, pal, false);
+      label(ctx, String(v), x + pw / 2, py0 - fs * 0.2, 'center', 'bottom', col, `700 ${fs * 0.8}px ${monoFont()}`, pal, false);
+    }
+    label(ctx, 'populations', px0 - fs * 0.2, B.y0 - fs * 0.4, 'left', 'bottom', pal.ink, `700 ${fs * 0.8}px ${getFont()}`, pal, false);
+    const inv = s.N2 > s.N1;
+    label(ctx, `beam enters →   pump W = ${fmt(st.pump, 1)}/s, τ = ${fmt(st.tau, 1)} s`, B.x0, B.y0 - fs * 0.4, 'left', 'bottom', pal.ink, `700 ${fs * 0.85}px ${monoFont()}`, pal, false);
+    label(ctx, isFinite(s.gain) ? `out/in = ${fmt(s.gain, 2)}` : 'no beam', B.x1, B.y0 - fs * 0.4, 'right', 'bottom', isFinite(s.gain) && s.gain > 1 ? pal.ok : pal.ray, `700 ${fs * 0.9}px ${getFont()}`, pal, false);
+    if (inv) label(ctx, 'inversion', px0 + pw + fs * 0.4, py0 + ph + fs * 1.5, 'center', 'top', pal.ok, `700 ${fs * 0.75}px ${getFont()}`, pal, false);
+    ctx.restore();
+    return s;
+  }
+  function drawRates(ctx, X, Y, W, H, s, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(14, W / 34));
+    panelStart(ctx, X, Y, W, H, pal);
+    const B = { x0: fs * 3.4, x1: W - fs * 1, y0: fs * 2.0, y1: H - fs * 2.8 };
+    const bars = [['absorption', s.r.abs, pal.accent], ['stimulated', s.r.stim, pal.ok], ['spontaneous', s.r.spon, AMBER], ['pump', s.r.pump, PURPLE]];
+    const ymax = Math.max(10, Math.ceil(Math.max(...bars.map(b => b[1])) * 1.25 / 10) * 10);
+    const { sx, sy } = axes(ctx, B, [0, 4], [0, ymax], pal, fs, '', 'Events per second', H, { xTicks: bars.map((b, i) => [i + 0.5, b[0]]), noGridX: true, ylOff: fs * 3.4 });
+    bars.forEach(([, v, col], i) => { const x0 = sx(i + 0.18), x1 = sx(i + 0.82); ctx.fillStyle = col; ctx.globalAlpha = 0.85; ctx.fillRect(x0, sy(v), x1 - x0, sy(0) - sy(v)); ctx.globalAlpha = 1; label(ctx, fmt(v, 1), (x0 + x1) / 2, sy(v) - fs * 0.25, 'center', 'bottom', pal.ink, `700 ${fs * 0.78}px ${monoFont()}`, pal, false); });
+    label(ctx, 'measured rates (last 3 s)', B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.82}px ${getFont()}`, pal, false);
+    const win = s.r.stim > s.r.abs;
+    label(ctx, win ? 'stimulated > absorption: gain' : 'absorption ≥ stimulated: loss', B.x1, B.y0 - fs * 0.35, 'right', 'bottom', win ? pal.ok : pal.ray, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    frameBox(ctx, B, pal); ctx.restore();
+  }
+  const ratio = (lamM, T) => 1 / Math.expm1(HC_K / (lamM * T));
+  const fmtLam = l => l >= 1e-2 ? `${fmt(l * 100, 1)} cm` : l >= 1e-3 ? `${fmt(l * 1000, 1)} mm` : l >= 1e-6 ? `${fmt(l * 1e6, l >= 1e-5 ? 0 : 2)} µm` : `${fmt(l * 1e9, 0)} nm`;
+  const fmtE = v => { if (v === 0 || !isFinite(v)) return v === 0 ? '0' : '∞'; const e = Math.floor(Math.log10(v)); return Math.abs(e) < 3 ? fmt(v, Math.max(0, 2 - e)) : `${fmt(v / 10 ** e, 1)}·10${String(e).replace(/./g, ch => '⁻⁰¹²³⁴⁵⁶⁷⁸⁹'['-0123456789'.indexOf(ch)])}`; };
+  function drawPlanck(ctx, X, Y, W, H, st, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(14, W / 34));
+    panelStart(ctx, X, Y, W, H, pal);
+    const B = { x0: fs * 4.6, x1: W - fs * 1.6, y0: fs * 2.0, y1: H - fs * 2.8 }, XR = [1e-7, 1e-1], YR = [1e-30, 1e5];
+    const xf = v => v >= 1e-2 ? `${v * 100}cm` : v >= 1e-3 ? `${v * 1000}mm` : v >= 1e-6 ? `${+(v * 1e6).toPrecision(2)}µm` : `${+(v * 1e9).toPrecision(2)}nm`;
+    const yTicks = [-30, -20, -10, 0].map(e => [10 ** e, e ? `1e${e}` : '1']);
+    const { sx, sy } = axes(ctx, B, XR, YR, pal, fs, 'Wavelength', 'R_st / R_sp', H, { xLog: true, yLog: true, xf, yTicks, ylOff: fs * 4.6 });
+    clipBox(ctx, B);
+    for (const [a, b, nm, col] of [[1e-7, 2e-6, 'optical', pal.ray], [1e-3, 1e-1, 'microwave', pal.accent]]) { ctx.fillStyle = col; ctx.globalAlpha = 0.07; ctx.fillRect(sx(a), B.y0, sx(b) - sx(a), B.y1 - B.y0); ctx.globalAlpha = 1; label(ctx, nm, (sx(a) + sx(b)) / 2, B.y1 - fs * 0.4, 'center', 'bottom', col, `700 ${fs * 0.75}px ${getFont()}`, pal, false); }
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(B.x0, sy(1)); ctx.lineTo(B.x1, sy(1)); ctx.stroke(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.ok; ctx.lineWidth = 2.5; polyline(ctx, 300, u => { const l = XR[0] * (XR[1] / XR[0]) ** u, v = ratio(l, st.T); return [sx(l), sy(clamp(v, YR[0] * 1e-3, YR[1] * 10))]; });
+    ctx.restore();
+    const v = ratio(st.lam, st.T), px = sx(st.lam), py = sy(clamp(v, YR[0], YR[1]));
+    ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(px, py, fs * 0.42, 0, 2 * PI); ctx.fill();
+    label(ctx, `${fmtLam(st.lam)}: ${fmtE(v)}`, px + (px > (B.x0 + B.x1) / 2 ? -fs * 0.6 : fs * 0.6), py + (v < 1 ? -fs * 0.5 : fs * 0.5), px > (B.x0 + B.x1) / 2 ? 'right' : 'left', v < 1 ? 'bottom' : 'top', pal.ray, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    label(ctx, `thermal equilibrium at ${fmt(st.T, 0)} K`, B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.82}px ${getFont()}`, pal, false);
+    label(ctx, '1/(exp(hν/kT) − 1)', B.x1, B.y0 - fs * 0.35, 'right', 'bottom', pal.ok, `700 ${fs * 0.78}px ${monoFont()}`, pal, false);
+    frameBox(ctx, B, pal); ctx.restore();
+  }
+  // ---------- slide animation ----------
+  const K = { pump: [[0, 0], [18, 0], [23, 2.5], [31, 2.5], [33, 6], [56, 6]], beam: [[0, 6], [7, 6], [9, 14], [16, 14], [18, 6], [56, 6]], llam: [[0, Math.log10(1.55e-6)], [43, Math.log10(1.55e-6)], [51, -2], [56, -2]] };
+  const CAPS = [
+    [0, 8, 'Absorption', 'No pumping: every atom sits in E₁. Beam photons (red) are absorbed one by one, and the beam leaving on the right is weaker than the beam entering.'],
+    [8, 18, 'Spontaneous emission', 'A stronger beam lifts more atoms. Each one falls back after about τ and emits a photon at a random time, in a random direction, with a random phase (amber). This is how an LED emits.'],
+    [18, 32, 'Pump: population inversion', 'The pump lifts electrons to E₂. Once N₂ > N₁ a beam photon is more likely to meet an excited atom: stimulated emission (green) beats absorption and the beam grows.'],
+    [32, 43, 'Stimulated photons are copies', 'Each stimulated photon has the same direction, frequency and phase as the photon that triggered it. The spontaneous photons are still there: they are the noise of every amplifier.'],
+    [43, 56, 'Why lasers need a pump', 'In thermal equilibrium R_st/R_sp = 1/(exp(hν/kT) − 1). At 1550 nm and 300 K it is about 4·10⁻¹⁴. At 1 cm (microwaves) it exceeds 100, which is why the maser came before the laser.'],
+  ];
+  const DUR = 56, demoPar = t => ({ pump: track(K.pump, t), beam: track(K.beam, t), tau: 1 });
+  let DS = null;
+  function demoSim(t) {
+    if (!DS || t < DS.t - 1e-6) DS = newSim(20261104);
+    while (DS.t < t - 1e-9) simStep(DS, DT, demoPar(DS.t));
+    return DS;
+  }
+  function drawDemo(ctx, W, H, t) {
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    const S = demoSim(t), par = demoPar(t), pst = { T: 300, lam: 10 ** track(K.llam, t) };
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02, bw = (sw - pad) / 2;
+    const s = drawBox(ctx, 0, 0, sw, sh, S, par, { fontSize: W / 80 });
+    drawRates(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, s, { fontSize: W / 100 });
+    drawPlanck(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, pst, { fontSize: W / 100 });
+    ctx.strokeStyle = LIGHT.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const c = captionAt(CAPS, t);
+    sidePanel(ctx, W, H, sw, { title: 'Three processes', formulas: ['absorption:  B₁₂ N₁ ρ(ν)', 'spontaneous: A₂₁ N₂', 'stimulated:  B₂₁ N₂ ρ(ν)'],
+      rows: [['N₁ / N₂', `${s.N1} / ${s.N2}`], ['Pump W', `${fmt(par.pump, 1)} /s`], ['Absorbed / stimulated', `${fmt(s.r.abs, 1)} / ${fmt(s.r.stim, 1)} /s`], ['Beam out / in', isFinite(s.gain) ? fmt(s.gain, 2) : '–']],
+      status: s.N2 > s.N1 ? ['Inversion: the beam is amplified', LIGHT.ok] : ['No inversion: the beam is absorbed', LIGHT.ray], cap: [c[2], c[3]],
+      foot: 'Toy model: 70 two-level atoms, B₁₂ = B₂₁, lifetime τ = 1 s (simulation time). Right panel: thermal equilibrium at 300 K.' });
+  }
+  // ---------- app ----------
+  const st = { pump: 0, beam: 6, tau: 1, T: 300, lam: 1.55e-6 };
+  let S = newSim((Date.now() & 0xffffff) | 1), last = null, acc = 0;
+  const app = runApp({ name: 'eiDemo', duration: DUR, drawDemo, animating: () => true,
+    tick(dt) { if (reducedMotion) dt = Math.min(dt, DT); acc += dt; let n = 0; while (acc >= DT && n < 6) { simStep(S, DT, st); acc -= DT; n++; } if (n === 6) acc = 0; },
+    draw() {
+      let [c, w, h] = ctxOf($('box')); const s = drawBox(c, 0, 0, w, h, S, st);
+      [c, w, h] = ctxOf($('rates')); drawRates(c, 0, 0, w, h, s);
+      [c, w, h] = ctxOf($('planck')); drawPlanck(c, 0, 0, w, h, st);
+      if (!last || S.t - last > 0.25) { last = S.t; readouts(s); }
+    } });
+  function readouts(s) {
+    $('rN').textContent = `${s.N1} / ${s.N2}`; $('rAb').textContent = `${fmt(s.r.abs, 1)} /s`; $('rSt').textContent = `${fmt(s.r.stim, 1)} /s`; $('rSp').textContent = `${fmt(s.r.spon, 1)} /s`;
+    $('rG').textContent = isFinite(s.gain) ? fmt(s.gain, 2) : '–';
+    const el = $('status');
+    if (s.N2 > s.N1) { el.className = 'status ok'; el.innerHTML = 'Population inversion<small>N₂ > N₁: stimulated emission beats absorption and the beam grows.</small>'; }
+    else { el.className = 'status bad'; el.innerHTML = 'No inversion<small>N₁ ≥ N₂: absorption wins and the beam is weakened. Raise the pump.</small>'; }
+  }
+  function sync() {
+    $('pwOut').textContent = `${fmt(st.pump, 1)} /s`; $('bmOut').textContent = `${fmt(st.beam, 1)} photons/s`; $('tauOut').textContent = `${fmt(st.tau, 1)} s`;
+    $('tkOut').textContent = `${fmt(st.T, 0)} K`; $('lmOut').textContent = fmtLam(st.lam);
+    $('rRat').textContent = fmtE(ratio(st.lam, st.T)); $('rBz').textContent = fmtE(Math.exp(-HC_K / (st.lam * st.T)));
+    app.markDirty();
+  }
+  bindRange('pw', v => { st.pump = v; sync(); });
+  bindRange('bm', v => { st.beam = v; sync(); });
+  bindRange('tau', v => { st.tau = v; sync(); });
+  bindRange('tk', v => { st.T = 10 ** v; sync(); });
+  bindRange('lm', v => { st.lam = 10 ** v; sync(); });
+  sync();
+
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
