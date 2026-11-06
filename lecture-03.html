@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 03 · Modes of Optical Fibers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root {
+  --bg: #f3f6f8; --panel: #ffffff; --ink: #13202a; --muted: #566775; --line: #d3dce3; --accent: #0b6bc0; --ray: #d8402a;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif; --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d; --accent: #5aa8ec; --ray: #ff6b52; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); line-height: 1.5; }
+main { max-width: 860px; margin: 0 auto; padding: 40px 16px 56px; display: grid; gap: 28px; }
+header p { margin: 4px 0 0; color: var(--muted); }
+.course { font-family: var(--font-mono); font-size: 0.85rem; color: var(--muted); letter-spacing: 0.04em; }
+h1 { margin: 6px 0 0; font-size: 2rem; color: var(--accent); text-wrap: balance; }
+h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.labs { display: grid; gap: 12px; }
+a.lab { display: grid; gap: 4px; padding: 16px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; color: inherit; text-decoration: none; }
+a.lab:hover, a.lab:focus-visible { border-color: var(--accent); outline: none; }
+a.lab strong { font-size: 1.15rem; color: var(--accent); }
+a.lab span { color: var(--muted); }
+.links { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.92rem; }
+.links a { color: var(--accent); }
+footer { color: var(--muted); font-size: 0.85rem; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
+a.tile { aspect-ratio: 1 / 1; display: flex; flex-direction: column; justify-content: space-between; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
+a.tile:hover, a.tile:focus-visible { border-color: var(--accent); transform: translateY(-2px); outline: none; }
+a.tile .num { font-family: var(--font-mono); font-size: 3.2rem; line-height: 1; color: var(--accent); font-weight: 400; }
+a.tile .lbl { font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+a.tile .name { font-size: 1.05rem; overflow-wrap: anywhere; font-weight: 700; line-height: 1.25; }
+a.tile .count { font-size: 0.85rem; color: var(--muted); }
+.back { font-size: 0.95rem; color: var(--accent); text-decoration: none; }
+.back:hover { text-decoration: underline; }
+.pager { display: flex; justify-content: space-between; gap: 12px; font-size: 0.95rem; }
+.pager a { color: var(--accent); text-decoration: none; }
+main > * { min-width: 0; }
+@media (max-width: 420px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } a.tile { padding: 14px; } a.tile .num { font-size: 2.6rem; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <a class="back" href="index.html">← All lectures</a>
+    <div class="course" style="margin-top:14px">83-466 · Lecture 03</div>
+    <h1>Modes of Optical Fibers</h1>
+  </header>
+  <section class="lecture">
+    <div class="labs">
+      <a class="lab" href="v-number-lab.html">
+        <strong>V Number and Mode Chart Lab</strong>
+        <span>Change the wavelength, the core radius and the index contrast. See the V number, the cutoff wavelength and which modes are guided on the b–V chart, with a picture of each mode.</span>
+      </a>
+      <a class="lab" href="spot-size-lab.html">
+        <strong>Spot Size Lab</strong>
+        <span>Compare the exact fundamental mode with its Gaussian approximation. See the spot size, the mode field diameter, the effective area and the power in the core change with V.</span>
+      </a>
+    </div>
+  </section>
+  <nav class="pager"><a href="lecture-02.html">← Lecture 02</a><a href="lecture-04.html">Lecture 04 →</a></nav>
+  <footer>Dr. Boris Desiatov · Faculty of Engineering, Bar-Ilan University</footer>
+</main>
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
