@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Rate and Reach Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: bit rate against length map on top, reach bars below it, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --f1: #8a5a00;   /* step index */
+  --f2: #7b3fb5;   /* graded index */
+  --f3: #0b6bc0;   /* standard single-mode */
+  --f4: #0f8a7e;   /* NZ-DSF */
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    --f1: #d9a441; --f2: #b48ae6; --f3: #5aa8ec; --f4: #45c4b5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  --f1: #d9a441; --f2: #b48ae6; --f3: #5aa8ec; --f4: #45c4b5;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 76ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#map { display: block; width: 100%; aspect-ratio: 16 / 10; max-width: 100%; touch-action: none; cursor: crosshair; }
+#bars { display: block; width: 100%; aspect-ratio: 16 / 5; max-width: 100%; }
+@media (max-width: 600px) { #map { aspect-ratio: 1; } #bars { aspect-ratio: 16 / 8; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .h { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); text-align: right; font-family: var(--font-body); }
+.readouts dd.ok { color: var(--ok); } .readouts dd.bad { color: var(--ray); }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo #barsCard { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #map { aspect-ratio: 16 / 9; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Rate and Reach Map</h1>
+    <p>How far can each fiber carry a given bit rate? Modal dispersion gives <span class="law">B·L = const</span>, so the bit rate falls as 1/L. In single-mode fiber the limit is chromatic dispersion, <span class="law">B_max = 1 / (4√(|β₂| L))</span>, which falls only as 1/√L. Drag the dot to place your link.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="map" aria-label="Maximum bit rate against fiber length for four fiber types on log scales, with your link as a dot; drag to move it"></canvas>
+        <div class="scene-bar">
+          <div class="legend">
+            <span><i style="background:var(--f1)"></i>step-index multimode</span>
+            <span><i style="background:var(--f2)"></i>graded-index multimode</span>
+            <span><i style="background:var(--f3)"></i>single-mode, your D</span>
+            <span><i style="background:var(--f4)"></i>NZ-DSF, D = 4</span>
+          </div>
+        </div>
+      </div>
+      <div class="card scene" id="barsCard"><canvas id="bars" aria-label="Maximum reach of each fiber at your bit rate, compared with your link length"></canvas></div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Your link</p>
+        <div class="ctl">
+          <label for="rate">Bit rate B <output id="rateOut"></output></label>
+          <input id="rate" type="range" min="-3" max="3" step="0.01" value="1">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="len">Length L <output id="lenOut"></output></label>
+          <input id="len" type="range" min="-1" max="4" step="0.01" value="2">
+        </div>
+        <p class="section-title" style="margin-top:14px">Fibers</p>
+        <div class="ctl">
+          <label for="dl">Multimode index contrast Δ <output id="dlOut"></output></label>
+          <input id="dl" type="range" min="0.001" max="0.01" step="0.0001" value="0.002">
+          <span class="hint">n₁ = 1.5, as in Lecture 2.</span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="dd">Single-mode |D| <output id="ddOut"></output></label>
+          <input id="dd" type="range" min="1" max="20" step="0.1" value="17">
+          <span class="hint" id="b2Hint"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt></dt><dd class="h">reach at B</dd><dd class="h">max B at L</dd>
+          <dt>Step index</dt><dd id="r1L"></dd><dd id="r1B"></dd>
+          <dt>Graded index</dt><dd id="r2L"></dd><dd id="r2B"></dd>
+          <dt>Single-mode</dt><dd id="r3L"></dd><dd id="r3B"></dd>
+          <dt>NZ-DSF</dt><dd id="r4L"></dd><dd id="r4B"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Multimode fibers (Lecture 2, ray optics, ΔT &lt; 1/B): step index ΔT = L n₁² Δ / (c n₂), so B·L &lt; n₂c / (n₁²Δ); parabolic graded index ΔT = L n₁ Δ² / (2c), so B·L &lt; 2c / (n₁Δ²). Single-mode fibers: a Gaussian pulse of the best input width, with at least 95% of its energy inside its bit slot, gives B &lt; 1 / (4√(|β₂| L)). β₂ = −λ² D / (2πc) at 1550 nm. The two criteria differ a little, so compare the slopes more than the exact crossing points. Loss, the source spectrum, and dispersion compensation are not included.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- limits: B in Gbit/s, L in km ----------
+  const C_KM_S = 299792.458, N1 = 1.5, LAM = 1550, C_NM_PS = 299792.458;
+  const beta2 = D => LAM * LAM * D / (2 * PI * C_NM_PS);          // |β₂|, ps²/km
+  function fibers(st) {
+    const n2 = N1 * Math.sqrt(1 - 2 * st.delta);
+    const BLstep = n2 * C_KM_S / (N1 * N1 * st.delta) / 1e9;      // Gbit/s·km
+    const BLgrin = 2 * C_KM_S / (N1 * st.delta * st.delta) / 1e9;
+    const sm = b2 => ({ B: L => 1000 / (4 * Math.sqrt(b2 * L)), L: B => 1 / (16 * b2 * (B / 1000) ** 2) });
+    const smf = sm(beta2(st.D)), nz = sm(beta2(4));
+    return [
+      { key: 'f1', name: 'Step index', short: 'Step-index MM', B: L => BLstep / L, L: B => BLstep / B, law: `B·L = ${fmtBL(BLstep)}` },
+      { key: 'f2', name: 'Graded index', short: 'Graded-index MM', B: L => BLgrin / L, L: B => BLgrin / B, law: `B·L = ${fmtBL(BLgrin)}` },
+      { key: 'f3', name: 'Single-mode', short: `SMF, D = ${fmt(st.D, 1)}`, B: smf.B, L: smf.L, law: `B²L = ${fmtB2L(1e6 / (16 * beta2(st.D)))}` },
+      { key: 'f4', name: 'NZ-DSF', short: 'NZ-DSF, D = 4', B: nz.B, L: nz.L, law: `B²L = ${fmtB2L(1e6 / (16 * beta2(4)))}`, dashed: true },
+    ];
+  }
+  const fmt = (v, n = 1) => v.toFixed(n);
+  function fmtBL(v) { return v >= 1 ? `${sig(v)} Gbit/s·km` : `${sig(v * 1000)} Mbit/s·km`; }
+  function fmtB2L(v) { return `${sig(v)} (Gbit/s)²·km`; }
+  function sig(v) { const d = v >= 100 ? 0 : v >= 10 ? 0 : v >= 1 ? 1 : 2; return (v >= 100 ? Math.round(v / 10 ** (Math.floor(Math.log10(v)) - 1)) * 10 ** (Math.floor(Math.log10(v)) - 1) : +v.toFixed(d)).toLocaleString('en-US'); }
+  function fmtRate(B) { B = +B.toPrecision(2); return B >= 1000 ? `${sig(B / 1000)} Tbit/s` : B >= 1 ? `${sig(B)} Gbit/s` : B >= 0.001 ? `${sig(B * 1000)} Mbit/s` : `${sig(B * 1e6)} kbit/s`; }
+  function fmtLen(L) { L = +L.toPrecision(2); return L >= 1e5 ? '> 100,000 km' : L >= 1 ? `${sig(L)} km` : `${sig(L * 1000)} m`; }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7', f1: '#8a5a00', f2: '#7b3fb5', f3: '#0b6bc0', f4: '#0f8a7e' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, p = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.88; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - p, ty - p, w + 2 * p, h + 2 * p, p) : ctx.rect(lx - p, ty - p, w + 2 * p, h + 2 * p); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+
+  // ---------- the map ----------
+  const LX = [-1, 4], LY = [-3, 3];   // log10 of km and Gbit/s
+  function mapBox(W, H, fs) { return { x0: fs * 6.6, x1: W - fs * 1.2, y0: fs * 1.4, y1: H - fs * 3.2 }; }
+  const tickL = v => ({ '-1': '100 m', 0: '1 km', 1: '10 km', 2: '100 km', 3: '1,000 km', 4: '10,000 km' })[v];
+  const tickB = v => ({ '-3': '1 Mbit/s', '-2': '10 Mbit/s', '-1': '100 Mbit/s', 0: '1 Gbit/s', 1: '10 Gbit/s', 2: '100 Gbit/s', 3: '1 Tbit/s' })[v];
+  function drawMap(ctx, X, Y, W, H, st, F, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(15, W / 60)), B = mapBox(W, H, fs);
+    const show = opts.show || [1, 1, 1, 1];
+    const sx = L => B.x0 + (B.x1 - B.x0) * (Math.log10(L) - LX[0]) / (LX[1] - LX[0]);
+    const sy = b => B.y1 - (B.y1 - B.y0) * (Math.log10(b) - LY[0]) / (LY[1] - LY[0]);
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    // grid
+    ctx.lineWidth = 1;
+    for (let e = LX[0]; e <= LX[1]; e++) for (let m = 1; m < 10; m++) { const v = m * 10 ** e; if (Math.log10(v) > LX[1] + 1e-9) break; ctx.strokeStyle = pal.line; ctx.globalAlpha = m === 1 ? 1 : 0.35; ctx.beginPath(); ctx.moveTo(sx(v), B.y0); ctx.lineTo(sx(v), B.y1); ctx.stroke(); }
+    for (let e = LY[0]; e <= LY[1]; e++) for (let m = 1; m < 10; m++) { const v = m * 10 ** e; if (Math.log10(v) > LY[1] + 1e-9) break; ctx.strokeStyle = pal.line; ctx.globalAlpha = m === 1 ? 1 : 0.35; ctx.beginPath(); ctx.moveTo(B.x0, sy(v)); ctx.lineTo(B.x1, sy(v)); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let e = LX[0]; e <= LX[1]; e++) ctx.fillText(tickL(e), sx(10 ** e), B.y1 + fs * 0.35);
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let e = LY[0]; e <= LY[1]; e++) ctx.fillText(tickB(e), B.x0 - fs * 0.35, sy(10 ** e));
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.88}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Fiber length L', (B.x0 + B.x1) / 2, H - fs * 0.2);
+    ctx.save(); ctx.translate(fs * 0.9, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('Maximum bit rate B', 0, 0); ctx.restore();
+    // limit lines
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    F.forEach((f, i) => {
+      const a = show[i]; if (a <= 0) return;
+      ctx.globalAlpha = a; ctx.strokeStyle = pal[f.key]; ctx.lineWidth = Math.max(2.6, W / 360); ctx.setLineDash(f.dashed ? [10, 7] : []);
+      ctx.beginPath(); for (let k = 0; k <= 100; k++) { const L = 10 ** (LX[0] + (LX[1] - LX[0]) * k / 100), y = sy(f.B(L)); k ? ctx.lineTo(sx(L), y) : ctx.moveTo(sx(L), y); } ctx.stroke();
+      ctx.setLineDash([]);
+    });
+    ctx.globalAlpha = 1; ctx.restore();
+    // line labels, placed along each line
+    const at = [0.9, 3.5, 3.3, 1.6], side = [-1, 1, 1, -1];   // log10 L where the label sits; 1 below the line, −1 above
+    F.forEach((f, i) => {
+      const a = show[i]; if (a <= 0.05) return;
+      let lx = at[i], b = f.B(10 ** lx);
+      if (Math.log10(b) > LY[1] - 0.25) { lx = Math.log10(f.L(10 ** (LY[1] - 0.35))); b = f.B(10 ** lx); }
+      if (Math.log10(b) < LY[0] + 0.3) { lx = Math.log10(f.L(10 ** (LY[0] + 0.5))); b = f.B(10 ** lx); }
+      lx = Math.max(LX[0] + 0.3, Math.min(LX[1] - 0.6, lx)); b = f.B(10 ** lx);
+      ctx.globalAlpha = a;
+      const yb = sy(b), d = side[i];
+      // the lines fall to the right: a label above sits to the right of the anchor, one below sits to the left
+      const xa = sx(10 ** lx) + (d > 0 ? -fs * 0.6 : fs * 0.6), al = d > 0 ? 'right' : 'left';
+      label(ctx, f.short, xa, d > 0 ? yb + fs * 0.6 : yb - fs * 1.9, al, d > 0 ? 'top' : 'bottom', pal[f.key], `700 ${fs * 0.85}px ${getFont()}`, pal);
+      label(ctx, f.law, xa, d > 0 ? yb + fs * 1.95 : yb - fs * 0.6, al, d > 0 ? 'top' : 'bottom', pal[f.key], `${fs * 0.72}px ${monoFont()}`, pal);
+      ctx.globalAlpha = 1;
+    });
+    // slope hint
+    if (opts.slopes !== false) label(ctx, 'slope −1: modal dispersion   ·   slope −½: chromatic dispersion', B.x1 - fs * 0.4, B.y0 + fs * 0.4, 'right', 'top', pal.muted, `${fs * 0.78}px ${getFont()}`, pal);
+    // your link
+    if (opts.link !== false) {
+      const x = sx(st.L), y = sy(st.B);
+      ctx.save(); ctx.setLineDash([4, 4]); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.3;
+      ctx.beginPath(); ctx.moveTo(x, B.y1); ctx.lineTo(x, y); ctx.lineTo(B.x0, y); ctx.stroke(); ctx.restore();
+      const okAny = F.some((f, i) => show[i] > 0.5 && st.B <= f.B(st.L));
+      ctx.fillStyle = pal.ink; ctx.strokeStyle = pal.bg; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x, y, fs * 0.6, 0, 2 * PI); ctx.fill(); ctx.stroke();
+      label(ctx, `${fmtRate(st.B)} over ${fmtLen(st.L)}`, x + fs * 0.9, y - fs * 0.9, x > B.x1 - fs * 14 ? 'right' : 'left', 'bottom', pal.ink, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    }
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- reach bars at the chosen bit rate ----------
+  function drawBars(ctx, X, Y, W, H, st, F, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 60));
+    const B = { x0: fs * 9.5, x1: W - fs * 1.2, y0: fs * 2.0, y1: H - fs * 2.4 };
+    const sx = L => B.x0 + (B.x1 - B.x0) * (Math.max(LX[0], Math.min(LX[1], Math.log10(L))) - LX[0]) / (LX[1] - LX[0]);
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.75}px ${monoFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let e = LX[0]; e <= LX[1]; e++) { ctx.beginPath(); ctx.moveTo(sx(10 ** e), B.y0); ctx.lineTo(sx(10 ** e), B.y1); ctx.stroke(); ctx.fillText(tickL(e), sx(10 ** e), B.y1 + fs * 0.3); }
+    label(ctx, `Reach at ${fmtRate(st.B)}`, fs * 0.6, fs * 0.5, 'left', 'top', pal.ink, `700 ${fs * 0.9}px ${getFont()}`, pal, false);
+    const n = F.length, rowH = (B.y1 - B.y0) / n;
+    F.forEach((f, i) => {
+      const y = B.y0 + rowH * i + rowH * 0.18, h = rowH * 0.64, Lm = f.L(st.B), ok = Lm >= st.L;
+      ctx.fillStyle = pal[f.key]; ctx.globalAlpha = 0.85; ctx.fillRect(B.x0, y, sx(Lm) - B.x0, h); ctx.globalAlpha = 1;
+      label(ctx, f.name, B.x0 - fs * 0.5, y + h / 2, 'right', 'middle', pal[f.key], `700 ${fs * 0.82}px ${getFont()}`, pal, false);
+      const tx = Math.min(sx(Lm) + fs * 0.4, B.x1 - fs * 0.4);
+      label(ctx, `${fmtLen(Lm)} ${ok ? '✓' : '✗'}`, tx, y + h / 2, tx >= B.x1 - fs * 0.5 ? 'right' : 'left', 'middle', ok ? pal.ok : pal.ray, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    });
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(st.L), B.y0 - fs * 0.3); ctx.lineTo(sx(st.L), B.y1); ctx.stroke();
+    label(ctx, `your link ${fmtLen(st.L)}`, sx(st.L), B.y0 - fs * 0.35, sx(st.L) > B.x1 - fs * 8 ? 'right' : 'center', 'bottom', pal.ink, `700 ${fs * 0.78}px ${monoFont()}`, pal, false);
+    ctx.restore();
+  }
+
+  // ---------- demo timeline (for the slide animation) ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const K_S = [[[0, 0], [0.5, 1]], [[0, 0], [7, 0], [8, 1]], [[0, 0], [14, 0], [15, 1]], [[0, 0], [22, 0], [23, 1]]];
+  const K_LL = [[0, 1], [7, 1], [9, 1], [14, 1], [16, 1.7], [22, 2], [30, 2], [33, 2], [40, 2]];
+  const K_LB = [[0, -1], [7, -1], [9, 0], [14, 0], [16, 0.4], [22, 1], [30, 1], [33, 0.4], [40, 0.4]];
+  const CAPTIONS = [
+    [0, 7, 'Step-index multimode fiber (Lecture 2)', 'Modal dispersion: B·L ≈ 100 Mbit/s·km for Δ = 0.002. Every 10× in length costs 10× in bit rate.'],
+    [7, 14, 'Graded index (Lectures 2–3)', 'A parabolic profile equalizes the rays: B·L ≈ 100 Gbit/s·km, a thousand times better. Still slope −1.'],
+    [14, 22, 'Single-mode fiber (Lecture 4)', 'No modal dispersion. Chromatic dispersion sets B²L = const, so the line falls only as 1/√L and wins over long distances.'],
+    [22, 30, 'Lower D: NZ-DSF', 'D ≈ 4 ps/(nm·km) instead of 17 gives about twice the bit rate at the same length. 10 Gbit/s over 100 km is still too far for standard fiber.'],
+    [30, 40, 'Rate and reach trade off', 'Faster bits need shorter pulses, which spread sooner. At 2.5 Gbit/s, 100 km of standard fiber is fine.'],
+  ];
+  const DEMO_DURATION = 40;
+  function demoState(t) { return { B: 10 ** track(K_LB, t), L: 10 ** track(K_LL, t), delta: 0.002, D: 17, show: K_S.map(k => track(k, t)) }; }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), F = fibers(st);
+    const sw = Math.round(W * 0.64), pad = W * 0.02;
+    drawMap(ctx, 0, 0, sw, H, st, F, { fontSize: W / 90, show: st.show });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Rate and reach', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 64}px ${getFont()}`;
+    ctx.fillText(`Your link: ${fmtRate(st.B)} over ${fmtLen(st.L)}`, px, y); y += W / 64 * 2.0;
+    ctx.font = `${W / 66}px ${getFont()}`;
+    F.forEach((f, i) => {
+      if (st.show[i] < 0.5) return;
+      const Lm = f.L(st.B), ok = Lm >= st.L;
+      ctx.fillStyle = pal[f.key]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 66}px ${getFont()}`; ctx.fillText(f.name, px, y);
+      ctx.fillStyle = ok ? pal.ok : pal.ray; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(`${fmtLen(Lm)} ${ok ? '✓' : '✗'}`, px + pw, y);
+      y += W / 66 * 1.55;
+    });
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'right'; ctx.font = `${W / 90}px ${getFont()}`; ctx.fillText('reach at this bit rate', px + pw, y); y += W / 90 * 2.2;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'Multimode: n₁ = 1.5, Δ = 0.002, ΔT < 1/B. Single-mode at 1550 nm: Gaussian pulses, 95% of the energy in the bit slot.', px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const mc = $('map'), bc = $('bars');
+  const state = { B: 10, L: 100, delta: 0.002, D: 17 };
+  let F = fibers(state), dirty = true;
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    F = fibers(state);
+    $('rate').value = Math.log10(state.B); $('len').value = Math.log10(state.L); $('dl').value = state.delta; $('dd').value = state.D;
+    $('rateOut').textContent = fmtRate(state.B); $('lenOut').textContent = fmtLen(state.L);
+    $('dlOut').textContent = fmt(state.delta, 4); $('ddOut').textContent = `${fmt(state.D, 1)} ps/(nm·km)`;
+    $('b2Hint').textContent = `|β₂| = ${fmt(beta2(state.D), 1)} ps²/km at 1550 nm`;
+    F.forEach((f, i) => {
+      const Lm = f.L(state.B), Bm = f.B(state.L), ok = Lm >= state.L;
+      const a = $(`r${i + 1}L`), b = $(`r${i + 1}B`);
+      a.textContent = fmtLen(Lm); b.textContent = fmtRate(Bm); a.className = b.className = ok ? 'ok' : 'bad';
+    });
+    const good = F.filter(f => f.L(state.B) >= state.L).map(f => f.name);
+    const st = $('status');
+    st.className = 'status ' + (good.length ? 'ok' : 'bad');
+    st.innerHTML = good.length ? `Works on ${good.length === 4 ? 'all four fibers' : good.join(', ').replace(/, ([^,]*)$/, ' and $1')}<small>${fmtRate(state.B)} over ${fmtLen(state.L)}.</small>`
+      : `Too far for every fiber here<small>${fmtRate(state.B)} over ${fmtLen(state.L)} needs dispersion compensation or a lower bit rate.</small>`;
+    dirty = true;
+  }
+  function frame(now) {
+    if (DEMO) {
+      const t = ((now / 1000) % DEMO_DURATION); const { w, h, dpr } = sizeCanvas(mc); const ctx = mc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t);
+    } else if (dirty) {
+      let { w, h, dpr } = sizeCanvas(mc), ctx = mc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawMap(ctx, 0, 0, w, h, state, F);
+      ({ w, h, dpr } = sizeCanvas(bc)); ctx = bc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawBars(ctx, 0, 0, w, h, state, F);
+      dirty = false;
+    }
+    requestAnimationFrame(frame);
+  }
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  $('rate').addEventListener('input', e => { state.B = 10 ** +e.target.value; later(); });
+  $('len').addEventListener('input', e => { state.L = 10 ** +e.target.value; later(); });
+  $('dl').addEventListener('input', e => { state.delta = +e.target.value; later(); });
+  $('dd').addEventListener('input', e => { state.D = +e.target.value; later(); });
+  // drag on the map moves the link
+  let dragging = false;
+  function pointerMap(e) {
+    const r = mc.getBoundingClientRect(), fs = Math.max(11, Math.min(15, r.width / 60)), B = mapBox(r.width, r.height, fs);
+    const lx = LX[0] + (e.clientX - r.left - B.x0) / (B.x1 - B.x0) * (LX[1] - LX[0]), ly = LY[0] + (B.y1 - (e.clientY - r.top)) / (B.y1 - B.y0) * (LY[1] - LY[0]);
+    state.L = 10 ** (Math.round(Math.max(LX[0], Math.min(LX[1], lx)) * 100) / 100); state.B = 10 ** (Math.round(Math.max(LY[0], Math.min(LY[1], ly)) * 100) / 100); later();
+  }
+  mc.addEventListener('pointerdown', e => { if (DEMO) return; dragging = true; mc.setPointerCapture(e.pointerId); pointerMap(e); });
+  mc.addEventListener('pointermove', e => { if (dragging) pointerMap(e); });
+  mc.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('resize', () => { dirty = true; });
+  new MutationObserver(() => { dirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { dirty = true; });
+
+  // hook for rendering the slide video frame by frame
+  window.rrDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(mc); const ctx = mc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, fibers, demoState };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

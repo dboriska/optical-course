@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Pulse Spreading Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: pulse in time on top, spectrum and width-vs-length below it, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* output pulse */
+  --ray: #d8402a;     /* fiber phase, failure */
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 76ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#time { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+#spec, #wz { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+#wz { touch-action: none; cursor: ew-resize; }
+@media (max-width: 600px) { #time { aspect-ratio: 4 / 3; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px) !important; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #time { aspect-ratio: 16 / 9; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Pulse Spreading Lab</h1>
+    <p>A pulse is a band of frequencies, and in a single-mode fiber each one travels at its own group velocity. The spread of delays is <span class="law">ΔT = |β₂| L Δω = |D| L Δλ</span>, so the pulse broadens while its spectrum stays the same. Launch a pulse and watch neighboring bits start to overlap.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="time" aria-label="Optical power against time at the fiber output: input pulse and spread output pulse, with the bit slots"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Signal">
+            <button id="mSingle" aria-pressed="true">Single pulse</button>
+            <button id="mBits" aria-pressed="false">Bit stream</button>
+          </div>
+          <button id="launch" aria-pressed="false">Launch</button>
+          <div class="legend"><span><i class="dash" style="background:var(--muted)"></i>input, z = 0</span><span><i style="background:var(--accent)"></i>after length z</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="spec" aria-label="Power spectrum of the pulse before and after the fiber, and the phase the fiber adds"></canvas></div>
+        <div class="card scene"><canvas id="wz" aria-label="Pulse width against fiber length, with the bit slot marked; drag to set the length"></canvas></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="fw">Input pulse width (FWHM) <output id="fwOut"></output></label>
+          <input id="fw" type="range" min="5" max="100" step="0.5" value="25">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="br">Bit rate B <output id="brOut"></output></label>
+          <input id="br" type="range" min="1" max="40" step="0.5" value="10">
+          <span class="hint" id="slotHint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="dd">Dispersion D <output id="ddOut"></output></label>
+          <input id="dd" type="range" min="-20" max="20" step="0.1" value="17">
+          <span class="hint" id="b2Hint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="len">Fiber length L <output id="lenOut"></output></label>
+          <input id="len" type="range" min="0" max="200" step="0.5" value="20">
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Spectral width Δf (FWHM)</dt><dd id="rDf"></dd>
+          <dt>Spectral width Δλ (FWHM)</dt><dd id="rDl"></dd>
+          <dt>Spread of delays |D| L Δλ</dt><dd id="rDT"></dd>
+          <div class="sep"></div>
+          <dt>Output width (FWHM)</dt><dd id="rOut"></dd>
+          <dt>Broadening</dt><dd id="rBr"></dd>
+          <dt>Peak power</dt><dd id="rPk"></dd>
+          <dt>Pulse energy in its bit slot</dt><dd id="rE"></dd>
+          <div class="sep"></div>
+          <dt>Group delay L / v_g</dt><dd id="rTg"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Gaussian input pulse at λ = 1550 nm, power ∝ exp(−t²/T₀²), FWHM = 1.665 T₀. The fiber multiplies every frequency component by exp(j β₂ L Δω²/2); the output is shown in a frame that moves with the group delay. β₂ = −λ² D / (2πc), so D = 17 ps/(nm·km) gives β₂ ≈ −21.7 ps²/km. In the bit stream the fields of neighboring pulses add before the detector squares them. "Energy in its bit slot" is the share of one pulse's energy inside its own slot of length 1/B; the target is 95%. Group index n_g = 1.468.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- physics (ps, km, nm) ----------
+  const LAM = 1550, C_NM_PS = 299792.458, NG = 1.468, FW_K = 2 * Math.sqrt(Math.LN2); // FWHM = 1.665 T₀
+  const BITS = [1, 0, 1, 1, 0, 1, 0, 0, 1, 1];
+  const beta2 = D => -LAM * LAM * D / (2 * PI * C_NM_PS);           // ps²/km
+  function erf(x) { const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x); const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
+  // st: { fw (ps), B (Gb/s), D (ps/(nm km)), z (km) }
+  function pulse(st, z = st.z) {
+    const T0 = st.fw / FW_K, b2 = beta2(st.D), g = b2 * z / (T0 * T0);
+    const T1 = T0 * Math.sqrt(1 + g * g), slot = 1000 / st.B;               // ps
+    const dfTHz = FW_K / (2 * PI * T0);                                      // spectral FWHM of the power spectrum
+    const dl = LAM * LAM * dfTHz / C_NM_PS;                                  // nm
+    return { ...st, z, T0, b2, T1, slot, fwOut: FW_K * T1, br: T1 / T0, peak: T0 / T1, eSlot: erf(slot / 2 / T1),
+      df: dfTHz * 1000, dl, spread: Math.abs(st.D) * z * dl, tg: z * NG / C_NM_PS * 1e6 /* µs */ };
+  }
+  // output power of the bit stream at time t (ps): fields add, then |·|²
+  function streamPower(p, t) {
+    const a = p.T0 * p.T0, b = -p.b2 * p.z, q2 = a * a + b * b, amp2 = p.T0 / Math.sqrt(Math.sqrt(q2)) ;
+    let re = 0, im = 0; const n = BITS.length;
+    for (let k = 0; k < n; k++) {
+      if (!BITS[k]) continue;
+      const tk = t - (k - (n - 1) / 2) * p.slot, e = -tk * tk / (2 * q2);
+      const mag = Math.exp(e * a), ph = -e * b;  // exp(−t²(a − ib)/(2|q|²))
+      re += mag * Math.cos(ph); im += mag * Math.sin(ph);
+    }
+    return amp2 * amp2 * (re * re + im * im);
+  }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => v.toFixed(n);
+  const fmtT = v => v >= 1000 ? `${fmt(v / 1000, 2)} ns` : `${fmt(v, v >= 100 ? 0 : 1)} ps`;
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, p = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - p, ty - p, w + 2 * p, h + 2 * p, p) : ctx.rect(lx - p, ty - p, w + 2 * p, h + 2 * p); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, p = 10 ** Math.floor(Math.log10(raw)), m = raw / p; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * p; }
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    return { sx, sy };
+  }
+
+  // ---------- time panel (with the fiber bar on top) ----------
+  // win: half-width of the time window in ps
+  function timeWindow(st, p) {
+    if (st.bits) return p.slot * BITS.length / 2;
+    return Math.max(2.4 * p.fwOut, 0.75 * p.slot, 2.4 * st.fw);
+  }
+  function drawTime(ctx, X, Y, W, H, st, p, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const barH = fs * 3.6, B = { x0: fs * 4.4, x1: W - fs * 1.2, y0: barH + fs * 1.6, y1: H - fs * 3.2 };
+    const win = opts.win || timeWindow(st, p), ymax = 1.12;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    // fiber bar: 0 … L with the pulse position
+    const fx0 = B.x0, fx1 = B.x1, fy = fs * 1.9, Lend = Math.max(opts.Lend ?? st.z, 1e-6);
+    ctx.fillStyle = pal.clad; ctx.fillRect(fx0, fy - fs * 0.55, fx1 - fx0, fs * 1.1);
+    ctx.fillStyle = pal.core; ctx.fillRect(fx0, fy - fs * 0.22, fx1 - fx0, fs * 0.44);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(fx0, fy - fs * 0.55, fx1 - fx0, fs * 1.1);
+    const px = fx0 + (fx1 - fx0) * Math.min(1, p.z / Lend);
+    ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(px, fy, fs * 0.42, 0, 2 * PI); ctx.fill();
+    ctx.font = `${fs * 0.78}px ${monoFont()}`; ctx.fillStyle = pal.muted; ctx.textBaseline = 'bottom';
+    ctx.textAlign = 'left'; ctx.fillText('z = 0', fx0, fy - fs * 0.7);
+    ctx.textAlign = 'right'; ctx.fillText(`L = ${fmt(Lend, 0)} km`, fx1, fy - fs * 0.7);
+    label(ctx, `z = ${fmt(p.z, 1)} km`, Math.min(fx1 - fs * 3, Math.max(fx0 + fs * 3, px)), fy + fs * 0.75, 'center', 'top', pal.accent, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    // plot area
+    const { sx, sy } = axes(ctx, B, [-win, win], [0, ymax], pal, fs, 'Time t − z/v_g (ps)', 'Power / input peak', H, { yStep: 0.25, yf: v => fmt(v, 2) });
+    // bit slots
+    const nS = Math.ceil(win / p.slot) + 1;
+    for (let k = -nS; k <= nS; k++) {
+      const c = st.bits ? (k + 0.5) * p.slot - (BITS.length % 2 ? p.slot / 2 : 0) : k * p.slot;
+      const l = c - p.slot / 2, r = c + p.slot / 2;
+      if (r < -win || l > win) continue;
+      const isMain = !st.bits && k === 0;
+      if (isMain) { ctx.fillStyle = (p.eSlot >= 0.95 ? pal.ok : pal.ray); ctx.globalAlpha = 0.08; ctx.fillRect(Math.max(B.x0, sx(l)), B.y0, Math.min(B.x1, sx(r)) - Math.max(B.x0, sx(l)), B.y1 - B.y0); ctx.globalAlpha = 1; }
+      ctx.save(); ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.55; ctx.setLineDash([3, 4]); ctx.lineWidth = 1.2;
+      for (const e of [l, r]) if (e > -win && e < win) { ctx.beginPath(); ctx.moveTo(sx(e), B.y0); ctx.lineTo(sx(e), B.y1); ctx.stroke(); }
+      ctx.restore();
+    }
+    if (st.bits) {
+      const n = BITS.length;
+      for (let k = 0; k < n; k++) { const c = (k - (n - 1) / 2) * p.slot; label(ctx, String(BITS[k]), sx(c), B.y0 + fs * 0.3, 'center', 'top', BITS[k] ? pal.ink : pal.muted, `700 ${fs * 0.9}px ${monoFont()}`, pal, false); }
+    } else {
+      label(ctx, `bit slot 1/B = ${fmtT(p.slot)}`, sx(0), B.y0 + fs * 0.3, 'center', 'top', p.eSlot >= 0.95 ? pal.ok : pal.ray, `700 ${fs * 0.8}px ${getFont()}`, pal);
+    }
+    // curves
+    const N = 700, inP = st.bits ? (t => { const p0 = pulse(st, 0); return streamPower(p0, t); }) : (t => Math.exp(-t * t / (p.T0 * p.T0)));
+    const outP = st.bits ? (t => streamPower(p, t)) : (t => p.peak * Math.exp(-t * t / (p.T1 * p.T1)));
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = Math.max(1.6, W / 600); ctx.setLineDash([7, 5]);
+    ctx.beginPath(); for (let i = 0; i <= N; i++) { const t = -win + 2 * win * i / N, y = sy(inP(t)); i ? ctx.lineTo(sx(t), y) : ctx.moveTo(sx(t), y); } ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.14;
+    ctx.beginPath(); ctx.moveTo(sx(-win), sy(0)); for (let i = 0; i <= N; i++) { const t = -win + 2 * win * i / N; ctx.lineTo(sx(t), sy(outP(t))); } ctx.lineTo(sx(win), sy(0)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = Math.max(2.6, W / 380);
+    ctx.beginPath(); for (let i = 0; i <= N; i++) { const t = -win + 2 * win * i / N, y = sy(outP(t)); i ? ctx.lineTo(sx(t), y) : ctx.moveTo(sx(t), y); } ctx.stroke();
+    ctx.restore();
+    // colors of the pulse: the fast and the slow edge of the spectrum (single pulse)
+    if (!st.bits && p.z > 0 && Math.abs(st.D) > 0.05) {
+      const half = p.spread / 2, early = st.D > 0 ? 'blue' : 'red', late = st.D > 0 ? 'red' : 'blue';
+      const col = { blue: '#2f6fe0', red: '#d8402a' }, yy = sy(0.06);
+      if (half > win * 0.03) {
+        ctx.save(); ctx.lineWidth = 2;
+        for (const [s, name] of [[-1, early], [1, late]]) {
+          const xe = sx(Math.max(-win * 0.98, Math.min(win * 0.98, s * half)));
+          ctx.strokeStyle = col[name]; ctx.fillStyle = col[name];
+          ctx.beginPath(); ctx.moveTo(sx(0), yy); ctx.lineTo(xe, yy); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(xe, yy); ctx.lineTo(xe - s * fs * 0.5, yy - fs * 0.3); ctx.lineTo(xe - s * fs * 0.5, yy + fs * 0.3); ctx.closePath(); ctx.fill();
+          label(ctx, name === 'blue' ? 'shorter λ' : 'longer λ', xe + s * fs * 0.5, yy, s < 0 ? 'right' : 'left', 'middle', col[name], `700 ${fs * 0.78}px ${getFont()}`, pal);
+        }
+        ctx.restore();
+      }
+    }
+    // headline numbers
+    label(ctx, `FWHM ${fmtT(st.fw)} → ${fmtT(p.fwOut)}`, B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.9}px ${monoFont()}`, pal, false);
+    if (!st.bits) label(ctx, `energy in its bit slot ${fmt(p.eSlot * 100, 1)}%`, B.x1, B.y0 - fs * 0.35, 'right', 'bottom', p.eSlot >= 0.95 ? pal.ok : pal.ray, `700 ${fs * 0.85}px ${monoFont()}`, pal, false);
+    else label(ctx, `${fmt(st.B, 1)} Gbit/s`, B.x1, B.y0 - fs * 0.35, 'right', 'bottom', pal.ink, `700 ${fs * 0.85}px ${monoFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- spectrum ----------
+  function drawSpec(ctx, X, Y, W, H, st, p, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 34));
+    const B = { x0: fs * 3.2, x1: W - fs * 3.2, y0: fs * 2.0, y1: H - fs * 2.8 };
+    const fmax = 2.2 * p.df;                                    // GHz
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const { sx, sy } = axes(ctx, B, [-fmax, fmax], [0, 1.1], pal, fs, 'Frequency offset Δf (GHz)', 'Power spectrum', H, { yStep: 0.5, yf: v => fmt(v, 1) });
+    const T0 = p.T0, spec = f => Math.exp(-(((2 * PI * f / 1000) * T0) ** 2));
+    // phase added by the fiber, right axis
+    const phi = f => 0.5 * p.b2 * p.z * (2 * PI * f / 1000) ** 2, pm = Math.max(Math.abs(phi(fmax)), 1e-9), pScale = pm < 2 * PI ? 2 * PI : niceStep(pm, 1) * Math.ceil(pm / niceStep(pm, 1));
+    const sp = v => B.y1 - (B.y1 - B.y0) * (v / pScale + (p.b2 < 0 ? 1 : 0)) / 1.1;
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    if (p.z > 0 && Math.abs(p.b2) > 1e-6) {
+      ctx.strokeStyle = pal.ray; ctx.lineWidth = 2; ctx.setLineDash([2, 4]); ctx.beginPath();
+      for (let i = 0; i <= 200; i++) { const f = -fmax + 2 * fmax * i / 200; i ? ctx.lineTo(sx(f), sp(phi(f))) : ctx.moveTo(sx(f), sp(phi(f))); } ctx.stroke(); ctx.setLineDash([]);
+    }
+    ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.14; ctx.beginPath(); ctx.moveTo(sx(-fmax), sy(0));
+    for (let i = 0; i <= 200; i++) { const f = -fmax + 2 * fmax * i / 200; ctx.lineTo(sx(f), sy(spec(f))); } ctx.lineTo(sx(fmax), sy(0)); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.6; ctx.beginPath();
+    for (let i = 0; i <= 200; i++) { const f = -fmax + 2 * fmax * i / 200; i ? ctx.lineTo(sx(f), sy(spec(f))) : ctx.moveTo(sx(f), sy(spec(f))); } ctx.stroke();
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.6; ctx.setLineDash([7, 5]); ctx.beginPath();
+    for (let i = 0; i <= 200; i++) { const f = -fmax + 2 * fmax * i / 200; i ? ctx.lineTo(sx(f), sy(spec(f))) : ctx.moveTo(sx(f), sy(spec(f))); } ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    // right axis for the phase
+    ctx.fillStyle = pal.ray; ctx.font = `${fs * 0.75}px ${monoFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    const tops = p.b2 < 0 ? [0, -pScale / 2, -pScale] : [0, pScale / 2, pScale];
+    for (const v of tops) ctx.fillText(fmt(v, Math.abs(pScale) < 10 ? 1 : 0), B.x1 + fs * 0.3, sp(v));
+    ctx.save(); ctx.translate(W - fs * 0.7, (B.y0 + B.y1) / 2); ctx.rotate(PI / 2); ctx.textAlign = 'center'; ctx.font = `700 ${fs * 0.8}px ${getFont()}`; ctx.fillText('Phase added (rad)', 0, 0); ctx.restore();
+    label(ctx, 'spectrum: same before and after', B.x0 + fs * 0.3, B.y0 - fs * 0.35, 'left', 'bottom', pal.accent, `700 ${fs * 0.8}px ${getFont()}`, pal, false);
+    label(ctx, '·· β₂zΔω²/2', B.x1, B.y0 - fs * 0.35, 'right', 'bottom', pal.ray, `700 ${fs * 0.8}px ${monoFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- width against length ----------
+  const ZMAX = 200;
+  function wzBox(W, H, fs) { return { x0: fs * 3.6, x1: W - fs * 1, y0: fs * 2.0, y1: H - fs * 2.8 }; }
+  function drawWZ(ctx, X, Y, W, H, st, p, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 34)), B = wzBox(W, H, fs);
+    const zEnd = opts.zEnd ?? ZMAX, wAt = z => pulse(st, z).fwOut;
+    const ymax = Math.max(wAt(zEnd), p.slot * 1.25, st.fw * 1.5) * 1.08;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const { sx, sy } = axes(ctx, B, [0, zEnd], [0, ymax], pal, fs, 'Fiber length z (km)', 'FWHM (ps)', H, { yf: v => v >= 1000 ? `${+(v / 1000).toFixed(2)}k` : String(+v.toFixed(3)) });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    // bit slot
+    ctx.strokeStyle = pal.muted; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(B.x0, sy(p.slot)); ctx.lineTo(B.x1, sy(p.slot)); ctx.stroke(); ctx.setLineDash([]);
+    // curve, green while ≥ 95% of the energy stays in the slot
+    ctx.lineWidth = 2.6; ctx.lineJoin = 'round';
+    let prev = null;
+    for (let i = 0; i <= 240; i++) {
+      const z = zEnd * i / 240, q = pulse(st, z), pt = [sx(z), sy(q.fwOut)], ok = q.eSlot >= 0.95;
+      if (prev) { ctx.strokeStyle = ok ? pal.ok : pal.ray; ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(pt[0], pt[1]); ctx.stroke(); }
+      prev = pt;
+    }
+    ctx.restore();
+    label(ctx, `bit slot ${fmtT(p.slot)}`, B.x1 - fs * 0.3, sy(p.slot) - fs * 0.25, 'right', 'bottom', pal.muted, `700 ${fs * 0.78}px ${getFont()}`, pal);
+    // current length
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(p.z), B.y0); ctx.lineTo(sx(p.z), B.y1); ctx.stroke();
+    ctx.fillStyle = p.eSlot >= 0.95 ? pal.ok : pal.ray; ctx.strokeStyle = pal.bg; ctx.beginPath(); ctx.arc(sx(p.z), sy(p.fwOut), fs * 0.42, 0, 2 * PI); ctx.fill(); ctx.stroke();
+    label(ctx, '— ≥ 95% in slot', B.x0 + fs * 0.3, B.y0 - fs * 0.35, 'left', 'bottom', pal.ok, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    label(ctx, '— < 95%', B.x0 + fs * 8.2, B.y0 - fs * 0.35, 'left', 'bottom', pal.ray, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- demo timeline (for the slide animation) ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const K_FW = [[0, 25], [12, 25], [13.5, 10], [20, 10], [21, 50], [40, 50]];
+  const K_Z = [[0, 0], [3, 0], [10, 100], [12, 100], [13.5, 0], [14.5, 0], [19, 100], [20.5, 100], [21, 0], [22, 0], [28, 80], [40, 80]];
+  const K_D = [[0, 17], [31, 17], [35, 4], [40, 4]];
+  const K_L = [[0, 100], [20.5, 100], [21, 80], [40, 80]];
+  const CAPTIONS = [
+    [0, 3, 'A 25 ps pulse enters standard fiber', 'Single-mode fiber at 1550 nm, D = 17 ps/(nm·km). The pulse is a band of frequencies about 18 GHz wide.'],
+    [3, 12, 'The pulse spreads; the spectrum does not', 'Each frequency travels at its own group velocity. The fiber only adds phase, so the spectrum stays the same while the pulse broadens.'],
+    [12, 21, 'A shorter pulse spreads more', 'A 10 ps pulse has a spectrum 2.5 times wider, so its colors separate faster. Faster bits need shorter pulses, which spread sooner.'],
+    [21, 31, 'Bits at 10 Gbit/s start to overlap', 'Each bit slot is 100 ps. Beyond about 30 km less than 95% of each pulse stays in its own slot, and the zeros start to fill up.'],
+    [31, 40, 'Lower D keeps the bits apart', 'Non-zero dispersion-shifted fiber, D ≈ 4 ps/(nm·km): the same link at 80 km keeps the pulses in their slots.'],
+  ];
+  const DEMO_DURATION = 40;
+  function demoState(t) {
+    return { fw: track(K_FW, t), B: 10, D: track(K_D, t), z: track(K_Z, t), bits: t >= 20.75, Lend: track(K_L, t) };
+  }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), p = pulse(st), pEnd = pulse(st, st.Lend);
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.58), pad = W * 0.02;
+    drawTime(ctx, 0, 0, sw, sh, st, p, { fontSize: W / 80, win: timeWindow(st, pEnd), Lend: st.Lend });
+    const bw = (sw - pad) / 2;
+    drawSpec(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, st, p, { fontSize: W / 100 });
+    drawWZ(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, st, p, { fontSize: W / 100, zEnd: 120 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Chromatic dispersion', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 64}px ${getFont()}`;
+    ctx.fillText('ΔT = |β₂| L Δω = |D| L Δλ', px, y); y += W / 64 * 2.0;
+    const rows = [['Dispersion D', `${fmt(st.D, 1)} ps/(nm·km)`], ['Length z', `${fmt(p.z, 0)} km`], ['Input FWHM', fmtT(st.fw)], ['Output FWHM', fmtT(p.fwOut)],
+      ['Spectral width Δλ', `${fmt(p.dl, 3)} nm`], ['Energy in bit slot', `${fmt(p.eSlot * 100, 1)}%`]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    const ok = p.eSlot >= 0.95;
+    ctx.fillStyle = ok ? pal.ok : pal.ray; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`;
+    ctx.fillText(ok ? '● Bits stay apart (≥ 95% in slot)' : '● Bits overlap (< 95% in slot)', px, y); y += W / 60 * 1.9;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'Gaussian pulses at 1550 nm, bit rate 10 Gbit/s. Dashed: input. Solid: after length z, in a frame moving with the group delay.', px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const tc = $('time'), sc = $('spec'), wz = $('wz');
+  const state = { fw: 25, B: 10, D: 17, z: 20, bits: false };
+  let cur = pulse(state), dirty = true, launch = null, simT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    const zNow = launch ? launch.z : state.z;
+    cur = pulse(state, zNow); const p = pulse(state);
+    $('fw').value = state.fw; $('br').value = state.B; $('dd').value = state.D; $('len').value = state.z;
+    $('fwOut').textContent = fmtT(state.fw); $('brOut').textContent = `${fmt(state.B, 1)} Gbit/s`;
+    $('ddOut').textContent = `${fmt(state.D, 1)} ps/(nm·km)`; $('lenOut').textContent = `${fmt(state.z, 1)} km`;
+    $('slotHint').textContent = `Bit slot 1/B = ${fmtT(p.slot)}`;
+    $('b2Hint').textContent = `β₂ = ${fmt(p.b2, 1)} ps²/km at 1550 nm` + (Math.abs(state.D) < 0.05 ? ' (zero dispersion)' : '');
+    const st = $('status'), ok = p.eSlot >= 0.95;
+    st.className = 'status ' + (ok ? 'ok' : 'bad');
+    st.innerHTML = ok ? `Bits stay apart<small>${fmt(p.eSlot * 100, 1)}% of each pulse stays inside its ${fmtT(p.slot)} slot after ${fmt(p.z, 0)} km.</small>`
+      : `Bits overlap<small>Only ${fmt(p.eSlot * 100, 1)}% of each pulse stays inside its ${fmtT(p.slot)} slot after ${fmt(p.z, 0)} km.</small>`;
+    $('rDf').textContent = `${fmt(p.df, 1)} GHz`; $('rDl').textContent = `${fmt(p.dl, 3)} nm`;
+    $('rDT').textContent = fmtT(p.spread);
+    $('rOut').textContent = fmtT(p.fwOut); $('rBr').textContent = `× ${fmt(p.br, 2)}`; $('rPk').textContent = `${fmt(p.peak * 100, 0)}% of input`;
+    $('rE').textContent = `${fmt(p.eSlot * 100, 1)}%`;
+    $('rTg').textContent = p.tg >= 1000 ? `${fmt(p.tg / 1000, 3)} ms` : `${fmt(p.tg, 1)} µs`;
+    dirty = true;
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (launch) {
+      launch.t += dt; const u = Math.min(1, launch.t / launch.dur); launch.z = state.z * u;
+      if (u >= 1) { launch = null; $('launch').setAttribute('aria-pressed', 'false'); }
+      syncUI();
+    }
+    if (DEMO) {
+      simT += dt; const { w, h, dpr } = sizeCanvas(tc); const ctx = tc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    } else if (dirty) {
+      const pEnd = pulse(state);
+      let { w, h, dpr } = sizeCanvas(tc), ctx = tc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawTime(ctx, 0, 0, w, h, state, cur, { win: timeWindow(state, pEnd), Lend: state.z });
+      ({ w, h, dpr } = sizeCanvas(sc)); ctx = sc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawSpec(ctx, 0, 0, w, h, state, cur);
+      ({ w, h, dpr } = sizeCanvas(wz)); ctx = wz.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawWZ(ctx, 0, 0, w, h, state, cur);
+      dirty = false;
+    }
+    requestAnimationFrame(frame);
+  }
+  const stopLaunch = () => { if (launch) { launch = null; $('launch').setAttribute('aria-pressed', 'false'); } };
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  const onInput = (id, key) => $(id).addEventListener('input', e => { stopLaunch(); state[key] = +e.target.value; later(); });
+  onInput('fw', 'fw'); onInput('br', 'B'); onInput('dd', 'D'); onInput('len', 'z');
+  function setMode(bits) { state.bits = bits; $('mSingle').setAttribute('aria-pressed', String(!bits)); $('mBits').setAttribute('aria-pressed', String(bits)); later(); }
+  $('mSingle').addEventListener('click', () => setMode(false));
+  $('mBits').addEventListener('click', () => setMode(true));
+  $('launch').addEventListener('click', e => {
+    if (launch) { stopLaunch(); syncUI(); return; }
+    if (state.z <= 0) return;
+    launch = { t: 0, dur: reduced ? 12 : 5, z: 0 }; e.currentTarget.setAttribute('aria-pressed', 'true');
+  });
+  // drag on the width chart sets the length
+  let dragging = false;
+  function pointerZ(e) {
+    const r = wz.getBoundingClientRect(), fs = Math.max(11, Math.min(14, r.width / 34)), B = wzBox(r.width, r.height, fs);
+    state.z = Math.round(Math.max(0, Math.min(ZMAX, (e.clientX - r.left - B.x0) / (B.x1 - B.x0) * ZMAX)) * 2) / 2; stopLaunch(); later();
+  }
+  wz.addEventListener('pointerdown', e => { if (DEMO) return; dragging = true; wz.setPointerCapture(e.pointerId); pointerZ(e); });
+  wz.addEventListener('pointermove', e => { if (dragging) pointerZ(e); });
+  wz.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('resize', () => { dirty = true; });
+  new MutationObserver(() => { dirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { dirty = true; });
+
+  // hook for rendering the slide video frame by frame
+  window.psDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(tc); const ctx = tc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, pulse, demoState };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

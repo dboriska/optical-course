@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Signal Bandwidth Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; align-items: center; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px) !important; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status.neutral { color: var(--accent); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+canvas.hero { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.sub { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.hero { aspect-ratio: 4 / 3; } }
+.seg { display: inline-flex; gap: 0; flex-wrap: wrap; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; }
+.seg button + button { border-left: 0; }
+.status.hot { color: var(--ray); }
+select { font: inherit; font-size: 0.9rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 5px 8px; }
+body.demo canvas.hero { aspect-ratio: 16 / 9; }
+
+canvas.hero.tall { aspect-ratio: 16 / 12; }
+@media (max-width: 600px) { canvas.hero.tall { aspect-ratio: 3 / 4; } }
+.lk { display: inline-flex; gap: 12px; font-size: 0.82rem; color: var(--muted); }
+.lk label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.lk input { margin: 0; accent-color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Signal Bandwidth Lab</h1>
+    <p>Pick a waveform and its repetition frequency. The FFT breaks the signal into harmonics at f, 2f, 3f… The bandwidth is how far up you must go to keep most of the signal power. Then put the signal on an optical carrier at 1550 nm (about 193 THz) and see how little of the carrier frequency the signal really takes, and what that means in nanometers.</p>
+  </header>
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="bb" class="hero tall" aria-label="The signal in time and its FFT spectrum with the bandwidth marked"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Waveform">
+            <button id="wSin" aria-pressed="false">Sine</button>
+            <button id="wSq" aria-pressed="true">Square</button>
+            <button id="wTri" aria-pressed="false">Triangle</button>
+            <button id="wGau" aria-pressed="false">Gaussian</button>
+          </div>
+          <span class="lk"><label><input type="checkbox" id="lkT"> lock time axis</label><label><input type="checkbox" id="lkS"> lock frequency axis</label></span>
+          <div class="legend"><span><i style="background:var(--accent)"></i>input signal</span><span><i style="background:#d8402a"></i>after the filter (filter off: only the harmonics inside B)</span></div>
+        </div>
+      </div>
+      <div class="pair" style="grid-template-columns:minmax(0,1fr)"><div class="card scene">
+        <canvas id="opt" class="hero" aria-label="The optical spectrum: the carrier at 193 THz and the band the signal occupies around it"></canvas>
+        <div class="scene-bar">
+          <span class="lk"><label><input type="checkbox" id="lkO"> lock the full axis</label><label><input type="checkbox" id="lkZ"> lock the zoom axis</label></span>
+          <div class="legend"><span>Drag a plot to move its x-axis · drag the axis numbers or scroll to zoom · double-click to reset</span></div>
+        </div>
+      </div></div>
+    </div>
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Signal</p>
+        <div class="ctl"><label for="fq">Frequency f <output id="fqOut"></output></label><input id="fq" type="range" min="-3" max="1.699" step="0.001" value="1"></div>
+        <span class="hint">1 MHz to 50 GHz (log scale).</span>
+        <div class="ctl" style="margin-top:8px"><label for="dw">Pulse width (part of the period) <output id="dwOut"></output></label><input id="dw" type="range" min="5" max="95" step="1" value="50"></div>
+        <span class="hint" id="dwHint">Square: the duty cycle. Triangle: the base width. Gaussian: the FWHM.</span>
+        <p class="section-title" style="margin-top:14px">Bandwidth = the band that holds</p>
+        <div class="seg" role="group" aria-label="Power kept inside the bandwidth">
+          <button id="k75" aria-pressed="false">75%</button>
+          <button id="k90" aria-pressed="false">90%</button>
+          <button id="k99" aria-pressed="true">99%</button>
+          <button id="k999" aria-pressed="false">99.9%</button>
+        </div>
+        <span class="hint">of the signal power (the DC part goes to the carrier and is not counted).</span>
+        <p class="section-title" style="margin-top:14px">Low-pass filter</p>
+        <div class="seg" role="group" aria-label="Filter type">
+          <button id="fOff" aria-pressed="true">Off</button>
+          <button id="fIdeal" aria-pressed="false">Ideal</button>
+          <button id="fRC" aria-pressed="false">RC</button>
+        </div>
+        <div class="ctl" style="margin-top:8px"><label for="fco">Cutoff frequency <output id="fcoOut"></output></label><input id="fco" type="range" min="-3" max="3.5" step="0.001" value="1.477"></div>
+        <span class="hint" id="fHint">Ideal: passes everything below the cutoff and nothing above. RC: −3 dB at the cutoff, then falls 20 dB per decade. The red curve is what comes out.</span>
+      </div>
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Period T = 1/f</dt><dd id="rT"></dd>
+          <dt>Harmonics inside B</dt><dd id="rN"></dd>
+          <dt>Signal bandwidth B</dt><dd id="rB"></dd>
+          <dt>B / f</dt><dd id="rBf"></dd>
+          <dt>Signal power through the filter</dt><dd id="rFp"></dd>
+          <div class="sep"></div>
+          <dt>Carrier f<sub>c</sub> (1550 nm)</dt><dd id="rFc"></dd>
+          <dt>Optical band 2B</dt><dd id="r2B"></dd>
+          <dt>2B / f<sub>c</sub></dt><dd id="rFrac"></dd>
+          <dt>Same band in wavelength Δλ</dt><dd id="rDl"></dd>
+          <dt>Channels like this in the C band (4.4 THz)</dt><dd id="rCh"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <p class="note">The signal repeats with period T = 1/f, so its spectrum has lines only at 0, f, 2f, 3f… The line strengths come from the Fourier series (what an FFT of one period gives): square c<sub>n</sub> = d·sinc(nd), triangle c<sub>n</sub> = (d/2)·sinc²(nd/2), Gaussian c<sub>n</sub> ∝ exp(−2π²n²σ²/T²), sine: one line at f. The bandwidth B is the smallest band from 0 that holds the chosen share of the AC power. The red curve rebuilds the signal from only the harmonics inside B, which is what a channel of width B lets through. With the low-pass filter on, each harmonic n is multiplied by the filter response H(nf): an ideal filter keeps the lines below the cutoff and removes the rest; an RC filter has H = 1/(1 + j·nf/f<sub>cut</sub>), so it also delays and rounds the edges. The red curve is then the filter output. On the optical carrier the signal modulates the amplitude, so the spectrum is copied to both sides of f<sub>c</sub> = c/1550 nm = 193.4 THz and the optical band is 2B. Δλ = λ²·2B/c, which is the spectral width that enters Δτ = D·L·Δλ.</p>
+</div>
+
+<script>
+(() => {
+  // ---------- shared helpers (same in every lab of the course) ----------
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+  const CREDIT = 'Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov';
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7', dark: false };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) if (k !== 'dark') p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    const th = document.documentElement.dataset.theme;
+    p.dark = th === 'dark' || (th !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtS = (v, n = 2) => (Math.abs(v) < 0.5 * 10 ** -n ? '' : v > 0 ? '+' : '−') + fmt(Math.abs(v), n);
+  const fmtT = v => Math.abs(v) >= 1000 ? `${fmt(v / 1000, 2)} ns` : `${fmt(v, Math.abs(v) >= 100 ? 0 : 1)} ps`;
+  const fmtKm = v => !isFinite(v) ? '∞' : v >= 1000 ? `${fmt(v, 0)} km` : v >= 100 ? `${fmt(v, 0)} km` : v >= 10 ? `${fmt(v, 1)} km` : `${fmt(v, 2)} km`;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  // linear or log axes; opts: xLog, yLog, xStep, yStep, xf, yf, xTicks [[v, text]], noGridX, noGridY
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const tx = v => opts.xLog ? Math.log10(v) : v, ty = v => opts.yLog ? Math.log10(v) : v;
+    const sx = x => B.x0 + (B.x1 - B.x0) * (tx(x) - tx(xr[0])) / (tx(xr[1]) - tx(xr[0])), sy = y => B.y1 - (B.y1 - B.y0) * (ty(y) - ty(yr[0])) / (ty(yr[1]) - ty(yr[0]));
+    ctx.save(); ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const ticks = (r, log, step) => {
+      const out = [];
+      if (log) { for (let e = Math.floor(Math.log10(r[0])); e <= Math.ceil(Math.log10(r[1])); e++) { const v = 10 ** e; if (v >= r[0] * 0.999 && v <= r[1] * 1.001) out.push(v); } }
+      else { const s = step || niceStep(r[1] - r[0], 5); for (let v = Math.ceil(r[0] / s - 1e-9) * s; v <= r[1] + 1e-9; v += s) out.push(v); }
+      return out;
+    };
+    const lf = v => { if (v === 0) return '0'; const e = Math.log10(Math.abs(v)); return Math.abs(e) >= 4 ? `1e${Math.round(e)}` : String(+v.toPrecision(6)); };
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const xt = opts.xTicks || ticks(xr, opts.xLog, opts.xStep).map(v => [v, (opts.xf || (opts.xLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [x, t] of xt) { if (!opts.noGridX) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); } ctx.fillText(t, sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    const yt = opts.yTicks || ticks(yr, opts.yLog, opts.yStep).map(v => [v, (opts.yf || (opts.yLog ? lf : (v => String(+v.toFixed(6)))))(v)]);
+    for (const [y, t] of yt) { if (!opts.noGridY) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); } ctx.fillText(t, B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    if (xl) ctx.fillText(xl, (B.x0 + B.x1) / 2, (opts.xlY ?? H) - fs * 0.15);
+    if (yl) { ctx.save(); ctx.translate(B.x0 - (opts.ylOff ?? fs * 3.6) + fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore(); }
+    ctx.restore();
+    return { sx, sy };
+  }
+  function frameBox(ctx, B, pal) { ctx.save(); ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.restore(); }
+  function clipBox(ctx, B) { ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip(); }
+  function panelStart(ctx, X, Y, W, H, pal) { ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip(); ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H); }
+  function polyline(ctx, n, f) { ctx.beginPath(); let started = false; for (let i = 0; i <= n; i++) { const p = f(i / n); if (!p) { started = false; continue; } started ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); started = true; } ctx.stroke(); }
+  // ---------- timeline helpers for the slide animation ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  const step = (keys, t) => { let v = keys[0][1]; for (const [t0, a] of keys) if (t >= t0) v = a; return v; };
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  // right-hand column of the slide animation: title, formulas, readouts, status, caption, footnote, credit
+  function sidePanel(ctx, W, H, x0, o) {
+    const pal = LIGHT, pad = W * 0.02, px = x0 + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.save(); ctx.textBaseline = 'top';
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left';
+    y = wrapText(ctx, o.title, px, y, pw, W / 46 * 1.2) + W / 46 * 0.35;
+    ctx.fillStyle = pal.ink;
+    for (const f of o.formulas || []) { ctx.font = `${W / 76}px ${monoFont()}`; ctx.fillText(f, px, y); y += W / 76 * 1.55; }
+    y += W / 76 * 0.5;
+    for (const [k, v] of o.rows || []) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(k, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 70}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    if (o.status) { ctx.fillStyle = o.status[1]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`; y = wrapText(ctx, '● ' + o.status[0], px, y, pw, W / 60 * 1.25) + W / 60 * 0.5; }
+    if (o.cap) {
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+      ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textAlign = 'left';
+      y = wrapText(ctx, o.cap[0], px, y, pw, W / 54 * 1.25) + W / 160;
+      ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+      wrapText(ctx, o.cap[1], px, y, pw, W / 68 * 1.4);
+    }
+    if (o.foot) { ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`; ctx.textAlign = 'left'; wrapText(ctx, o.foot, px, H - H * 0.115, pw, W / 100 * 1.4); }
+    ctx.restore();
+    credit(ctx, W, H);
+  }
+  function credit(ctx, W, H) {
+    ctx.save(); ctx.fillStyle = LIGHT.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(CREDIT, W - W * 0.02, H - H * 0.022); ctx.restore();
+  }
+  const captionAt = (caps, t) => caps.find(c => t >= c[0] && t < c[1]) || caps[caps.length - 1];
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function ctxOf(c) { const { w, h, dpr } = sizeCanvas(c), ctx = c.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, w, h]; }
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // app loop: draw() when dirty (or every frame when animating), demo mode draws the slide animation
+  function runApp({ name, duration, drawDemo, draw, animating = () => false, tick = () => {} }) {
+    let dirty = true, simT = 0, last = performance.now();
+    const hero = document.querySelector('canvas.hero');
+    const api = { markDirty() { dirty = true; } };
+    function frame(now) {
+      const dt = Math.min(0.1, (now - last) / 1000); last = now;
+      if (DEMO) { simT += dt; const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, simT % duration); }
+      else { tick(dt); if (dirty || animating()) { draw(now / 1000); dirty = false; } }
+      requestAnimationFrame(frame);
+    }
+    window.addEventListener('resize', api.markDirty);
+    new MutationObserver(api.markDirty).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', api.markDirty);
+    window[name] = { duration, draw(t) { const [ctx, w, h] = ctxOf(hero); drawDemo(ctx, w, h, t); } };
+    if (!window.__noLoop) requestAnimationFrame(frame);
+    if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(api.markDirty);
+    return api;
+  }
+  // slider wiring: ids → state keys, with optional transform (e.g. log sliders)
+  function bindRange(id, onValue) { const el = $(id); el.addEventListener('input', () => onValue(+el.value)); return el; }
+  function bindSeg(ids, onPick) { ids.forEach((id, i) => $(id).addEventListener('click', () => { ids.forEach((j, k) => $(j).setAttribute('aria-pressed', String(k === i))); onPick(i); })); }
+  // radix-2 FFT in place on Float64Array re, im (n a power of two); inverse when inv
+  function fft(re, im, inv = false) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = 2 * PI / len * (inv ? 1 : -1), wr = Math.cos(ang), wi = Math.sin(ang);
+      for (let i = 0; i < n; i += len) {
+        let cr = 1, ci = 0;
+        for (let j = 0; j < len / 2; j++) {
+          const ar = re[i + j], ai = im[i + j], br = re[i + j + len / 2] * cr - im[i + j + len / 2] * ci, bi = re[i + j + len / 2] * ci + im[i + j + len / 2] * cr;
+          re[i + j] = ar + br; im[i + j] = ai + bi; re[i + j + len / 2] = ar - br; im[i + j + len / 2] = ai - bi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    }
+    if (inv) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+  }
+  // seeded random numbers, so the slide animation is the same every time
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const C_NM_PS = 299792.458;   // speed of light in nm/ps
+  const beta2Of = (D, lam = 1550) => -lam * lam * D / (2 * PI * C_NM_PS);   // ps²/km from ps/(nm·km)
+  // animation-only pages: play / pause / scrub of drawDemo on the hero canvas
+  function videoPlayer(name, duration, drawDemo) {
+    let t = 0, playing = !reducedMotion;
+    const sc = $('sc'), pp = $('pp'), tm = $('tm');
+    sc.max = duration;
+    const show = () => { sc.value = t; tm.textContent = `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')} / ${Math.floor(duration / 60)}:${String(Math.round(duration % 60)).padStart(2, '0')}`; pp.textContent = playing ? 'Pause' : 'Play'; pp.setAttribute('aria-pressed', String(playing)); };
+    const app = runApp({ name, duration, drawDemo, animating: () => playing,
+      tick(dt) { if (playing) { t = (t + dt) % duration; show(); } },
+      draw() { const [c, w, h] = ctxOf($('v')); drawDemo(c, w, h, t); } });
+    pp.addEventListener('click', () => { playing = !playing; show(); app.markDirty(); });
+    sc.addEventListener('input', () => { playing = false; t = +sc.value; show(); app.markDirty(); });
+    show();
+  }
+
+  const RED = '#d8402a', FC = 299792.458 / 1550;          // carrier in THz (c in nm·THz)
+  const NMAX = 1200, KEEP = [0.75, 0.9, 0.99, 0.999], NAMES = ['Sine', 'Square', 'Triangle', 'Gaussian'];
+  const sinc = x => Math.abs(x) < 1e-12 ? 1 : Math.sin(PI * x) / (PI * x);
+  // two-sided Fourier coefficients of one period (pulse centred at u = 0.5); s(u) = c0 + Σ 2 c_n cos(2πn(u − 0.5))
+  function coeffs(w, d) {
+    const c = new Float64Array(NMAX + 1);
+    if (w === 0) { c[0] = 0.5; c[1] = 0.25; return c; }
+    if (w === 1) { for (let n = 0; n <= NMAX; n++) c[n] = d * sinc(n * d); return c; }
+    if (w === 2) { for (let n = 0; n <= NMAX; n++) c[n] = d / 2 * sinc(n * d / 2) ** 2; return c; }
+    const s = d / 2.3548; let pk = 0; for (let k = -6; k <= 6; k++) pk += Math.exp(-k * k / (2 * s * s));
+    for (let n = 0; n <= NMAX; n++) c[n] = s * Math.sqrt(2 * PI) * Math.exp(-2 * PI * PI * n * n * s * s) / pk;
+    return c;
+  }
+  // st: { w (0..3), f (GHz), d (0..1), keep (0..2) }
+  function calc(st) {
+    const d = st.d, c = coeffs(st.w, d), P = new Float64Array(NMAX + 1);
+    let tot = 0; for (let n = 1; n <= NMAX; n++) { P[n] = 2 * c[n] * c[n]; tot += P[n]; }
+    const frac = KEEP[st.keep]; let acc = 0, nB = NMAX, pmax = 0;
+    for (let n = 1; n <= NMAX; n++) { acc += P[n]; if (acc >= frac * tot) { nB = n; break; } }
+    for (let n = 1; n <= NMAX; n++) pmax = Math.max(pmax, P[n]);
+    let kept = 0; for (let n = 1; n <= nB; n++) kept += P[n];
+    const B = nB * st.f, opt = 2 * B, dl = 1550 * 1550 * (opt * 1e9) / 2.99792458e17;   // nm
+    // low-pass filter: H(n f) as magnitude and phase
+    const mag = new Float64Array(NMAX + 1), ph = new Float64Array(NMAX + 1); let pass = 0;
+    for (let n = 0; n <= NMAX; n++) {
+      const x = n * st.f / st.fc;
+      if (st.filt === 1) { mag[n] = x <= 1 + 1e-9 ? 1 : 0; ph[n] = 0; }
+      else if (st.filt === 2) { mag[n] = 1 / Math.sqrt(1 + x * x); ph[n] = -Math.atan(x); }
+      else { mag[n] = 1; ph[n] = 0; }
+      if (n) pass += P[n] * mag[n] * mag[n];
+    }
+    const out = u => { let v = c[0]; for (let n = 1; n <= NMAX; n++) { const a = c[n] * mag[n]; if (Math.abs(a) < 1e-7) continue; v += 2 * a * Math.cos(2 * PI * n * (u - 0.5) + ph[n]); } return v; };
+    const sig = (u, nTop = NMAX) => { let v = c[0]; const nn = Math.min(nTop, NMAX); for (let n = 1; n <= nn; n++) { if (c[n] === 0) continue; v += 2 * c[n] * Math.cos(2 * PI * n * (u - 0.5)); } return v; };
+    return { ...st, c, P, tot, pmax, nB, B, kept: kept / tot, frac, opt, dl, sig, mag, ph, out, pass: pass / tot, T: 1000 / st.f, chans: 4400 / opt };
+  }
+  const exact = (m, u) => {   // the ideal waveform (no truncation), for the time plot
+    const x = ((u % 1) + 1) % 1 - 0.5, d = m.d;
+    if (m.w === 0) return 0.5 + 0.5 * Math.cos(2 * PI * x);
+    if (m.w === 1) return Math.abs(x) < d / 2 ? 1 : 0;
+    if (m.w === 2) return Math.max(0, 1 - Math.abs(x) / (d / 2));
+    const s = d / 2.3548; let v = 0, pk = 0; for (let k = -6; k <= 6; k++) { v += Math.exp(-((x - k) ** 2) / (2 * s * s)); pk += Math.exp(-k * k / (2 * s * s)); } return v / pk;
+  };
+  const fmtF = g => g >= 1000 ? `${fmt(g / 1000, g >= 10000 ? 1 : 2)} THz` : g >= 1 ? `${fmt(g, g >= 100 ? 0 : 1)} GHz` : `${fmt(g * 1000, g * 1000 >= 100 ? 0 : g * 1000 >= 10 ? 1 : 2)} MHz`;
+  const fmtTime = ps => ps >= 1e6 ? `${fmt(ps / 1e6, ps >= 1e8 ? 0 : ps >= 1e7 ? 1 : 2)} µs` : ps >= 1000 ? `${fmt(ps / 1000, ps >= 1e5 ? 0 : ps >= 1e4 ? 1 : 2)} ns` : `${fmt(ps, ps >= 100 ? 0 : 1)} ps`;
+  const fmtNm = nm => nm >= 0.01 ? `${fmt(nm, nm < 1 ? 3 : 2)} nm` : nm * 1e3 >= 0.01 ? `${fmt(nm * 1e3, nm * 1e3 < 1 ? 3 : 2)} pm` : `${fmt(nm * 1e6, nm * 1e6 < 1 ? 3 : 2)} fm`;
+  const tUnit = ps => ps < 2000 ? [1, 'ps'] : ps < 2e6 ? [1e3, 'ns'] : [1e6, 'µs'];
+  const fUnit = g => g < 1 ? [1e-3, 'MHz'] : g < 2000 ? [1, 'GHz'] : [1000, 'THz'];
+  const nice = r => { const e = 10 ** Math.floor(Math.log10(r)), q = r / e; return (q >= 5 ? 5 : q >= 2 ? 2 : 1) * e; };
+  const filtName = m => m.filt === 1 ? `ideal low-pass at ${fmtF(m.fc)}` : `RC low-pass, f₃dB = ${fmtF(m.fc)}`;
+  const dB = (p, ref) => 10 * Math.log10(Math.max(p / ref, 1e-12));
+  const FLOOR = -50;
+  // ---- x-axis views: auto, or set by dragging / locked ----
+  const VIEW = {}, LOCK = {}, LAST = {}, REG = [];
+  function xr(key, auto, o) { if (o.demo) return auto; LAST[key] = auto.slice(); return LOCK[key] && VIEW[key] ? VIEW[key] : auto; }
+  function reg(o, key, X, Y, B, r, fs, minA) { if (o.cv) REG.push({ cv: o.cv, key, x0: X + B.x0, x1: X + B.x1, y0: Y + B.y0, y1: Y + B.y1, ax: fs * 2.4, a: r[0], b: r[1], minA }); }
+  const LOCK_IDS = { t: 'lkT', s: 'lkS', o: 'lkO', z: 'lkZ' };
+  // ---- time ----
+  function drawSig(ctx, X, Y, W, H, m, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(15, W / 60));
+    panelStart(ctx, X, Y, W, H, pal);
+    const B = { x0: fs * 4.2, x1: W - fs * 1.2, y0: fs * 2.0, y1: H - fs * 2.6 };
+    const [ta, tb] = xr('t', [0, 3 * m.T], o), [tu, tn] = tUnit(tb - ta);
+    const { sx: sxu, sy } = axes(ctx, B, [ta / tu, tb / tu], [-0.25, 1.5], pal, fs, `Time (${tn})`, 'Signal', H, { yStep: 0.5, ylOff: fs * 3.6, yTicks: [[0, '0'], [0.5, '0.5'], [1, '1']] });
+    const sx = ps => sxu(ps / tu), N = 1000, tAt = u => ta + (tb - ta) * u;
+    clipBox(ctx, B);
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = Math.max(2.5, W / 400); polyline(ctx, 1600, u => [sx(tAt(u)), sy(exact(m, tAt(u) / m.T))]);
+    ctx.strokeStyle = RED; ctx.lineWidth = Math.max(1.8, W / 600); if (!m.filt) ctx.setLineDash([7, 4]); polyline(ctx, N, u => [sx(tAt(u)), sy(m.filt ? m.out(tAt(u) / m.T) : m.sig(tAt(u) / m.T, m.nB))]); ctx.setLineDash([]);
+    // period bracket, starting at the first period boundary in view
+    const p0 = Math.ceil(ta / m.T - 1e-9) * m.T, yb = sy(1.2), showT = sx(p0 + m.T) <= B.x1 + 1;
+    if (showT) { ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(sx(p0), yb); ctx.lineTo(sx(p0 + m.T), yb); ctx.moveTo(sx(p0), yb - 4); ctx.lineTo(sx(p0), yb + 4); ctx.moveTo(sx(p0 + m.T), yb - 4); ctx.lineTo(sx(p0 + m.T), yb + 4); ctx.stroke(); }
+    ctx.restore();
+    if (showT) label(ctx, `T = 1/f = ${fmtTime(m.T)}`, sx(p0 + m.T / 2), yb - fs * 0.3, 'center', 'bottom', pal.ink, `${fs * 0.78}px ${monoFont()}`, pal);
+    label(ctx, `${NAMES[m.w]} at f = ${fmtF(m.f)}`, B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.85}px ${getFont()}`, pal, false);
+    label(ctx, m.filt ? `red: after an ${filtName(m)}` : `red: rebuilt from ${m.nB} harmonic${m.nB > 1 ? 's' : ''} (up to B)`, B.x1, B.y0 - fs * 0.35, 'right', 'bottom', RED, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    frameBox(ctx, B, pal); ctx.restore();
+    reg(o, 't', X, Y, B, [ta, tb], fs, -Infinity);
+  }
+  // ---- baseband spectrum ----
+  function drawSpec(ctx, X, Y, W, H, m, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(15, W / 60));
+    panelStart(ctx, X, Y, W, H, pal);
+    const B = { x0: fs * 4.2, x1: W - fs * 1.2, y0: fs * 2.0, y1: H - fs * 2.6 };
+    const [xa, xb] = xr('s', [0, Math.min(NMAX * m.f, Math.max(m.B * 1.3, m.f * 10, m.filt ? m.fc * 1.6 : 0))], o), [fu, fn] = fUnit(xb - xa);
+    const { sx: sxu, sy } = axes(ctx, B, [xa / fu, xb / fu], [FLOOR, 5], pal, fs, `Frequency (${fn})`, 'Power (dB)', H, { yStep: 10, ylOff: fs * 3.8 });
+    const sx = g => sxu(g / fu), nLo = Math.max(0, Math.ceil(xa / m.f)), nHi = Math.min(NMAX, Math.floor(xb / m.f));
+    clipBox(ctx, B);
+    ctx.fillStyle = RED; ctx.globalAlpha = 0.09; ctx.fillRect(sx(0), B.y0, sx(m.B) - sx(0), B.y1 - B.y0); ctx.globalAlpha = 1;
+    const bw = Math.max(1.5, Math.min(fs * 0.7, (sx(m.f) - sx(0)) * 0.45));
+    for (let n = nLo; n <= nHi; n++) {
+      const p = n === 0 ? m.c[0] * m.c[0] : m.P[n]; if (p <= 0) continue;
+      const v = dB(p, m.pmax); if (v <= FLOOR) continue;
+      ctx.fillStyle = n === 0 ? pal.muted : n <= m.nB ? pal.accent : (pal.dark ? '#56657a' : '#a9b6c8');
+      ctx.fillRect(sx(n * m.f) - bw / 2, sy(v), bw, sy(FLOOR) - sy(v));
+    }
+    ctx.strokeStyle = RED; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(m.B), B.y0); ctx.lineTo(sx(m.B), B.y1); ctx.stroke();
+    if (m.filt) {
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.setLineDash([8, 4]);
+      polyline(ctx, 600, u => { const g = Math.max(0, xa + (xb - xa) * u), x = g / m.fc; const h2 = m.filt === 1 ? (x <= 1 ? 1 : 1e-12) : 1 / (1 + x * x); return [sx(g), sy(Math.max(FLOOR - 5, 10 * Math.log10(h2)))]; });
+      ctx.setLineDash([]);
+      ctx.fillStyle = RED;
+      for (let n = Math.max(1, nLo); n <= nHi; n++) { if (m.P[n] <= 0) continue; const v = dB(m.P[n] * m.mag[n] ** 2, m.pmax); if (v <= FLOOR) continue; ctx.fillRect(sx(n * m.f) - bw * 0.9, sy(v) - 1.5, bw * 1.8, 3); }
+    }
+    ctx.restore();
+    if (m.filt && m.fc > xa && m.fc < xb) label(ctx, m.filt === 1 ? 'ideal filter' : 'RC filter |H|²', sx(m.fc) + fs * 0.4, sy(m.filt === 1 ? -3 : -6), 'left', 'top', pal.ink, `700 ${fs * 0.75}px ${getFont()}`, pal);
+    if (m.B > xa && m.B < xb) label(ctx, `B = ${fmtF(m.B)}`, sx(m.B) + fs * 0.4, B.y0 + fs * 0.6, sx(m.B) > (B.x0 + B.x1) * 0.75 ? 'right' : 'left', 'top', RED, `700 ${fs * 0.9}px ${getFont()}`, pal);
+    label(ctx, `FFT spectrum: lines at f, 2f, 3f…  (${fmt(m.frac * 100, m.keep === 3 ? 1 : 0)}% of the power is below B${m.filt ? '; red marks: after the filter' : ''})`, B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.85}px ${getFont()}`, pal, false);
+    frameBox(ctx, B, pal); ctx.restore();
+    reg(o, 's', X, Y, B, [xa, xb], fs, 0);
+  }
+  // ---- optical: full scale + zoom around the carrier ----
+  function drawOpt(ctx, X, Y, W, H, m, o = {}) {
+    const pal = palette(), fs = o.fontSize || Math.max(11, Math.min(15, W / 60));
+    panelStart(ctx, X, Y, W, H, pal);
+    const hTop = H * 0.32;
+    const A = { x0: fs * 4.2, x1: W - fs * 1.2, y0: fs * 2.0, y1: hTop - fs * 1.6 };
+    const [oa, ob] = xr('o', [0, 250], o);
+    const ax = axes(ctx, A, [oa, ob], [0, 1], pal, fs, '', '', H, { noGridY: true, yTicks: [] });
+    const cb0 = 299792.458 / 1565, cb1 = 299792.458 / 1530, fcx = ax.sx(FC), fcIn = FC > oa && FC < ob;
+    clipBox(ctx, A);
+    ctx.fillStyle = pal.core; ctx.fillRect(ax.sx(cb0), A.y0, ax.sx(cb1) - ax.sx(cb0), A.y1 - A.y0);
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(fcx, A.y1); ctx.lineTo(fcx, A.y0 + 3); ctx.stroke();
+    const half = m.opt / 2000, bwpx = Math.max(1, ax.sx(FC + half) - ax.sx(FC - half));
+    ctx.fillStyle = RED; ctx.fillRect(fcx - bwpx / 2, A.y0, bwpx, A.y1 - A.y0);
+    ctx.restore();
+    label(ctx, 'f (THz)', A.x1, A.y1 + fs * 1.15, 'right', 'top', pal.muted, `${fs * 0.75}px ${getFont()}`, pal, false);
+    if (fcIn) label(ctx, `carrier f꜀ = ${fmt(FC, 1)} THz (1550 nm)`, fcx - fs * 0.6, (A.y0 + A.y1) / 2, fcx - A.x0 > fs * 16 ? 'right' : 'left', 'middle', pal.accent, `700 ${fs * 0.8}px ${getFont()}`, pal);
+    const cbx = ax.sx(cb1) + fs * 0.5; if (cbx > A.x0 && cbx < A.x1 - fs * 4) label(ctx, 'C band', cbx, (A.y0 + A.y1) / 2, 'left', 'middle', pal.muted, `${fs * 0.75}px ${getFont()}`, pal);
+    label(ctx, 'the whole frequency axis: the signal band is the thin red line at the carrier', A.x0, A.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.85}px ${getFont()}`, pal, false);
+    frameBox(ctx, A, pal);
+    reg(o, 'o', X, Y, A, [oa, ob], fs, 0);
+    // zoom
+    const Bz = { x0: fs * 4.2, x1: W - fs * 1.2, y0: hTop + fs * 2.4, y1: H - fs * 2.6 };
+    const Zauto = Math.min(NMAX * m.f, Math.max(m.B * 1.35, m.f * 6));
+    const [za, zb] = xr('z', [-Zauto, Zauto], o), [zu, zn] = fUnit((zb - za) / 2);
+    if (fcIn) { ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(fcx - 2, A.y1); ctx.lineTo(Bz.x0, Bz.y0); ctx.moveTo(fcx + 2, A.y1); ctx.lineTo(Bz.x1, Bz.y0); ctx.stroke(); ctx.setLineDash([]); }
+    const tstep = nice((zb - za) / zu / 6), xt = [];
+    for (let v = Math.ceil(za / zu / tstep) * tstep; v <= zb / zu + 1e-9; v += tstep) { const r = +v.toPrecision(6); xt.push([r, Math.abs(r) < tstep * 1e-6 ? 'f꜀' : `${r > 0 ? '+' : '−'}${+Math.abs(r).toPrecision(6)}`]); }
+    const { sx: sxu, sy } = axes(ctx, Bz, [za / zu, zb / zu], [FLOOR, 5], pal, fs, `Offset from the carrier f꜀ = ${fmt(FC, 2)} THz (${zn})`, 'Power (dB)', H, { yStep: 10, ylOff: fs * 3.8, xTicks: xt });
+    const sx = g => sxu(g / zu);
+    clipBox(ctx, Bz);
+    ctx.fillStyle = RED; ctx.globalAlpha = 0.09; ctx.fillRect(sx(-m.B), Bz.y0, sx(m.B) - sx(-m.B), Bz.y1 - Bz.y0); ctx.globalAlpha = 1;
+    const bw = Math.max(1.5, Math.min(fs * 0.6, (sx(m.f) - sx(0)) * 0.4)), ref = m.pmax / 2;
+    const nTop = Math.min(NMAX, Math.floor(Math.max(Math.abs(za), Math.abs(zb)) / m.f));
+    for (let n = 1; n <= nTop; n++) {
+      const v = dB(m.P[n] / 2, ref); if (v <= FLOOR) continue;
+      ctx.fillStyle = n <= m.nB ? pal.accent : (pal.dark ? '#56657a' : '#a9b6c8');
+      for (const sgn of [-1, 1]) { const g = sgn * n * m.f; if (g >= za && g <= zb) ctx.fillRect(sx(g) - bw / 2, sy(v), bw, sy(FLOOR) - sy(v)); }
+    }
+    const vc = Math.min(5, dB(m.c[0] * m.c[0], ref));
+    ctx.fillStyle = pal.ink; ctx.fillRect(sx(0) - bw * 0.6, sy(vc), bw * 1.2, sy(FLOOR) - sy(vc));
+    ctx.strokeStyle = RED; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(-m.B), Bz.y0); ctx.lineTo(sx(-m.B), Bz.y1); ctx.moveTo(sx(m.B), Bz.y0); ctx.lineTo(sx(m.B), Bz.y1); ctx.stroke();
+    const ya = Bz.y0 + fs * 1.0; ctx.beginPath(); ctx.moveTo(sx(-m.B), ya); ctx.lineTo(sx(m.B), ya); ctx.stroke();
+    ctx.restore();
+    const lx = clamp(sx(m.B * 0.5), Bz.x0 + fs * 9, Bz.x1 - fs * 9);
+    label(ctx, `2B = ${fmtF(m.opt)}  ·  Δλ = ${fmtNm(m.dl)}`, lx, ya, 'center', 'middle', RED, `700 ${fs * 0.88}px ${getFont()}`, pal);
+    if (sx(0) > Bz.x0 + fs * 5 && sx(0) < Bz.x1) label(ctx, 'carrier', sx(0) - bw * 2, sy(-30), 'right', 'middle', pal.ink, `700 ${fs * 0.72}px ${getFont()}`, pal);
+    label(ctx, 'zoom around the carrier: the signal spectrum appears on both sides (lower and upper sideband)', Bz.x0, Bz.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.85}px ${getFont()}`, pal, false);
+    frameBox(ctx, Bz, pal); ctx.restore();
+    reg(o, 'z', X, Y, Bz, [za, zb], fs, -Infinity);
+  }
+  function drawBB(ctx, X, Y, W, H, m, o = {}) {
+    const h1 = H * 0.44;
+    drawSig(ctx, X, Y, W, h1, m, o); drawSpec(ctx, X, Y + h1, W, H - h1, m, o);
+  }
+  // ---------- slide animation ----------
+  const K = {
+    lf: [[0, 1], [44, 1], [50, 1.699], [56, 1.699], [60, 1.398], [72, 1.398], [73, 1], [96, 1], [102, -2], [110, -2]],
+    d: [[0, 0.5], [22, 0.5], [24, 0.5], [32, 0.5], [34, 0.3], [38, 0.3], [41, 0.1], [44, 0.1], [56, 0.1], [58, 0.3], [72, 0.3], [73, 0.5], [110, 0.5]],
+    lc: [[0, 2.301], [74, 2.301], [82, 1.398], [84, 1.477], [86, 1.477], [93, 1], [110, 1]],
+  };
+  const W_AT = t => t < 6 ? 0 : t < 24 ? 1 : t < 32 ? 2 : t < 72 ? 3 : 1;
+  const KEEP_AT = t => t >= 14 && t < 18 ? 1 : t >= 18 && t < 21 ? 3 : 2;
+  const FILT_AT = t => t >= 72 && t < 84 ? 1 : t >= 84 && t < 95 ? 2 : 0;
+  const CAPS = [
+    [0, 6, 'A sine has one line', 'A 10 GHz sine is a single frequency. Its spectrum is one line at f (plus DC), so the bandwidth is just B = f = 10 GHz.'],
+    [6, 14, 'A square wave needs many harmonics', 'Sharp edges need high frequencies. The square wave has lines at f, 3f, 5f… falling only as 1/n, so 99% of its power needs a band many times f.'],
+    [14, 18, 'Keep less power: 90%', 'With only 90% of the power, B is 3f: the red curve, built from the harmonics inside B, is a rounded square.'],
+    [18, 24, 'Keep more power: 99.9%', 'Now the red curve is almost square, but B is huge. A perfect square wave has infinite bandwidth.'],
+    [24, 32, 'Triangle: smoother, narrower', 'A triangle has no jumps, only corners. Its lines fall as 1/n², so almost all the power is in the first few harmonics.'],
+    [32, 44, 'Gaussian pulses: width ↔ bandwidth', 'A smooth Gaussian has a Gaussian spectrum. Make the pulse 3× shorter and the spectrum gets 3× wider: Δt·Δf ≈ constant.'],
+    [44, 56, 'Raise the frequency', 'From 10 to 50 GHz the period shrinks 5× and every line moves 5× higher. The bandwidth scales with the signal frequency.'],
+    [56, 72, 'On the optical carrier', 'The carrier is 193.4 THz. The signal takes only 2B around it, tens to hundreds of GHz, well under 1% of the carrier. In wavelength it is a fraction of a nm to a few nm, and that Δλ is what dispersion acts on.'],
+    [72, 84, 'A low-pass filter', 'Send a 10 GHz square wave through an ideal low-pass filter and lower the cutoff from 200 to 25 GHz. Fewer harmonics pass, so the edges get slower and ripples appear. Below 3f only the fundamental is left: a sine.'],
+    [84, 95, 'A real filter: RC', 'An RC filter does not cut sharply. It weakens high harmonics gradually and shifts their phase, so the edges become exponential and the output is delayed. Lower the cutoff and the square wave becomes a rounded "shark-fin" wave.'],
+    [95, 110, 'Slow signals: MHz', 'Go down to 10 MHz. The same square wave needs only hundreds of MHz. On the carrier this is a few pm in wavelength: almost a single frequency.'],
+  ];
+  const DUR = 110;
+  const demoState = t => ({ w: W_AT(t), f: 10 ** track(K.lf, t), d: track(K.d, t), keep: KEEP_AT(t), filt: FILT_AT(t), fc: 10 ** track(K.lc, t) });
+  function drawDemo(ctx, W, H, t) {
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+    const m = calc(demoState(t)), sw = Math.round(W * 0.64), hb = Math.round(H * 0.6), fsz = W / 92;
+    drawBB(ctx, 0, 0, sw, hb, m, { fontSize: fsz, demo: true });
+    drawOpt(ctx, 0, hb, sw, H - hb, m, { fontSize: fsz, demo: true });
+    ctx.strokeStyle = LIGHT.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, hb); ctx.lineTo(sw, hb); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const c = captionAt(CAPS, t);
+    sidePanel(ctx, W, H, sw, { title: 'Signal bandwidth', formulas: ['T = 1/f,  lines at n·f', 'optical band = 2B,  Δλ = λ²·2B/c'],
+      rows: [['Waveform', `${NAMES[m.w]}${m.w ? `, width ${fmt(m.d * 100, 0)}%` : ''}`], ['Frequency f', fmtF(m.f)], ['Power kept', `${fmt(m.frac * 100, m.keep === 3 ? 1 : 0)}%`], ['Bandwidth B', `${fmtF(m.B)} (${m.nB}f)`], ['Optical 2B / Δλ', `${fmtF(m.opt)} / ${fmtNm(m.dl)}`], ['Filter', m.filt ? `${m.filt === 1 ? 'ideal' : 'RC'}, ${fmtF(m.fc)}` : 'off']],
+      status: [`2B is ${fmtPct(m.opt / (FC * 1000))} of f꜀`, LIGHT.accent], cap: [c[2], c[3]],
+      foot: 'Periodic signals, exact Fourier series. Amplitude modulation of a 1550 nm carrier (193.4 THz).' });
+  }
+  function fmtPct(x) { const p = x * 100; return `${p >= 1 ? fmt(p, 1) : p >= 0.01 ? fmt(p, 3) : p.toExponential(1)}%`; }
+  // ---------- app ----------
+  const st = { w: 1, f: 10, d: 0.5, keep: 2, filt: 0, fc: 30 };
+  let cur = calc(st);
+  const app = runApp({ name: 'bwDemo', duration: DUR, drawDemo, draw() {
+    REG.length = 0;
+    let [c, w, h] = ctxOf($('bb')); drawBB(c, 0, 0, w, h, cur, { cv: 'bb' });
+    [c, w, h] = ctxOf($('opt')); drawOpt(c, 0, 0, w, h, cur, { cv: 'opt' });
+  } });
+  function sync() {
+    const m = cur = calc(st);
+    $('fqOut').textContent = fmtF(st.f); $('fcoOut').textContent = fmtF(st.fc); $('fco').disabled = !st.filt; $('dwOut').textContent = st.w ? `${fmt(st.d * 100, 0)}%` : '—'; $('dw').disabled = st.w === 0;
+    $('dwHint').textContent = ['A sine has no width setting.', 'Square: the duty cycle (part of the period that is “1”).', 'Triangle: the base width of each triangle.', 'Gaussian: the FWHM of each pulse.'][st.w];
+    $('rT').textContent = fmtTime(m.T); $('rFp').textContent = st.filt ? `${fmt(m.pass * 100, m.pass > 0.99 ? 2 : 1)}%` : 'filter off'; $('rN').textContent = `${m.nB} (up to ${m.nB}f)`; $('rB').textContent = fmtF(m.B); $('rBf').textContent = fmt(m.B / st.f, 0);
+    $('rFc').textContent = `${fmt(FC, 2)} THz`; $('r2B').textContent = fmtF(m.opt); $('rFrac').textContent = fmtPct(m.opt / (FC * 1000)); $('rDl').textContent = fmtNm(m.dl);
+    $('rCh').textContent = m.chans >= 1 ? Math.floor(m.chans).toLocaleString('en-US') : 'less than 1';
+    const s = $('status');
+    if (m.nB === 1) { s.className = 'status ok'; s.innerHTML = `B = f = ${fmtF(m.B)}<small>The first harmonic alone holds ${fmt(100 * m.P[1] / m.tot, 1)}% of the signal power.</small>`; }
+    else if (m.B / st.f <= 5) { s.className = 'status neutral'; s.innerHTML = `B = ${m.nB}f = ${fmtF(m.B)}<small>A few harmonics are enough for ${fmt(m.frac * 100, st.keep === 3 ? 1 : 0)}% of the power.</small>`; }
+    else { s.className = 'status bad'; s.innerHTML = `B = ${m.nB}f = ${fmtF(m.B)}<small>Sharp features: the power spreads over many harmonics.</small>`; }
+    app.markDirty();
+  }
+  // ---- dragging the x-axes ----
+  function setLock(key, on, range) {
+    LOCK[key] = on; VIEW[key] = on ? (range || VIEW[key] || LAST[key]).slice() : null;
+    $(LOCK_IDS[key]).checked = on; app.markDirty();
+  }
+  for (const [key, id] of Object.entries(LOCK_IDS)) $(id).addEventListener('change', e => setLock(key, e.target.checked, LAST[key]));
+  for (const cv of ['bb', 'opt']) {
+    const el = $(cv); let drag = null;
+    const pos = e => { const r = el.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    const hit = (x, y) => { for (const g of REG) if (g.cv === cv && x >= g.x0 && x <= g.x1 && y >= g.y0 && y <= g.y1 + g.ax) return [g, y > g.y1 ? 'zoom' : 'pan']; return [null]; };
+    const valAt = (g, x) => g.a + (x - g.x0) / (g.x1 - g.x0) * (g.b - g.a);
+    const fix = (g, a, b) => { if (a < g.minA) { b += g.minA - a; a = g.minA; } if (b - a < 1e-9) b = a + 1e-9; return [a, b]; };
+    const zoomAt = (g, a, b, v, k) => fix(g, v - (v - a) * k, v + (b - v) * k);
+    el.addEventListener('pointerdown', e => { const [x, y] = pos(e), [g, mode] = hit(x, y); if (!g) return; drag = { g, mode, x, a: g.a, b: g.b, v: valAt(g, x) }; el.setPointerCapture(e.pointerId); el.style.cursor = mode === 'pan' ? 'grabbing' : 'ew-resize'; e.preventDefault(); });
+    el.addEventListener('pointermove', e => {
+      const [x, y] = pos(e);
+      if (!drag) { const [g, mode] = hit(x, y); el.style.cursor = g ? (mode === 'pan' ? 'grab' : 'ew-resize') : ''; return; }
+      const { g, a, b } = drag, dx = x - drag.x;
+      const r = drag.mode === 'pan' ? fix(g, a - dx * (b - a) / (g.x1 - g.x0), b - dx * (b - a) / (g.x1 - g.x0)) : zoomAt(g, a, b, drag.v, Math.exp(-dx / 120));
+      setLock(g.key, true, r);
+    });
+    const end = () => { drag = null; el.style.cursor = ''; };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    el.addEventListener('wheel', e => { const [x, y] = pos(e), [g] = hit(x, y); if (!g) return; e.preventDefault(); setLock(g.key, true, zoomAt(g, g.a, g.b, valAt(g, x), Math.exp(e.deltaY * 0.0015))); }, { passive: false });
+    el.addEventListener('dblclick', e => { const [x, y] = pos(e), [g] = hit(x, y); if (g) setLock(g.key, false); });
+    el.style.touchAction = 'pan-y';
+  }
+  bindRange('fq', v => { st.f = 10 ** v; sync(); });
+  bindRange('fco', v => { st.fc = 10 ** v; sync(); });
+  bindSeg(['fOff', 'fIdeal', 'fRC'], i => { st.filt = i; sync(); });
+  bindRange('dw', v => { st.d = v / 100; sync(); });
+  bindSeg(['wSin', 'wSq', 'wTri', 'wGau'], i => { st.w = i; sync(); });
+  bindSeg(['k75', 'k90', 'k99', 'k999'], i => { st.keep = i; sync(); });
+  sync();
+
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

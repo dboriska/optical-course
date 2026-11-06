@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Crest vs Envelope</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one wave packet across the full width, controls and readouts in a row below it */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* crest, phase velocity */
+  --ok: #1d8a3a;      /* envelope, group velocity */
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ok: #4cc36a; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ok: #4cc36a; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#wave { display: block; width: 100%; aspect-ratio: 16 / 7; max-width: 100%; }
+@media (max-width: 600px) { #wave { aspect-ratio: 4 / 3; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
+@media (max-width: 800px) { .row { grid-template-columns: minmax(0, 1fr); } }
+.ctls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 18px; }
+@media (max-width: 500px) { .ctls { grid-template-columns: 1fr; } }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+input[type=range] { width: 100%; margin: 2px 0; }
+#vp { accent-color: var(--accent); } #vg { accent-color: var(--ok); }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 8px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 8px; border: 1px solid var(--line); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.scene), body.demo .scene-bar { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #wave { aspect-ratio: 16 / 9; }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>Crest vs Envelope</h1>
+    <p>One wave packet, two speeds. The <b style="color:var(--accent)">crests</b> move at the phase velocity <span class="law">v_p = ω/k</span>. The <b style="color:var(--ok)">envelope</b> moves at the group velocity <span class="law">v_g = dω/dk</span>. Watch the blue crest slide through the green envelope.</p>
+  </header>
+
+  <div class="card scene">
+    <canvas id="wave" aria-label="A wave packet moving to the right: a blue crest and the green envelope peak, each with an arrow for its speed"></canvas>
+    <div class="scene-bar">
+      <div class="seg" role="group" aria-label="Frame of reference">
+        <button id="fLab" aria-pressed="true">Lab frame</button>
+        <button id="fEnv" aria-pressed="false">Ride with the envelope</button>
+      </div>
+      <button id="pause" aria-pressed="false">Pause</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <p class="section-title">Speeds</p>
+      <div class="ctls">
+        <div class="ctl">
+          <label for="vp" style="color:var(--accent)">Crest, v_p <output id="vpOut"></output></label>
+          <input id="vp" type="range" min="0.3" max="1" step="0.01" value="0.8">
+        </div>
+        <div class="ctl">
+          <label for="vg" style="color:var(--ok)">Envelope, v_g <output id="vgOut"></output></label>
+          <input id="vg" type="range" min="0.3" max="1" step="0.01" value="0.55">
+        </div>
+      </div>
+      <p class="hint" style="margin:8px 0 0">Make them equal and the crests stop moving inside the envelope: no dispersion.</p>
+    </div>
+    <div class="card">
+      <div class="status" id="status"></div>
+      <p class="note" style="margin:0">Only the envelope carries energy and information. A crest is just a point of equal phase, so it may move faster or slower than the signal.</p>
+    </div>
+  </div>
+
+  <p class="note">Speeds in units of c, slowed down for the eye; the carrier wavelength is one grid step. In silica at 1550 nm v_p = c/1.444 and v_g = c/1.463, only 1.3% apart, so the difference here is exaggerated.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  const SC = 5;          // 1c = SC wavelengths per second on screen
+  const SIG = 3.6;       // envelope width (σ of the field), wavelengths
+  const WIN = 32;        // window, wavelengths
+  const P = 44;          // copies of the packet every P wavelengths in the lab frame (integer)
+  const R = 5;           // the tracked crest cycles through ±R around the envelope peak
+
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ok: '#1d8a3a', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 2) => v.toFixed(n);
+  const posmod = (a, b) => ((a % b) + b) % b;
+  function label(ctx, text, x, y, align, base, color, font, pal) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, p = h * 0.35;
+    const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x, ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+    ctx.globalAlpha *= 0.88; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - p, ty - p, w + 2 * p, h + 2 * p, p) : ctx.rect(lx - p, ty - p, w + 2 * p, h + 2 * p); ctx.fill(); ctx.globalAlpha /= 0.88;
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function arrow(ctx, x0, y, len, color, lw, head) {
+    ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lw; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + len - head * 0.8, y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0 + len, y); ctx.lineTo(x0 + len - head, y - head * 0.6); ctx.lineTo(x0 + len - head, y + head * 0.6); ctx.closePath(); ctx.fill(); ctx.restore();
+  }
+
+  // ze: envelope position, zc: carrier phase position (both integrals of speed × time, in wavelengths)
+  function drawScene(ctx, X, Y, W, H, st, ze, zc, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(17, W / 56));
+    const B = { x0: fs * 1.2, x1: W - fs * 1.2, y0: opts.top ?? fs * 4.6, y1: H - (opts.bottom ?? fs * 1.2) };
+    const env = st.frame === 'env';
+    const z0 = env ? ze - WIN / 2 : 0;
+    const zPk = env ? ze : ze - P * Math.round((ze - WIN / 2) / P);      // the copy of the peak inside the window
+    const sx = z => B.x0 + (B.x1 - B.x0) * (z - z0) / WIN, yc = (B.y0 + B.y1) / 2 + fs * 0.6, amp = (B.y1 - B.y0) * 0.38, sy = v => yc - amp * v;
+    const envAt = z => { let r = z - ze; r -= P * Math.round(r / P); return Math.exp(-r * r / (2 * SIG * SIG)); };
+    const field = z => envAt(z) * Math.cos(2 * PI * (z - zc));
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.clad; ctx.fillRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    // grid fixed to the lab: one line per wavelength, stronger every 4
+    for (let z = Math.ceil(z0); z <= z0 + WIN; z++) { ctx.strokeStyle = pal.line; ctx.globalAlpha = z % 4 === 0 ? 1 : 0.35; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx(z), B.y0); ctx.lineTo(sx(z), B.y1); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(B.x0, yc); ctx.lineTo(B.x1, yc); ctx.stroke();
+    const N = Math.round((B.x1 - B.x0) * 1.5);
+    // envelope (filled lightly) and carrier
+    ctx.fillStyle = pal.ok; ctx.globalAlpha = 0.08; ctx.beginPath();
+    for (let k = 0; k <= N; k++) { const z = z0 + WIN * k / N; k ? ctx.lineTo(sx(z), sy(envAt(z))) : ctx.moveTo(sx(z), sy(envAt(z))); }
+    for (let k = N; k >= 0; k--) { const z = z0 + WIN * k / N; ctx.lineTo(sx(z), sy(-envAt(z))); }
+    ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.ok; ctx.lineWidth = Math.max(2.4, W / 450);
+    for (const s of [1, -1]) { ctx.beginPath(); for (let k = 0; k <= N; k++) { const z = z0 + WIN * k / N, yy = sy(s * envAt(z)); k ? ctx.lineTo(sx(z), yy) : ctx.moveTo(sx(z), yy); } ctx.stroke(); }
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = Math.max(2.4, W / 420); ctx.lineJoin = 'round';
+    ctx.beginPath(); for (let k = 0; k <= N * 2; k++) { const z = z0 + WIN * k / (N * 2), yy = sy(field(z)); k ? ctx.lineTo(sx(z), yy) : ctx.moveTo(sx(z), yy); } ctx.stroke();
+    // envelope peak marker
+    const ah = fs * 0.9, unit = (B.x1 - B.x0) / WIN * 2.2;   // arrow length per c
+    if (zPk > z0 - 2 && zPk < z0 + WIN + 2) {
+      ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = pal.ok; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(sx(zPk), B.y0); ctx.lineTo(sx(zPk), B.y1); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = pal.ok; ctx.strokeStyle = pal.bg; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(sx(zPk), sy(1), fs * 0.62, 0, 2 * PI); ctx.fill(); ctx.stroke();
+      const ya = B.y0 - fs * 2.6;
+      arrow(ctx, sx(zPk), ya, st.vg * unit, pal.ok, fs * 0.32, ah);
+      label(ctx, `envelope  v_g = ${fmt(st.vg)}c`, sx(zPk) - fs * 0.6, ya, 'right', 'middle', pal.ok, `700 ${fs}px ${getFont()}`, pal);
+      // the tracked crest: it fades out at the edge of the envelope, and the next one fades in
+      const rel = posmod(zc - ze + R, 2 * R) - R, zcr = zPk + rel, fade = Math.min(1, (R - Math.abs(rel)) / 1.2);
+      ctx.save(); ctx.globalAlpha = Math.max(0, fade);
+      ctx.fillStyle = pal.accent; ctx.strokeStyle = pal.bg; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(sx(zcr), sy(field(zcr)), fs * 0.55, 0, 2 * PI); ctx.fill(); ctx.stroke();
+      const yb = B.y0 - fs * 0.9;
+      ctx.save(); ctx.setLineDash([2, 4]); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(sx(zcr), yb); ctx.lineTo(sx(zcr), sy(field(zcr)) - fs * 0.6); ctx.stroke(); ctx.restore();
+      arrow(ctx, sx(zcr), yb, st.vp * unit, pal.accent, fs * 0.32, ah);
+      label(ctx, `crest  v_p = ${fmt(st.vp)}c`, sx(zcr) - fs * 0.6, yb, 'right', 'middle', pal.accent, `700 ${fs}px ${getFont()}`, pal);
+      ctx.restore();
+    }
+    if (env) label(ctx, 'camera moves with the envelope: the grid slides left', B.x1 - fs * 0.4, B.y1 - fs * 0.5, 'right', 'bottom', pal.muted, `${fs * 0.8}px ${getFont()}`, pal);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+  function relation(st) {
+    const d = st.vp - st.vg;
+    return Math.abs(d) < 0.005 ? ['v_p = v_g: no dispersion', 'The crests stay in the same place inside the envelope.']
+      : d > 0 ? ['v_p > v_g: crests run forward', 'Crests are born at the back of the envelope and die at the front. This is the case for light in glass.']
+      : ['v_g > v_p: crests drift backward', 'Crests are born at the front of the envelope and die at the back.'];
+  }
+
+  // ---------- demo ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) { const [t0, a0] = keys[i], [t1, a1] = keys[i + 1]; if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; } }
+    return keys[keys.length - 1][1];
+  }
+  const K_VG = [[0, 0.55], [13, 0.55], [15, 0.8], [22, 0.8], [24, 1.0], [33, 1.0], [35, 0.55], [40, 0.55]];
+  const DEMO_DURATION = 40;
+  const demoState = t => ({ vp: 0.8, vg: Math.round(track(K_VG, t) * 100) / 100, frame: t >= 6 && t < 13 ? 'env' : 'lab' });
+  function demoPos(t) { let a = 0, b = 0; const h = 1 / 120; for (let s = 0; s < t; s += h) { const q = demoState(s), d = Math.min(h, t - s); a += q.vg * SC * d; b += q.vp * SC * d; } return [a + 12, b + 12]; }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT, st = demoState(t), [ze, zc] = demoPos(t), fs = W / 64;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${W / 40}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Phase velocity vs group velocity', fs * 1.2, H * 0.04);
+    ctx.font = `${W / 62}px ${getFont()}`; ctx.fillStyle = pal.accent; ctx.fillText('crest: v_p = ω/k', fs * 1.2, H * 0.04 + W / 40 * 1.45);
+    ctx.fillStyle = pal.ok; ctx.fillText('envelope: v_g = dω/dk', fs * 1.2 + W * 0.17, H * 0.04 + W / 40 * 1.45);
+    drawScene(ctx, 0, H * 0.16, W, H * 0.66, st, ze, zc, { fontSize: fs, top: fs * 4.2, bottom: fs * 0.6 });
+    const [h1, h2] = relation(st);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${W / 52}px ${getFont()}`; ctx.fillText(h1 + (st.frame === 'env' ? '   (riding with the envelope)' : ''), fs * 1.2, H * 0.845);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 70}px ${getFont()}`; ctx.fillText(h2, fs * 1.2, H * 0.845 + W / 52 * 1.4);
+    ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - fs, H - H * 0.02); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app ----------
+  const wc = $('wave');
+  const state = { vp: 0.8, vg: 0.55, frame: 'lab' };
+  let ze = 12, zc = 12, paused = false, simT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    $('vpOut').textContent = `${fmt(state.vp)} c`; $('vgOut').textContent = `${fmt(state.vg)} c`;
+    $('vpOut').style.color = 'var(--accent)'; $('vgOut').style.color = 'var(--ok)';
+    const [h1, h2] = relation(state); $('status').innerHTML = `${h1}<small>${h2}</small>`;
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    const { w, h, dpr } = sizeCanvas(wc), ctx = wc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (DEMO) { simT += dt; drawDemo(ctx, w, h, simT % DEMO_DURATION); }
+    else {
+      if (!paused) { const d = dt * (reduced ? 0.4 : 1); ze += state.vg * SC * d; zc += state.vp * SC * d; }
+      drawScene(ctx, 0, 0, w, h, state, ze, zc);
+    }
+    requestAnimationFrame(frame);
+  }
+  $('vp').addEventListener('input', e => { state.vp = +e.target.value; syncUI(); });
+  $('vg').addEventListener('input', e => { state.vg = +e.target.value; syncUI(); });
+  for (const [id, f] of [['fLab', 'lab'], ['fEnv', 'env']]) $(id).addEventListener('click', () => { state.frame = f; $('fLab').setAttribute('aria-pressed', String(f === 'lab')); $('fEnv').setAttribute('aria-pressed', String(f === 'env')); });
+  $('pause').addEventListener('click', e => { paused = !paused; e.currentTarget.setAttribute('aria-pressed', String(paused)); e.currentTarget.textContent = paused ? 'Play' : 'Pause'; });
+
+  window.cvDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(wc); const ctx = wc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); } };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) ['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].forEach(f => document.fonts.load(f).catch(() => {}));
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

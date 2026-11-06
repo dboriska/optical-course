@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Chirp Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: field in time on top, time–frequency plane and width-vs-length below it, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;
+  --ray: #d8402a;
+  --ok: #1d8a3a;
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#time { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+#tf, #wz { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+#wz { touch-action: none; cursor: ew-resize; }
+@media (max-width: 600px) { #time { aspect-ratio: 4 / 3; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; align-items: center; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 4px, transparent 4px 7px) !important; }
+.legend i.rainbow { width: 46px; height: 8px; vertical-align: 0; background: linear-gradient(90deg, hsl(5 72% 50%), hsl(60 72% 46%), hsl(115 60% 42%), hsl(170 65% 42%), hsl(225 72% 52%)); }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--ray); }
+.status.neutral { color: var(--accent); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #time { aspect-ratio: 16 / 9; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Chirp Lab</h1>
+    <p>A chirped pulse changes its frequency from front to back. Dispersion creates chirp, because each color arrives at its own time. A pulse launched with the opposite chirp is first squeezed and only then spreads: <span class="law">T₁/T₀ = √((1 + C₀z/L_D)² + (z/L_D)²)</span>. Set the initial chirp C₀ and launch the pulse.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="time" aria-label="Electric field of the pulse against time at the fiber output, colored by its instantaneous frequency, with the input envelope dashed"></canvas>
+        <div class="scene-bar">
+          <button id="launch" aria-pressed="false">Launch</button>
+          <div class="legend"><span><i class="dash" style="background:var(--muted)"></i>input envelope</span><span><i class="rainbow"></i>instantaneous frequency: lower → higher</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="tf" aria-label="Time–frequency plane: where each frequency of the pulse sits in time, with the instantaneous frequency line and the spectrum on the side"></canvas></div>
+        <div class="card scene"><canvas id="wz" aria-label="Pulse width against fiber length for the chosen chirp and for an unchirped pulse; drag to set the length"></canvas></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="c0">Initial chirp C₀ <output id="c0Out"></output></label>
+          <input id="c0" type="range" min="-3" max="3" step="0.1" value="0">
+          <span class="hint" id="c0Hint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="fw">Input pulse width (FWHM) <output id="fwOut"></output></label>
+          <input id="fw" type="range" min="5" max="100" step="0.5" value="30">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="dd">Dispersion D <output id="ddOut"></output></label>
+          <input id="dd" type="range" min="-20" max="20" step="0.1" value="17">
+          <span class="hint" id="b2Hint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="len">Fiber length z <output id="lenOut"></output></label>
+          <input id="len" type="range" min="0" max="100" step="0.25" value="20">
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Dispersion length L_D = T₀²/|β₂|</dt><dd id="rLD"></dd>
+          <dt>z / L_D</dt><dd id="rZeta"></dd>
+          <div class="sep"></div>
+          <dt>Spectral width (FWHM)</dt><dd id="rDf"></dd>
+          <dt>vs. unchirped pulse</dt><dd id="rTL"></dd>
+          <div class="sep"></div>
+          <dt>Output width (FWHM)</dt><dd id="rOut"></dd>
+          <dt>T₁ / T₀</dt><dd id="rBr"></dd>
+          <dt>Peak power</dt><dd id="rPk"></dd>
+          <dt>Chirp at the output C(z)</dt><dd id="rC"></dd>
+          <div class="sep"></div>
+          <dt>Narrowest pulse</dt><dd id="rMin"></dd>
+          <dt>reached at</dt><dd id="rZmin"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Gaussian pulse at λ = 1550 nm with field envelope A(0,t) = exp(−(1 + iC₀) t²/(2T₀²)), so the power is exp(−t²/T₀²) and FWHM = 1.665 T₀ whatever C₀ is. C &gt; 0 is an up-chirp: the frequency rises from the front of the pulse to its back, ω(t) − ω₀ = C t/T₁². The fiber adds the phase β₂zΔω²/2 to every frequency; β₂ = −λ²D/(2πc), so D = 17 ps/(nm·km) gives β₂ ≈ −21.7 ps²/km and the blue edge travels ahead. The chirp grows as C(z) = C₀ + (1 + C₀²) β₂z/T₀². The pulse is squeezed first when β₂C₀ &lt; 0. Time is measured in a frame that moves with the group delay. In the top panel the carrier is drawn about 10⁴ times slower than the real 193 THz, and its frequency sweep is exaggerated so that it can be seen; the colors and the time–frequency plane use the true values.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- physics (ps, km, nm, rad/ps) ----------
+  const LAM = 1550, C_NM_PS = 299792.458, FW_K = 2 * Math.sqrt(Math.LN2); // FWHM = 1.665 T₀
+  const beta2 = D => -LAM * LAM * D / (2 * PI * C_NM_PS);                 // ps²/km
+  // st: { fw (ps), C0, D (ps/(nm km)), z (km) }
+  function pulse(st, z = st.z) {
+    const T0 = st.fw / FW_K, b2 = beta2(st.D), zeta = b2 * z / (T0 * T0);   // signed z/L_D
+    const r = Math.sqrt((1 + st.C0 * zeta) ** 2 + zeta * zeta), T1 = T0 * r;
+    const C = st.C0 + (1 + st.C0 * st.C0) * zeta;
+    const LD = Math.abs(b2) > 1e-9 ? T0 * T0 / Math.abs(b2) : Infinity;    // km
+    const Om = Math.sqrt(1 + st.C0 * st.C0) / T0;                          // spectral 1/e half-width of |Ã|², rad/ps
+    const dfGHz = FW_K * Om / (2 * PI) * 1000;                             // spectral FWHM in GHz
+    const compress = st.C0 * b2 < 0 && Math.abs(st.C0) > 1e-6;
+    const zMin = compress ? Math.abs(st.C0) / (1 + st.C0 * st.C0) * LD : 0;
+    const zBack = compress ? 2 * zMin : 0;
+    return { ...st, z, T0, b2, zeta, T1, r, C, LD, Om, dfGHz, compress, zMin, zBack, fwOut: FW_K * T1, peak: 1 / r,
+      Tmin: compress ? T0 / Math.sqrt(1 + st.C0 * st.C0) : T0 };
+  }
+  // instantaneous frequency offset (rad/ps) at time t; C > 0 = up-chirp
+  const instW = (p, t) => p.C * t / (p.T1 * p.T1);
+  // Wigner function of the pulse: the input distribution sheared along t by the group delay β₂zω
+  function wigner(p, t, w) {
+    const T0 = p.T0, ts = t - p.b2 * p.z * w;
+    const a = w - p.C0 * ts / (T0 * T0);
+    return Math.exp(-ts * ts / (T0 * T0) - T0 * T0 * a * a);
+  }
+
+  // ---------- colors ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    p.dark = window.matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light' || document.documentElement.dataset.theme === 'dark';
+    return p;
+  }
+  // x in [−1, 1]: lower frequency (red) → higher frequency (blue)
+  function freqColor(x, alpha = 1, dark = false) {
+    x = Math.max(-1, Math.min(1, x));
+    const h = 115 + 110 * x, l = dark ? 58 : 46 + 6 * Math.abs(x);
+    return `hsla(${h.toFixed(1)}, ${dark ? 70 : 72}%, ${l}%, ${alpha})`;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtS = (v, n = 2) => (Math.abs(v) < 0.5 * 10 ** -n ? '' : v > 0 ? '+' : '−') + fmt(Math.abs(v), n);
+  const fmtT = v => v >= 1000 ? `${fmt(v / 1000, 2)} ns` : `${fmt(v, v >= 100 ? 0 : 1)} ps`;
+  const fmtKm = v => !isFinite(v) ? '∞' : v >= 100 ? `${fmt(v, 0)} km` : v >= 10 ? `${fmt(v, 1)} km` : `${fmt(v, 2)} km`;
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { if (!opts.noGridX) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); } ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { if (!opts.noGridY) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); } ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    return { sx, sy };
+  }
+  const chirpWord = C => Math.abs(C) < 0.05 ? 'no chirp' : C > 0 ? 'up-chirp' : 'down-chirp';
+
+  // ---------- time panel: the field, colored by instantaneous frequency ----------
+  // half-width of the time window (ps): wide enough for the input and for the end of the fiber
+  function timeWindow(st) { const a = pulse(st, 0), b = pulse(st); return 2.3 * Math.max(a.T1, b.T1); }
+  function drawTime(ctx, X, Y, W, H, st, p, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const barH = fs * 3.6, B = { x0: fs * 4.4, x1: W - fs * 1.2, y0: barH + fs * 1.6, y1: H - fs * 3.2 };
+    const win = opts.win || timeWindow(st), ymax = opts.ymax || Math.max(1.15, 1.08 / Math.sqrt(p.r));
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    // fiber bar
+    const fx0 = B.x0, fx1 = B.x1, fy = fs * 1.9, Lend = Math.max(opts.Lend ?? st.z, 1e-6);
+    ctx.fillStyle = pal.clad; ctx.fillRect(fx0, fy - fs * 0.55, fx1 - fx0, fs * 1.1);
+    ctx.fillStyle = pal.core; ctx.fillRect(fx0, fy - fs * 0.22, fx1 - fx0, fs * 0.44);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(fx0, fy - fs * 0.55, fx1 - fx0, fs * 1.1);
+    if (p.compress && p.zMin <= Lend) {   // where the pulse is narrowest
+      const xm = fx0 + (fx1 - fx0) * p.zMin / Lend;
+      ctx.strokeStyle = pal.ok; ctx.lineWidth = 2; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(xm, fy - fs * 0.75); ctx.lineTo(xm, fy + fs * 0.75); ctx.stroke(); ctx.setLineDash([]);
+    }
+    const px = fx0 + (fx1 - fx0) * Math.min(1, p.z / Lend);
+    ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(px, fy, fs * 0.42, 0, 2 * PI); ctx.fill();
+    ctx.font = `${fs * 0.78}px ${monoFont()}`; ctx.fillStyle = pal.muted; ctx.textBaseline = 'bottom';
+    ctx.textAlign = 'left'; ctx.fillText('z = 0', fx0, fy - fs * 0.7);
+    ctx.textAlign = 'right'; ctx.fillText(`z = ${fmt(Lend, Lend < 10 ? 1 : 0)} km`, fx1, fy - fs * 0.7);
+    label(ctx, `z = ${fmt(p.z, 1)} km`, Math.min(fx1 - fs * 3, Math.max(fx0 + fs * 3, px)), fy + fs * 0.75, 'center', 'top', pal.accent, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    // axes
+    const { sx, sy } = axes(ctx, B, [-win, win], [-ymax, ymax], pal, fs, 'Time t − z/v_g (ps)', 'Field / input peak', H, { yStep: ymax > 2.2 ? 1 : 0.5, yf: v => fmt(v, 1) });
+    const amp = Math.sqrt(p.peak), T1 = p.T1, env = t => amp * Math.exp(-t * t / (2 * T1 * T1));
+    const env0 = t => Math.exp(-t * t / (2 * p.T0 * p.T0));
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    // colored band between −envelope and +envelope
+    const N = Math.max(200, Math.round((B.x1 - B.x0) / 2)), dx = (B.x1 - B.x0) / N;
+    for (let i = 0; i < N; i++) {
+      const t = -win + 2 * win * (i + 0.5) / N, e = env(t);
+      if (e < 0.004) continue;
+      ctx.fillStyle = freqColor(instW(p, t) / p.Om, 0.16 + 0.5 * Math.min(1, e / amp), pal.dark);
+      ctx.fillRect(B.x0 + i * dx - 0.3, sy(e), dx + 0.6, sy(-e) - sy(e));
+    }
+    // illustrative carrier: about 30 cycles across the window; the sweep is exaggerated (see note)
+    const fc = 20 / win, kx = 0.25 / p.Om;      // cycles/ps; scale of the drawn sweep
+    const phase = t => 2 * PI * fc * (t + kx * p.C * t * t / (2 * T1 * T1));
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.85; ctx.lineWidth = Math.max(1.2, W / 900); ctx.lineJoin = 'round';
+    const M = Math.max(1600, Math.round((B.x1 - B.x0) * 2));
+    ctx.beginPath();
+    for (let i = 0; i <= M; i++) { const t = -win + 2 * win * i / M, y = sy(env(t) * Math.cos(phase(t))); i ? ctx.lineTo(sx(t), y) : ctx.moveTo(sx(t), y); }
+    ctx.stroke(); ctx.globalAlpha = 1;
+    // envelopes
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = Math.max(1.6, W / 600); ctx.setLineDash([7, 5]);
+    for (const s of [1, -1]) { ctx.beginPath(); for (let i = 0; i <= 300; i++) { const t = -win + 2 * win * i / 300, y = sy(s * env0(t)); i ? ctx.lineTo(sx(t), y) : ctx.moveTo(sx(t), y); } ctx.stroke(); }
+    ctx.setLineDash([]); ctx.strokeStyle = pal.accent; ctx.lineWidth = Math.max(2.2, W / 450);
+    for (const s of [1, -1]) { ctx.beginPath(); for (let i = 0; i <= 300; i++) { const t = -win + 2 * win * i / 300, y = sy(s * env(t)); i ? ctx.lineTo(sx(t), y) : ctx.moveTo(sx(t), y); } ctx.stroke(); }
+    ctx.restore();
+    // front / back labels
+    label(ctx, '← front (arrives first)', B.x0 + fs * 0.4, B.y1 - fs * 0.4, 'left', 'bottom', pal.muted, `${fs * 0.78}px ${getFont()}`, pal);
+    label(ctx, 'back →', B.x1 - fs * 0.4, B.y1 - fs * 0.4, 'right', 'bottom', pal.muted, `${fs * 0.78}px ${getFont()}`, pal);
+    // headline
+    label(ctx, `FWHM ${fmtT(st.fw)} → ${fmtT(p.fwOut)}   (×${fmt(p.r, 2)})`, B.x0, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.9}px ${monoFont()}`, pal, false);
+    const cw = chirpWord(p.C), ccol = Math.abs(p.C) < 0.05 ? pal.muted : p.C > 0 ? '#2f6fe0' : pal.ray;
+    label(ctx, `C = ${fmtS(p.C, 2)}  ${cw}`, B.x1, B.y0 - fs * 0.35, 'right', 'bottom', ccol, `700 ${fs * 0.9}px ${monoFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- time–frequency plane ----------
+  const tfBuf = document.createElement('canvas');
+  function drawTF(ctx, X, Y, W, H, st, p, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 34));
+    const specW = fs * 3.4, B = { x0: fs * 3.6, x1: W - fs * 1.0 - specW, y0: fs * 2.0, y1: H - fs * 2.8 };
+    const win = opts.win || timeWindow(st), wmax = 2.6 * p.Om, gmax = wmax / (2 * PI) * 1000;   // rad/ps, GHz
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    // heat map, rendered small and scaled up
+    const nx = 150, ny = 100; tfBuf.width = nx; tfBuf.height = ny;
+    const bctx = tfBuf.getContext('2d'), img = bctx.createImageData(nx, ny), bg = pal.dark ? [21, 29, 36] : [255, 255, 255];
+    for (let j = 0; j < ny; j++) {
+      const w = wmax * (1 - 2 * (j + 0.5) / ny), x = w / p.Om;
+      const hue = 115 + 110 * Math.max(-1, Math.min(1, x)), rgb = hsl2rgb(hue / 360, 0.72, pal.dark ? 0.58 : 0.48);
+      for (let i = 0; i < nx; i++) {
+        const t = -win + 2 * win * (i + 0.5) / nx, v = Math.min(1, wigner(p, t, w) * 1.25), k = 4 * (j * nx + i);
+        img.data[k] = bg[0] + (rgb[0] - bg[0]) * v; img.data[k + 1] = bg[1] + (rgb[1] - bg[1]) * v; img.data[k + 2] = bg[2] + (rgb[2] - bg[2]) * v; img.data[k + 3] = 255;
+      }
+    }
+    bctx.putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = true; ctx.drawImage(tfBuf, B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    const { sx, sy } = axes(ctx, B, [-win, win], [-gmax, gmax], pal, fs, 'Time t − z/v_g (ps)', 'Frequency offset (GHz)', H, { noGridX: true, noGridY: true });
+    const sw = w => sy(w / (2 * PI) * 1000);
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(B.x0, sy(0)); ctx.lineTo(B.x1, sy(0)); ctx.moveTo(sx(0), B.y0); ctx.lineTo(sx(0), B.y1); ctx.stroke();
+    // input contour (dashed) at 1/e
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+    ellipse(ctx, st.C0, p.T0, sx, sw);
+    ctx.setLineDash([]);
+    // instantaneous frequency line ω = C t / T₁²
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2.2;
+    const tl = 1.8 * p.T1; ctx.beginPath(); ctx.moveTo(sx(-tl), sw(instW(p, -tl))); ctx.lineTo(sx(tl), sw(instW(p, tl))); ctx.stroke();
+    ctx.restore();
+    label(ctx, 'instantaneous frequency', Math.min(B.x1 - fs * 0.3, sx(tl * 0.55)), sw(instW(p, tl * 0.55)) + (p.C >= 0 ? fs * 0.9 : -fs * 0.9), 'right', 'middle', pal.ink, `700 ${fs * 0.75}px ${getFont()}`, pal);
+    // spectrum on the right: the projection on the frequency axis never changes
+    const s0 = B.x1 + fs * 0.5, s1 = s0 + specW - fs * 0.4;
+    ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.18; ctx.beginPath(); ctx.moveTo(s0, B.y0);
+    const spec = w => Math.exp(-((w / p.Om) ** 2));
+    for (let i = 0; i <= 120; i++) { const w = wmax * (1 - 2 * i / 120); ctx.lineTo(s0 + (s1 - s0) * spec(w), sw(w)); }
+    ctx.lineTo(s0, B.y1); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i <= 120; i++) { const w = wmax * (1 - 2 * i / 120); i ? ctx.lineTo(s0 + (s1 - s0) * spec(w), sw(w)) : ctx.moveTo(s0 + (s1 - s0) * spec(w), sw(w)); }
+    ctx.stroke();
+    ctx.strokeStyle = pal.line; ctx.beginPath(); ctx.moveTo(s0, B.y0); ctx.lineTo(s0, B.y1); ctx.stroke();
+    ctx.save(); ctx.translate(s1 + fs * 0.1, (B.y0 + B.y1) / 2); ctx.rotate(PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillStyle = pal.accent; ctx.font = `700 ${fs * 0.72}px ${getFont()}`; ctx.fillText('spectrum (fixed)', 0, 0); ctx.restore();
+    label(ctx, 'time–frequency plane', B.x0 + fs * 0.1, B.y0 - fs * 0.35, 'left', 'bottom', pal.ink, `700 ${fs * 0.82}px ${getFont()}`, pal, false);
+    label(ctx, '- - input', B.x1, B.y0 - fs * 0.35, 'right', 'bottom', pal.muted, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+  // 1/e contour of the input distribution: t²/T₀² + T₀²(ω − C₀t/T₀²)² = 1
+  function ellipse(ctx, C0, T0, sx, sw) {
+    ctx.beginPath();
+    for (let i = 0; i <= 120; i++) { const a = 2 * PI * i / 120, t = T0 * Math.cos(a), w = Math.sin(a) / T0 + C0 * t / (T0 * T0); i ? ctx.lineTo(sx(t), sw(w)) : ctx.moveTo(sx(t), sw(w)); }
+    ctx.stroke();
+  }
+  function hsl2rgb(h, s, l) {
+    const f = n => { const k = (n + h * 12) % 12, a = s * Math.min(l, 1 - l); return 255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))); };
+    return [f(0), f(8), f(4)];
+  }
+
+  // ---------- width against length ----------
+  const ZMAX = 100, Z_STEPS = [5, 10, 15, 20, 30, 40, 50, 60, 80, 100];
+  const zAxis = (st, p) => Z_STEPS.find(v => v >= Math.max(4 * Math.min(p.LD, 1e6), st.z) - 1e-9) || ZMAX;
+  function wzBox(W, H, fs) { return { x0: fs * 3.6, x1: W - fs * 1, y0: fs * 2.0, y1: H - fs * 2.8 }; }
+  function drawWZ(ctx, X, Y, W, H, st, p, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(14, W / 34)), B = wzBox(W, H, fs);
+    const zEnd = opts.zEnd ?? zAxis(st, p);
+    const ref = { ...st, C0: 0 }, wAt = (s, z) => pulse(s, z).fwOut;
+    const ymax = Math.max(wAt(st, zEnd), wAt(ref, zEnd), st.fw * 1.6) * 1.08;
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const { sx, sy } = axes(ctx, B, [0, zEnd], [0, ymax], pal, fs, 'Fiber length z (km)', 'FWHM (ps)', H, { yf: v => v >= 1000 ? `${+(v / 1000).toFixed(2)}k` : String(+v.toFixed(3)) });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    // input width
+    ctx.strokeStyle = pal.muted; ctx.setLineDash([6, 5]); ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(B.x0, sy(st.fw)); ctx.lineTo(B.x1, sy(st.fw)); ctx.stroke(); ctx.setLineDash([]);
+    // L_D marks
+    if (isFinite(p.LD)) for (let k = 1; k * p.LD < zEnd && k < 40; k++) { ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.moveTo(sx(k * p.LD), B.y0); ctx.lineTo(sx(k * p.LD), B.y1); ctx.stroke(); ctx.setLineDash([]); }
+    // unchirped reference
+    ctx.lineJoin = 'round';
+    if (Math.abs(st.C0) > 1e-6) {
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 2; ctx.beginPath();
+      for (let i = 0; i <= 240; i++) { const z = zEnd * i / 240, y = sy(wAt(ref, z)); i ? ctx.lineTo(sx(z), y) : ctx.moveTo(sx(z), y); } ctx.stroke();
+    }
+    // chosen chirp: green where it is narrower than at the input
+    ctx.lineWidth = 2.8; let prev = null;
+    for (let i = 0; i <= 300; i++) {
+      const z = zEnd * i / 300, q = pulse(st, z), pt = [sx(z), sy(q.fwOut)];
+      if (prev) { ctx.strokeStyle = q.r < 1 - 1e-6 ? pal.ok : pal.accent; ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(pt[0], pt[1]); ctx.stroke(); }
+      prev = pt;
+    }
+    ctx.restore();
+    if (isFinite(p.LD) && p.LD < zEnd) label(ctx, 'L_D', sx(p.LD), B.y0 + fs * 0.3, 'center', 'top', pal.muted, `700 ${fs * 0.75}px ${monoFont()}`, pal);
+    label(ctx, `input ${fmtT(st.fw)}`, B.x1 - fs * 0.3, sy(st.fw) - fs * 0.25, 'right', 'bottom', pal.muted, `700 ${fs * 0.75}px ${getFont()}`, pal);
+    if (p.compress && p.zMin < zEnd) {
+      const xm = sx(p.zMin), ym = sy(FW_K * p.Tmin);
+      ctx.fillStyle = pal.ok; ctx.beginPath(); ctx.arc(xm, ym, fs * 0.3, 0, 2 * PI); ctx.fill();
+      label(ctx, `min ${fmtT(FW_K * p.Tmin)}`, xm + fs * 0.4, ym + fs * 0.5, 'left', 'top', pal.ok, `700 ${fs * 0.75}px ${monoFont()}`, pal);
+    }
+    // current length
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(p.z), B.y0); ctx.lineTo(sx(p.z), B.y1); ctx.stroke();
+    ctx.fillStyle = p.r < 1 - 1e-6 ? pal.ok : pal.accent; ctx.strokeStyle = pal.bg; ctx.beginPath(); ctx.arc(sx(p.z), sy(p.fwOut), fs * 0.42, 0, 2 * PI); ctx.fill(); ctx.stroke();
+    label(ctx, `— C₀ = ${fmtS(st.C0, 1)}`, B.x0 + fs * 0.3, B.y0 - fs * 0.35, 'left', 'bottom', pal.accent, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    if (Math.abs(st.C0) > 1e-6) label(ctx, '— C₀ = 0', B.x0 + fs * 7.6, B.y0 - fs * 0.35, 'left', 'bottom', pal.muted, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    label(ctx, '— narrower than input', B.x1, B.y0 - fs * 0.35, 'right', 'bottom', pal.ok, `700 ${fs * 0.78}px ${getFont()}`, pal, false);
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.strokeRect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0);
+    ctx.restore();
+  }
+
+  // ---------- demo timeline (for the slide animation) ----------
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+  // 30 ps FWHM in standard fiber: T₀ = 18 ps, L_D ≈ 15 km
+  const K_C0 = [[0, 0], [13, 0], [14.5, 2], [26, 2], [27.5, -2], [40, -2], [41.5, 2], [48, 2]];
+  const K_Z = [[0, 0], [3.5, 0], [11.5, 30], [13, 30], [13.5, 0], [16, 0], [24, 20], [26, 20], [26.5, 0], [29, 0], [37, 15], [40, 15], [41.5, 6], [48, 6]];
+  const K_D = [[0, 17], [48, 17]];
+  const CAPTIONS = [
+    [0, 3.5, 'An unchirped pulse', 'All of the pulse oscillates at one frequency, ω₀. In the time–frequency plane it is an upright ellipse: no link between time and frequency.'],
+    [3.5, 13, 'Dispersion creates chirp', 'In standard fiber at 1550 nm the blue edge is faster. The colors sort themselves in time, the ellipse is sheared, and the pulse leaves with a down-chirp. The spectrum never changes.'],
+    [13, 26, 'Up-chirp launched: the pulse is squeezed', 'Same envelope, C₀ = +2, so the red front and blue back. The fiber lets the blue back catch up: β₂C₀ < 0, and the pulse narrows to T₀/√(1 + C₀²) ≈ 0.45 T₀ before it spreads.'],
+    [26, 40, 'Down-chirp launched: it spreads faster', 'C₀ = −2 has the same sign of chirp the fiber adds. Nothing undoes it, so the pulse broadens faster than an unchirped one.'],
+    [40, 48, 'Compression needs β₂C₀ < 0', 'The minimum width T₀/√(1 + C₀²) is reached at z = |C₀| L_D/(1 + C₀²). A chirped pulse also has a √(1 + C₀²) wider spectrum, so it pays later.'],
+  ];
+  const DEMO_DURATION = 48;
+  function demoState(t) { return { fw: 30, C0: track(K_C0, t), D: track(K_D, t), z: track(K_Z, t), Lend: 30 }; }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), p = pulse(st), win = 130;
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
+    drawTime(ctx, 0, 0, sw, sh, st, p, { fontSize: W / 80, win, Lend: st.Lend, ymax: 1.65 });
+    const bw = (sw - pad) / 2;
+    drawTF(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, st, p, { fontSize: W / 100, win });
+    drawWZ(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, st, p, { fontSize: W / 100, zEnd: 30 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Chirp and dispersion', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 80}px ${monoFont()}`;
+    ctx.fillText('T₁/T₀ = √((1 + C₀z/L_D)² + (z/L_D)²)', px, y); y += W / 66 * 2.0;
+    const rows = [['Initial chirp C₀', fmtS(st.C0, 1)], ['Length z', `${fmt(p.z, 1)} km  (${fmt(Math.abs(p.zeta), 2)} L_D)`], ['Output FWHM', fmtT(p.fwOut)],
+      ['Output chirp C(z)', `${fmtS(p.C, 2)}`], ['Spectral width', `${fmt(p.dfGHz, 1)} GHz`]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    const sq = p.r < 1 - 1e-3;
+    ctx.fillStyle = sq ? pal.ok : Math.abs(p.C) < 0.05 ? pal.muted : pal.accent; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`;
+    ctx.fillText(sq ? '● Narrower than at the input' : `● ${chirpWord(p.C)[0].toUpperCase() + chirpWord(p.C).slice(1)}`, px, y); y += W / 60 * 1.9;
+    const cap = CAPTIONS.find(c => t >= c[0] && t < c[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, '30 ps Gaussian pulse at 1550 nm, D = 17 ps/(nm·km), L_D ≈ 15 km. Carrier drawn slowed down, frequency sweep exaggerated. C > 0: up-chirp.', px, H - H * 0.115, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const tc = $('time'), tfc = $('tf'), wz = $('wz');
+  const state = { fw: 30, C0: 0, D: 17, z: 20 };
+  let cur = pulse(state), dirty = true, launch = null, simT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeCanvas(c) {
+    const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    const zNow = launch ? launch.z : state.z;
+    cur = pulse(state, zNow); const p = pulse(state);
+    $('c0').value = state.C0; $('fw').value = state.fw; $('dd').value = state.D; $('len').value = state.z;
+    $('c0Out').textContent = fmtS(state.C0, 1); $('fwOut').textContent = fmtT(state.fw);
+    $('ddOut').textContent = `${fmt(state.D, 1)} ps/(nm·km)`; $('lenOut').textContent = `${fmt(state.z, 2)} km`;
+    $('c0Hint').textContent = Math.abs(state.C0) < 0.05 ? 'Unchirped (transform-limited) input' : state.C0 > 0 ? 'Up-chirp: the frequency rises from front to back' : 'Down-chirp: the frequency falls from front to back';
+    $('b2Hint').textContent = `β₂ = ${fmt(p.b2, 1)} ps²/km at 1550 nm` + (Math.abs(state.D) < 0.05 ? ' (zero dispersion)' : p.b2 < 0 ? ' (blue travels faster)' : ' (red travels faster)');
+    const s = $('status');
+    if (Math.abs(state.D) < 0.05 || Math.abs(state.C0) < 0.05) {
+      s.className = 'status neutral';
+      s.innerHTML = Math.abs(state.D) < 0.05 ? 'No dispersion<small>β₂ = 0: the pulse keeps its width and its chirp.</small>'
+        : `Broadens from the start<small>An unchirped pulse is already as short as its spectrum allows. The fiber gives it a ${p.b2 < 0 ? 'down' : 'up'}-chirp.</small>`;
+    } else if (p.compress) {
+      s.className = 'status ok';
+      s.innerHTML = `Squeezed first (β₂C₀ &lt; 0)<small>Narrowest ${fmtT(FW_K * p.Tmin)} at z = ${fmtKm(p.zMin)}; back to the input width at ${fmtKm(p.zBack)}.</small>`;
+    } else {
+      s.className = 'status bad';
+      s.innerHTML = `Broadens faster (β₂C₀ &gt; 0)<small>The fiber adds chirp of the same sign as the input chirp, so nothing is undone.</small>`;
+    }
+    $('rLD').textContent = fmtKm(p.LD); $('rZeta').textContent = isFinite(p.LD) ? fmt(cur.z / p.LD, 2) : '0';
+    $('rDf').textContent = `${fmt(p.dfGHz, 1)} GHz`; $('rTL').textContent = `× ${fmt(Math.sqrt(1 + state.C0 * state.C0), 2)}`;
+    $('rOut').textContent = fmtT(cur.fwOut); $('rBr').textContent = fmt(cur.r, 3); $('rPk').textContent = `${fmt(cur.peak * 100, 0)}% of input`;
+    $('rC').textContent = `${fmtS(cur.C, 2)}`;
+    $('rMin').textContent = p.compress ? fmtT(FW_K * p.Tmin) : `${fmtT(state.fw)} (input)`;
+    $('rZmin').textContent = p.compress ? fmtKm(p.zMin) : 'z = 0';
+    dirty = true;
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (launch) {
+      launch.t += dt; const u = Math.min(1, launch.t / launch.dur); launch.z = state.z * u;
+      if (u >= 1) { launch = null; $('launch').setAttribute('aria-pressed', 'false'); }
+      syncUI();
+    }
+    if (DEMO) {
+      simT += dt; const { w, h, dpr } = sizeCanvas(tc); const ctx = tc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    } else if (dirty) {
+      const win = timeWindow(state);
+      let { w, h, dpr } = sizeCanvas(tc), ctx = tc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawTime(ctx, 0, 0, w, h, state, cur, { win, Lend: state.z });
+      ({ w, h, dpr } = sizeCanvas(tfc)); ctx = tfc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawTF(ctx, 0, 0, w, h, state, cur, { win });
+      ({ w, h, dpr } = sizeCanvas(wz)); ctx = wz.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawWZ(ctx, 0, 0, w, h, state, cur, dragEnd ? { zEnd: dragEnd } : {});
+      dirty = false;
+    }
+    requestAnimationFrame(frame);
+  }
+  const stopLaunch = () => { if (launch) { launch = null; $('launch').setAttribute('aria-pressed', 'false'); } };
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  const onInput = (id, key) => $(id).addEventListener('input', e => { stopLaunch(); state[key] = +e.target.value; later(); });
+  onInput('c0', 'C0'); onInput('fw', 'fw'); onInput('dd', 'D'); onInput('len', 'z');
+  $('launch').addEventListener('click', e => {
+    if (launch) { stopLaunch(); syncUI(); return; }
+    if (state.z <= 0) return;
+    launch = { t: 0, dur: reduced ? 12 : 6, z: 0 }; e.currentTarget.setAttribute('aria-pressed', 'true');
+  });
+  let dragging = false, dragEnd = null;
+  function pointerZ(e) {
+    const r = wz.getBoundingClientRect(), fs = Math.max(11, Math.min(14, r.width / 34)), B = wzBox(r.width, r.height, fs), ze = dragEnd ?? zAxis(state, pulse(state));
+    state.z = Math.round(Math.max(0, Math.min(ze, (e.clientX - r.left - B.x0) / (B.x1 - B.x0) * ze)) * 4) / 4; stopLaunch(); later();
+  }
+  wz.addEventListener('pointerdown', e => { if (DEMO) return; dragging = true; dragEnd = zAxis(state, pulse(state)); wz.setPointerCapture(e.pointerId); pointerZ(e); });
+  wz.addEventListener('pointermove', e => { if (dragging) pointerZ(e); });
+  wz.addEventListener('pointerup', () => { dragging = false; dragEnd = null; later(); });
+  window.addEventListener('resize', () => { dirty = true; });
+  new MutationObserver(() => { dirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { dirty = true; });
+
+  // hook for rendering the slide video frame by frame
+  window.chDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(tc); const ctx = tc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, pulse, demoState };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
