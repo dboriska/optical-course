@@ -47,6 +47,9 @@ header p { margin: 4px 0 0; color: var(--muted); max-width: 74ch; }
 .scene { padding: 0; overflow: hidden; }
 #scene { display: block; width: 100%; aspect-ratio: 16 / 10; max-width: 100%; }
 #arrive { display: block; width: 100%; aspect-ratio: 16 / 4; max-width: 100%; }
+#well { display: block; width: 100%; aspect-ratio: 16 / 7; max-width: 100%; }
+@media (max-width: 600px) { #well { aspect-ratio: 4 / 3; } }
+.well-bar .ctl { flex: 1 1 260px; }
 .scene-bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
 .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
 .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
@@ -80,20 +83,27 @@ body.demo .wrap { max-width: none; padding: 0; }
 body.demo .grid { display: block; }
 body.demo .card.scene { border: 0; border-radius: 0; }
 body.demo #scene { aspect-ratio: 16 / 9; }
+/* Presentation mode for the turning-point panel (#demo-well) */
+body.demowell { background: #ffffff; }
+body.demowell .wrap > *:not(.grid), body.demowell .side, body.demowell .scene-bar, body.demowell .race-card, body.demowell .arrive-card { display: none !important; }
+body.demowell .wrap { max-width: none; padding: 0; }
+body.demowell .grid { display: block; }
+body.demowell .card.scene { border: 0; border-radius: 0; }
+body.demowell #well { aspect-ratio: 16 / 9; }
 </style>
+
 </head>
 <body>
-
 
 <div class="wrap">
   <header>
     <h1>Graded-Index Ray Race</h1>
-    <p>The core is colored by the speed of light in the glass: slow (high index) at the center, fast (low index) near the edge. A pulse launches rays at several angles at the same moment. In the step-index fiber the steep rays fall behind. In the graded-index fiber they take longer paths through faster glass and arrive together.</p>
+    <p>The core is colored by the speed of light in the glass: slow (high index) at the center, fast (low index) near the edge. A pulse launches rays at several angles at the same moment. In the step-index fiber the steep rays fall behind. In the graded-index fiber they take longer paths through faster glass and arrive together. The panel below shows where each ray turns back.</p>
   </header>
 
   <div class="grid">
     <div class="main">
-      <div class="card scene">
+      <div class="card scene race-card">
         <canvas id="scene" aria-label="Rays racing through a step-index and a graded-index fiber"></canvas>
         <div class="scene-bar">
           <button id="play" aria-pressed="true">Running</button>
@@ -108,6 +118,16 @@ body.demo #scene { aspect-ratio: 16 / 9; }
       </div>
       <div class="card scene arrive-card">
         <canvas id="arrive" aria-label="Arrival times of the rays at the end of each fiber"></canvas>
+      </div>
+      <div class="card scene well-card">
+        <canvas id="well" aria-label="Turning point: the index profile n(x) with the line n = β, next to one ray in the graded-index core"></canvas>
+        <div class="scene-bar well-bar">
+          <div class="ctl">
+            <label for="probe">Launch angle θz(0) of the black ray <output id="probeOut"></output></label>
+            <input id="probe" type="range" min="0" max="40" step="0.1" value="14.8">
+          </div>
+          <span class="hint" style="flex:1 1 260px">Along a ray β = n(x) cos θz stays the same. The ray turns back where n(x) = β. If β &lt; n₂ there is no such point inside the core and the ray escapes.</span>
+        </div>
       </div>
     </div>
 
@@ -166,8 +186,9 @@ body.demo #scene { aspect-ratio: 16 / 9; }
 (() => {
   const PI = Math.PI, D2R = PI / 180, R2D = 180 / PI;
   const $ = id => document.getElementById(id);
-  const DEMO = location.hash === '#demo';
+  const DEMO = location.hash === '#demo', DEMO_WELL = location.hash === '#demo-well';
   if (DEMO) document.body.classList.add('demo');
+  if (DEMO_WELL) document.body.classList.add('demowell');
   const N1 = 1.5;
 
   // ---------- physics (units: core radius a = 1, c = 1) ----------
@@ -214,7 +235,7 @@ body.demo #scene { aspect-ratio: 16 / 9; }
   const RAYS_D = ['#e4ecf2', '#5d9fff', '#3cc7c9', '#b48cff', '#ff6fa8', '#ff6b52', '#f2b84b', '#6fd47a', '#c4a07a'];
   let dark = false;
   function palette() {
-    if (DEMO) { dark = false; return LIGHT; }
+    if (DEMO || DEMO_WELL) { dark = false; return LIGHT; }
     const cs = getComputedStyle(document.documentElement), p = {};
     for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
     p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
@@ -328,6 +349,98 @@ body.demo #scene { aspect-ratio: 16 / 9; }
     ctx.restore();
   }
 
+  // ---------- turning point: n(x) against the ray invariant β = n cos θz ----------
+  // probe ray in the graded core: harmonic inside |x| ≤ 1, straight line in the cladding
+  function probeRay(f, thDeg) {
+    const th = thDeg * D2R, b = N1 * Math.cos(th), Om = Math.sqrt(2 * f.delta) * N1 / Math.max(b, 1e-9), A = Math.tan(th) / Om;
+    const xtp = Math.sqrt(Math.max(0, (1 - (b / N1) ** 2) / (2 * f.delta)));   // where n(x) = β on the parabola
+    const bound = b >= f.n2 - 1e-12;
+    const zExit = bound || A <= 1 ? Infinity : Math.asin(1 / A) / Om;
+    const slopeOut = bound ? 0 : Math.sqrt(Math.max(0, f.n2 * f.n2 - b * b)) / b;   // β conserved: tan θ = √(n₂² − β²)/β
+    const x = z => z <= zExit ? A * Math.sin(Om * z) : 1 + slopeOut * (z - zExit);
+    return { th, b, Om, A, xtp, bound, zExit, x, period: 2 * PI / Om };
+  }
+  // tau: race time for the colored race rays; tp: animation time for the black ray (s)
+  function drawWell(ctx, X, Y, W, H, f, thDeg, tau, tp, opts) {
+    const pal = palette(), fs = opts.fs, pr = probeRay(f, thDeg);
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const XR = 1.45, top = fs * 2.2, bot = H - fs * 2.4, yOf = x => (top + bot) / 2 - x * (bot - top) / (2 * XR);
+    const L0 = fs * 2.2, L1 = W * 0.36, R0 = L1 + fs * 1.6, R1 = W - fs * 0.8;
+    const nLo = f.n2 - (N1 - f.n2) * 0.75, nHi = N1 + (N1 - f.n2) * 0.12, nx = n => L0 + (L1 - L0) * (n - nLo) / (nHi - nLo);
+    // left: the well n(x), x vertical
+    const gr = ctx.createLinearGradient(0, yOf(1), 0, yOf(-1));
+    for (let k = 0; k <= 24; k++) { const xx = 1 - 2 * k / 24; gr.addColorStop(k / 24, mix(pal.slow, pal.fast, (N1 - nAt(f, 'grin', xx)) / (N1 - f.n2))); }
+    ctx.fillStyle = mix(pal.slow, pal.fast, 1); ctx.fillRect(L0, top, L1 - L0, bot - top);
+    ctx.fillStyle = gr; ctx.fillRect(L0, yOf(1), L1 - L0, yOf(-1) - yOf(1));
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.35; ctx.lineWidth = 1;
+    for (const xx of [1, -1]) { ctx.beginPath(); ctx.moveTo(L0, yOf(xx)); ctx.lineTo(R1, yOf(xx)); ctx.stroke(); }
+    ctx.globalAlpha = 0.6; ctx.strokeRect(L0, top, L1 - L0, bot - top); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = Math.max(2.4, fs / 5); ctx.beginPath();
+    for (let k = 0; k <= 200; k++) { const xx = -XR + 2 * XR * k / 200, n = nAt(f, 'grin', xx); k ? ctx.lineTo(nx(n), yOf(xx)) : ctx.moveTo(nx(n), yOf(xx)); }
+    ctx.stroke();
+    // n axis
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(fmt(f.n2, 3), nx(f.n2), bot + fs * 0.3); ctx.fillText(fmt(N1, 2), nx(N1), bot + fs * 0.3);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textBaseline = 'bottom';
+    ctx.fillText('index n(x)', (L0 + L1) / 2, H - fs * 0.1);
+    ctx.save(); ctx.translate(fs * 0.8, (top + bot) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('position x / a', 0, 0); ctx.restore();
+    // race rays: their β lines and where each ray is now
+    const n = f.rays.length;
+    if (!opts.noRace) f.rays.forEach((r, i) => {
+      const c = rayColor(i, n), z = Math.min(f.L, grinZ(f, r, tau)), xx = grinX(r, z);
+      ctx.strokeStyle = c; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(nx(r.b), yOf(Math.min(XR, r.A))); ctx.lineTo(nx(r.b), yOf(-Math.min(XR, r.A))); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(nx(r.b), yOf(xx), Math.max(3, fs * 0.28), 0, 2 * PI); ctx.fill();
+    });
+    // black ray: β line, turning points
+    const ink = pal.ink, bx = nx(Math.max(nLo, pr.b));
+    ctx.strokeStyle = ink; ctx.lineWidth = 2.4; ctx.setLineDash([7, 5]); ctx.beginPath(); ctx.moveTo(bx, top); ctx.lineTo(bx, bot); ctx.stroke(); ctx.setLineDash([]);
+    label(ctx, `β = ${fmt(pr.b, 3)}`, bx, top - fs * 0.25, 'center', 'bottom', ink, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    if (pr.bound && pr.xtp > 1e-3) {
+      ctx.save(); ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.4; ctx.setLineDash([3, 4]);
+      for (const sg of [1, -1]) { ctx.beginPath(); ctx.moveTo(bx, yOf(sg * pr.xtp)); ctx.lineTo(R1, yOf(sg * pr.xtp)); ctx.stroke(); }
+      ctx.restore();
+      for (const sg of [1, -1]) { ctx.fillStyle = pal.bg; ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(bx, yOf(sg * pr.xtp), fs * 0.38, 0, 2 * PI); ctx.fill(); ctx.stroke(); }
+    }
+    // right: the black ray in the graded core (compressed along z)
+    ctx.fillStyle = mix(pal.slow, pal.fast, 1); ctx.fillRect(R0, top, R1 - R0, bot - top);
+    ctx.fillStyle = gr; ctx.fillRect(R0, yOf(1), R1 - R0, yOf(-1) - yOf(1));
+    ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.6; ctx.lineWidth = 1; ctx.strokeRect(R0, top, R1 - R0, bot - top); ctx.globalAlpha = 1;
+    const Lz = pr.bound ? 2 * pr.period : Math.min(2 * pr.period, pr.zExit * 2.2 + 1e-9), zx = z => R0 + (R1 - R0) * z / Lz;
+    ctx.save(); ctx.beginPath(); ctx.rect(R0, top, R1 - R0, bot - top); ctx.clip();
+    ctx.strokeStyle = ink; ctx.lineWidth = Math.max(2.2, fs / 5); ctx.beginPath();
+    for (let k = 0; k <= 500; k++) { const z = Lz * k / 500, xx = pr.th === 0 ? 0 : pr.x(z); k ? ctx.lineTo(zx(z), yOf(xx)) : ctx.moveTo(zx(z), yOf(xx)); }
+    ctx.stroke();
+    const zp = (tp * Lz / 6) % Lz, xp = pr.th === 0 ? 0 : pr.x(zp);
+    ctx.fillStyle = ink; ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(zx(zp), yOf(xp), fs * 0.45, 0, 2 * PI); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    // matching dot on the β line
+    if (Math.abs(xp) <= XR) { ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(bx, yOf(xp), fs * 0.3, 0, 2 * PI); ctx.fill(); }
+    // labels
+    const ok = pr.bound;
+    const narrow = W < 600;
+    const head = pr.th === 0 ? (narrow ? 'Axial ray' : 'Axial ray: β = n₁, it never leaves the axis')
+      : ok ? (narrow ? `Bound: x_tp = ±${fmt(pr.xtp, 2)}a` : `Bound: turns back at x_tp = ±${fmt(pr.xtp, 2)}a, where n(x) = β`)
+      : (narrow ? 'Refracted: β < n₂' : `Refracted: β < n₂ = ${fmt(f.n2, 3)}, no turning point in the core`);
+    label(ctx, head, R0, fs * 0.3, 'left', 'top', ok ? pal.ink : (dark ? '#ff6b52' : '#d8402a'), `700 ${fs}px ${getFont()}`, pal, false);
+    label(ctx, 'core edge', R1 - fs * 0.3, yOf(1) - fs * 0.2, 'right', 'bottom', pal.muted, `${fs * 0.78}px ${getFont()}`, pal);
+    label(ctx, `θz(0) = ${fmt(thDeg, 1)}°`, R1 - fs * 0.3, bot - fs * 0.3, 'right', 'bottom', pal.ink, `${fs * 0.8}px ${monoFont()}`, pal);
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    if (!narrow) ctx.fillText('the same ray in the graded core (compressed along the fiber)', (R0 + R1) / 2, bot + fs * 0.3);
+    ctx.restore();
+    return pr;
+  }
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, p = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - p, ty - p, w + 2 * p, h + 2 * p, p) : ctx.rect(lx - p, ty - p, w + 2 * p, h + 2 * p); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+
   // ---------- demo timeline (for the slide animation) ----------
   const DEMO_F = setup(0.1, 5), DEMO_DURATION = 32, RACE = [[3.5, 13.5], [19, 29]];
   const DEMO_TMAX = N1 * DEMO_F.L / Math.cos(DEMO_F.rays[DEMO_F.rays.length - 1].th) * 1.02;
@@ -378,9 +491,62 @@ body.demo #scene { aspect-ratio: 16 / 9; }
     ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
   }
 
+  // ---------- turning-point animation (for the slide video, #demo-well) ----------
+  // slide 8 numbers: n₁ = 1.5, n₂ = 1.40 (Δ = 0.0644)
+  const WELL_F = setup((1.5 ** 2 - 1.4 ** 2) / (2 * 1.5 ** 2), 5), WELL_DURATION = 28;
+  const K_PROBE = [[0, 9.4], [5, 9.4], [7, 14.8], [11, 14.8], [13, 18.8], [17, 18.8], [19, 25.8], [25, 25.8], [28, 9.4]];
+  const WELL_CAPTIONS = [
+    [0, 5, 'The ray invariant β = n(x) cos θz', 'Along the ray, n falls and the ray turns flatter, but the product n cos θz stays the same.'],
+    [5, 11, 'The ray turns back where n(x) = β', 'There cos θz = 1: the ray runs parallel to the axis. This is the turning point x_tp.'],
+    [11, 17, 'A steeper launch gives a smaller β', 'The line moves down the well and x_tp moves out toward the core edge.'],
+    [17, 25, 'β < n₂: a refracted ray', 'n(x) never falls to β inside the core. The ray reaches the cladding and escapes.'],
+    [25, 28, 'Bound rays: n₂ ≤ β ≤ n₁', 'The same range will hold the effective index of the guided modes, n₂ < n_eff < n₁.'],
+  ];
+  function drawWellDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const sw = Math.round(W * 0.66), pad = W * 0.02, th = track(K_PROBE, t);
+    const pr = drawWell(ctx, 0, H * 0.05, sw, H * 0.9, WELL_F, th, 0, t, { fs: W / 72, noRace: true });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.5, pw = W - px - pad * 1.5;
+    let y = H * 0.07;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 50}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    y = wrapText(ctx, 'Turning point of a ray', px, y, pw, W / 50 * 1.2) + W / 120;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 62}px ${getFont()}`;
+    ctx.fillText('β = n(x) cos θz = n(x_tp)', px, y); y += W / 62 * 2.0;
+    const rows = [['Launch angle θz(0)', `${fmt(th, 1)}°`], ['β = n₁ cos θz(0)', fmt(pr.b, 3)], ['x_tp', `${fmt(pr.xtp, 2)}a`], ['Cladding n₂', fmt(WELL_F.n2, 3)]];
+    for (const [k, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(k, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.6;
+    }
+    y += W / 160;
+    ctx.fillStyle = pr.bound ? '#1d8a3a' : '#d8402a'; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`;
+    ctx.fillText(pr.bound ? '● Bound (x_tp inside the core)' : '● Refracted (no turning point)', px, y); y += W / 60 * 1.9;
+    const cap = WELL_CAPTIONS.find(c => t >= c[0] && t < c[1]) || WELL_CAPTIONS[WELL_CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 70;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 56}px ${getFont()}`;
+    y = wrapText(ctx, cap[2], px, y, pw, W / 56 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'Parabolic core, n₁ = 1.5, n₂ = 1.40, as on the slide. The ray is compressed along the fiber.', px, H - H * 0.105, pw, W / 100 * 1.4);
+    ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+  const ease = u => u * u * (3 - 2 * u);
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, a0] = keys[i], [t1, a1] = keys[i + 1];
+      if (t <= t1) { const u = ease(Math.min(1, Math.max(0, (t - t0) / (t1 - t0)))); return a0 + (a1 - a0) * u; }
+    }
+    return keys[keys.length - 1][1];
+  }
+
   // ---------- app wiring ----------
-  const scene = $('scene'), arrive = $('arrive');
-  const state = { delta: 0.1, nRays: 5, dur: 9, view: 'both', paths: true, playing: true };
+  const scene = $('scene'), arrive = $('arrive'), well = $('well');
+  const state = { delta: 0.1, nRays: 5, dur: 9, view: 'both', paths: true, playing: true, probe: 14.8 };
+  let probeT = 0;
   let f = setup(state.delta, state.nRays), raceT = 0, last = performance.now();
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const tmaxOf = f => N1 * f.L / Math.cos(f.rays[f.rays.length - 1].th) * 1.02;
@@ -408,6 +574,12 @@ body.demo #scene { aspect-ratio: 16 / 9; }
   }
   function frame(now) {
     const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    if (DEMO_WELL) {
+      raceT += dt;
+      const { w, h, dpr } = sizeCanvas(well), ctx = well.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      drawWellDemo(ctx, w, h, raceT % WELL_DURATION);
+      requestAnimationFrame(frame); return;
+    }
     if (DEMO) {
       if (state.playing) raceT += dt;
       const { w, h, dpr } = sizeCanvas(scene), ctx = scene.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -421,6 +593,9 @@ body.demo #scene { aspect-ratio: 16 / 9; }
     drawRace(ctx, 0, 0, w, h, f, state.view, tau, { fs, paths: state.paths });
     ({ w, h, dpr } = sizeCanvas(arrive)); ctx = arrive.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawArrivals(ctx, 0, 0, w, h, f, tau, { fs });
+    if (state.playing) probeT += dt;
+    ({ w, h, dpr } = sizeCanvas(well)); ctx = well.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawWell(ctx, 0, 0, w, h, f, state.probe, tau, probeT, { fs: Math.max(11, Math.min(15, w / 60)) });
     requestAnimationFrame(frame);
   }
 
@@ -428,6 +603,8 @@ body.demo #scene { aspect-ratio: 16 / 9; }
   $('nr').addEventListener('input', e => { state.nRays = +e.target.value; raceT = 0; syncUI(); });
   $('dur').addEventListener('input', e => { state.dur = +e.target.value; syncUI(); });
   $('rdl').addEventListener('input', syncUI);
+  $('probe').addEventListener('input', e => { state.probe = +e.target.value; probeT = 0; $('probeOut').textContent = `${fmt(state.probe, 1)}°`; });
+  $('probeOut').textContent = `${fmt(state.probe, 1)}°`;
   $('play').addEventListener('click', e => { state.playing = !state.playing; e.currentTarget.setAttribute('aria-pressed', String(state.playing)); e.currentTarget.textContent = state.playing ? 'Running' : 'Paused'; });
   $('launch').addEventListener('click', () => { raceT = 0; if (!state.playing) $('play').click(); });
   $('paths').addEventListener('click', e => { state.paths = !state.paths; e.currentTarget.setAttribute('aria-pressed', String(state.paths)); e.currentTarget.textContent = state.paths ? 'On' : 'Off'; });
@@ -440,11 +617,12 @@ body.demo #scene { aspect-ratio: 16 / 9; }
   if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', syncUI);
 
   // hook for rendering the slide video frame by frame
+  window.wellDemo = { duration: WELL_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(well); const ctx = well.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawWellDemo(ctx, w, h, t); }, probeRay, WELL_F };
   window.grinDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(scene); const ctx = scene.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, setup, arrivals };
 
   syncUI();
   if (!window.__noLoop) requestAnimationFrame(frame);
-  if (document.fonts) document.fonts.ready.then(syncUI);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(x => document.fonts.load(x).catch(() => {}))).then(syncUI);
 })();
 </script>
 

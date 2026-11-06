@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>:root{color-scheme:light dark}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
 <title>Snell's Law Lab</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -455,7 +455,9 @@ body.demo #scene { aspect-ratio: 16 / 9; cursor: default; }
     ctx.fillStyle = pal.ink; ctx.font = `${W / 66}px ${getFont()}`;
     wrapText(ctx, cap[3], px, y, pw, W / 66 * 1.4);
     ctx.fillStyle = pal.muted; ctx.font = `${W / 95}px ${getFont()}`;
-    wrapText(ctx, 'Brightness shows power. Wave field drawn to scale for n₁ = 1.5, n₂ = 1.0.', px, H - H * 0.09, pw, W / 95 * 1.4);
+    wrapText(ctx, 'Brightness shows power. Wave field drawn to scale for n₁ = 1.5, n₂ = 1.0.', px, H - H * 0.115, pw, W / 95 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
   }
 
   // ---------- app wiring ----------
