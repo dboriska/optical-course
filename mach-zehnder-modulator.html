@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Mach–Zehnder Modulator Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: the modulator chip on top, transfer curve and output waveform below, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* electrons, current */
+  --ray: #d8402a;     /* photons, light out */
+  --ok: #1d8a3a;
+  --warm: #c27a00;    /* temperature, spontaneous */
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --warm: #f0b03c; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --warm: #f0b03c; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--muted); }
+.status.hot { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+canvas.big { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.small { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.big { aspect-ratio: 4 / 3; } }
+body.demo canvas.big { aspect-ratio: 16 / 9; }
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Mach–Zehnder Modulator Lab</h1>
+    <p>A lithium niobate chip splits the light into two arms, shifts the phase of each with a voltage (the Pockels effect), and recombines them. The phase difference becomes an intensity change, <span class="law">P_out = P_in cos²(Δφ/2)</span> with <span class="law">Δφ = πV/V_π</span>. Bias it, drive it, and see where the light goes when the output is dark.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="dev" class="big" aria-label="The modulator: input waveguide, Y splitter, two arms with electrodes, and the combiner, with the optical field drawn along each path"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Combiner">
+            <button id="cY" aria-pressed="true">Y-junction</button>
+            <button id="cX" aria-pressed="false">2×2 coupler</button>
+          </div>
+          <div class="seg" role="group" aria-label="Electrodes">
+            <button id="aPP" aria-pressed="true">Push-pull</button>
+            <button id="a1" aria-pressed="false">One arm</button>
+          </div>
+          <div class="legend"><span><i style="background:var(--ray)"></i>optical field</span><span><i style="background:var(--warm)"></i>electrodes</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="tf" class="small" aria-label="Transfer curve: output power against voltage, with the bias point and the drive swing"></canvas></div>
+        <div class="card scene"><canvas id="wf" class="small" aria-label="Drive voltage and output power against time"></canvas></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label>Drive signal</label>
+          <div class="seg" role="group" aria-label="Drive signal">
+            <button id="sOff" aria-pressed="false">DC only</button>
+            <button id="sSin" aria-pressed="true">Sine</button>
+            <button id="sBit" aria-pressed="false">Bits</button>
+          </div>
+        </div>
+        <div class="ctl" style="margin-top:10px">
+          <label for="vb">Bias voltage V_b <output id="vbOut"></output></label>
+          <input id="vb" type="range" min="0" max="16" step="0.05" value="2">
+          <span class="hint" id="vbHint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="vs">Signal amplitude V_s <output id="vsOut"></output></label>
+          <input id="vs" type="range" min="0" max="8" step="0.05" value="0.6">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="vpi">Half-wave voltage V_π <output id="vpiOut"></output></label>
+          <input id="vpi" type="range" min="2" max="8" step="0.1" value="4">
+          <span class="hint">V_π = λd / (n_e³ r₃₃ L Γ); longer electrodes, lower V_π</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Phase difference at bias Δφ</dt><dd id="rDp"></dd>
+          <dt>Output at bias P_out/P_in</dt><dd id="rT"></dd>
+          <dt id="rLostL">Second port</dt><dd id="rLost"></dd>
+          <div class="sep"></div>
+          <dt>Output swing (min – max)</dt><dd id="rSw"></dd>
+          <dt>Extinction ratio</dt><dd id="rEr"></dd>
+          <dt>2nd harmonic</dt><dd id="rH2"></dd>
+          <dt>3rd harmonic</dt><dd id="rH3"></dd>
+          <div class="sep"></div>
+          <dt>Output phase swing (chirp)</dt><dd id="rCh"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Ideal modulator of slides 80–84: 50/50 splitter and combiner, no loss, infinite extinction. One arm: φ₁ = πV/V_π, φ₂ = 0. Push-pull: φ₁ = −φ₂ = πV/(2V_π), the same total Δφ with half the voltage on each arm. At the Y-junction the two arms add to the guided output, E_out = (E₁ + E₂)/2, and the out-of-phase part becomes an antisymmetric mode that the single-mode output cannot guide, so it radiates into the substrate. A 2×2 coupler sends that part to its second port, P₂ = P_in sin²(Δφ/2). The output phase (φ₁ + φ₂)/2 is the chirp: zero in push-pull, half the phase swing with one arm. Harmonics are from one period of the sine drive, in dB below the fundamental. The bit pattern is a fixed NRZ sequence with smooth edges.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- physics ----------
+  const BITS = [1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1];
+  const T_SIG = 4;                                                      // display period of the drive (s)
+  // drive shape s(t) in [−1, 1]
+  function shape(sig, t) {
+    if (sig === 'off') return 0;
+    if (sig === 'sine') return Math.sin(2 * PI * t / T_SIG);
+    const tb = T_SIG / 4, k = Math.floor(t / tb), u = t / tb - k;          // 4 bits per display period
+    const b0 = BITS[((k % 16) + 16) % 16], b1 = BITS[(((k + 1) % 16) + 16) % 16];
+    const edge = u < 0.8 ? 0 : ease((u - 0.8) / 0.2);
+    return 2 * (b0 + (b1 - b0) * edge) - 1;
+  }
+  // st: { Vb, Vs, Vpi, sig, pp, cx }
+  function mzm(st) {
+    const arms = V => st.pp ? [PI * V / (2 * st.Vpi), -PI * V / (2 * st.Vpi)] : [PI * V / st.Vpi, 0];
+    const T = V => Math.cos(PI * V / (2 * st.Vpi)) ** 2;
+    const vAt = t => st.Vb + st.Vs * shape(st.sig, t);
+    // statistics over one long window
+    let pmin = Infinity, pmax = -Infinity, phmin = Infinity, phmax = -Infinity;
+    const NS = 512, span = st.sig === 'bits' ? 4 * T_SIG : T_SIG;
+    for (let i = 0; i < NS; i++) { const V = vAt(span * i / NS), p = T(V), a = arms(V), ph = (a[0] + a[1]) / 2; pmin = Math.min(pmin, p); pmax = Math.max(pmax, p); phmin = Math.min(phmin, ph); phmax = Math.max(phmax, ph); }
+    // harmonics of the sine drive
+    let h = [0, 0, 0, 0];
+    if (st.sig === 'sine' && st.Vs > 0) {
+      for (let k = 1; k <= 3; k++) { let re = 0, im = 0; for (let i = 0; i < NS; i++) { const th = 2 * PI * i / NS, p = T(st.Vb + st.Vs * Math.sin(th)); re += p * Math.cos(k * th); im += p * Math.sin(k * th); } h[k] = Math.hypot(re, im) * 2 / NS; }
+    }
+    const dbc = k => h[1] > 1e-9 ? 20 * Math.log10(Math.max(1e-12, h[k]) / h[1]) : NaN;
+    const dphi = PI * st.Vb / st.Vpi;
+    const quad = Math.abs(((st.Vb / st.Vpi) % 2 + 2) % 2 - 0.5) < 0.04 || Math.abs(((st.Vb / st.Vpi) % 2 + 2) % 2 - 1.5) < 0.04;
+    return { ...st, arms, T, vAt, pmin, pmax, er: pmin > 1e-6 ? 10 * Math.log10(pmax / pmin) : Infinity, chirp: phmax - phmin, h2: dbc(2), h3: dbc(3), h1: h[1], dphi, Tb: T(st.Vb), quad };
+  }
+
+  // ---------- colors and text ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', warm: '#c27a00', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtE = v => { if (!isFinite(v) || v <= 0) return '0'; const e = Math.floor(Math.log10(v)), m = v / 10 ** e; return `${m.toFixed(2)} × 10${sup(e)}`; };
+  const sup = n => String(n).split('').map(ch => '⁰¹²³⁴⁵⁶⁷⁸⁹'['0123456789'.indexOf(ch)] || (ch === '-' ? '⁻' : ch)).join('');
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    return { sx, sy };
+  }
+
+
+  const fmtDb = v => !isFinite(v) ? '—' : v < -80 ? '< −80 dBc' : `${fmt(v, 1)} dBc`;
+  const fmtPh = r => { const f = r / PI; return Math.abs(f) < 0.005 ? '0' : `${fmt(f, 2)}π`; };
+
+  // ---------- the chip ----------
+  function drawDev(ctx, X, Y, W, H, c, t, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const V = c.vAt(t), [p1, p2] = c.arms(V), dp = p1 - p2;
+    const a1 = Math.cos(dp / 2), a2 = Math.sin(dp / 2);                      // output port field amplitudes
+    const yc = H * 0.5, d = H * 0.2, x0 = W * 0.03, xs = W * 0.17, xa = W * 0.27, xb = W * 0.63, xm = W * 0.7, x1 = W * 0.8;
+    // substrate
+    ctx.fillStyle = pal.clad; ctx.fillRect(x0 - fs * 0.5, H * 0.14, x1 - x0 + fs, H * 0.72);
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.75}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.textBaseline = 'bottom'; ctx.fillText('LiNbO₃ chip', x0, H * 0.86 - fs * 0.3);
+    // waveguide paths as functions s∈[0,1] → (x,y)
+    const sCurve = (u, ya, yb) => ya + (yb - ya) * ease(u);
+    const path = (xA, xB, ya, yb) => u => [xA + (xB - xA) * u, sCurve(u, ya, yb)];
+    const cx = c.cx;
+    const segs = [
+      { f: path(x0, xs, yc, yc), amp: 1, ph: () => 0 },
+      { f: path(xs, xa, yc, yc - d), amp: Math.SQRT1_2, ph: () => 0 },
+      { f: path(xs, xa, yc, yc + d), amp: Math.SQRT1_2, ph: () => 0 },
+      { f: path(xa, xb, yc - d, yc - d), amp: Math.SQRT1_2, ph: u => p1 * u },
+      { f: path(xa, xb, yc + d, yc + d), amp: Math.SQRT1_2, ph: u => p2 * u },
+      { f: path(xb, xm, yc - d, cx ? yc - d * 0.18 : yc), amp: Math.SQRT1_2, ph: () => p1 },
+      { f: path(xb, xm, yc + d, cx ? yc + d * 0.18 : yc), amp: Math.SQRT1_2, ph: () => p2 },
+    ];
+    if (cx) {
+      segs.push({ f: path(xm, x1, yc - d * 0.18, yc - d * 0.6), amp: Math.abs(a1), ph: () => (p1 + p2) / 2 + (a1 < 0 ? PI : 0), out: 1 });
+      segs.push({ f: path(xm, x1, yc + d * 0.18, yc + d * 0.6), amp: Math.abs(a2), ph: () => (p1 + p2) / 2 + PI / 2 + (a2 < 0 ? PI : 0), out: 2 });
+    } else segs.push({ f: path(xm, x1, yc, yc), amp: Math.abs(a1), ph: () => (p1 + p2) / 2 + (a1 < 0 ? PI : 0), out: 1 });
+    // electrodes
+    const eh = fs * 0.9;
+    const elec = (yy, v, name) => {
+      ctx.fillStyle = pal.warm; ctx.globalAlpha = 0.25 + 0.6 * Math.min(1, Math.abs(v) / (c.Vpi * 1.5)); ctx.fillRect(xa + fs, yy, xb - xa - 2 * fs, eh); ctx.globalAlpha = 1;
+      ctx.strokeStyle = pal.warm; ctx.lineWidth = 1.5; ctx.strokeRect(xa + fs, yy, xb - xa - 2 * fs, eh);
+      label(ctx, `${name} = ${fmt(v, 2)} V`, (xa + xb) / 2, yy + eh / 2, 'center', 'middle', pal.ink, `700 ${fs * 0.75}px ${monoFont()}`, pal);
+    };
+    const v1 = c.pp ? V / 2 : V, v2 = c.pp ? -V / 2 : 0;
+    elec(yc - d - eh * 2.2, v1, 'V₁'); elec(yc + d + eh * 1.2, v2, 'V₂');
+    // waveguides
+    ctx.lineCap = 'round';
+    for (const sg of segs) { ctx.strokeStyle = pal.core; ctx.lineWidth = fs * 0.9; ctx.beginPath(); for (let i = 0; i <= 40; i++) { const [x, y] = sg.f(i / 40); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); }
+    // radiated light at the Y-junction
+    if (!cx && a2 * a2 > 0.01) {
+      const I2 = a2 * a2;
+      for (let k = 0; k < 26; k++) {
+        const u = ((t * 0.6 + k / 26) % 1), ang = (k % 2 ? 1 : -1) * (0.25 + 0.5 * ((k * 0.37) % 1));
+        const r = u * W * 0.13, x = xm + r * Math.cos(ang), y = yc + r * Math.sin(ang) * 2.2;
+        ctx.fillStyle = pal.ray; ctx.globalAlpha = I2 * (1 - u) * 0.8; ctx.beginPath(); ctx.arc(x, y, fs * 0.22, 0, 2 * PI); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      label(ctx, `radiated into the substrate: ${fmt(I2 * 100, 0)} %`, xm + W * 0.02, yc + d * 1.55, 'left', 'middle', pal.ray, `700 ${fs * 0.75}px ${getFont()}`, pal);
+    }
+    // optical field: oscillation along each path
+    const k0 = 2 * PI / (fs * 2.4), w0 = 2 * PI * 1.2;
+    let sacc = 0; const lens = segs.map(sg => { let L = 0, [px, py] = sg.f(0); for (let i = 1; i <= 40; i++) { const [x, y] = sg.f(i / 40); L += Math.hypot(x - px, y - py); px = x; py = y; } return L; });
+    const base = [0, lens[0], lens[0], lens[0] + lens[1], lens[0] + lens[2], lens[0] + lens[1] + lens[3], lens[0] + lens[2] + lens[4], lens[0] + lens[1] + lens[3] + lens[5], lens[0] + lens[1] + lens[3] + lens[5]];
+    segs.forEach((sg, j) => {
+      const A = sg.amp * fs * 0.55; if (A < 0.3) return;
+      ctx.strokeStyle = pal.ray; ctx.lineWidth = 1.8; ctx.globalAlpha = 0.35 + 0.65 * sg.amp; ctx.beginPath();
+      const N = 160;
+      for (let i = 0; i <= N; i++) {
+        const u = i / N, [x, y] = sg.f(u), [xn, yn] = sg.f(Math.min(1, u + 1e-3)), [xp, yp] = sg.f(Math.max(0, u - 1e-3));
+        const tx = xn - xp, ty = yn - yp, tl = Math.hypot(tx, ty) || 1, nx = -ty / tl, ny = tx / tl;
+        const s = base[j] + lens[j] * u, off = A * Math.sin(k0 * s - w0 * t + sg.ph(u));
+        const X2 = x + nx * off, Y2 = y + ny * off; i ? ctx.lineTo(X2, Y2) : ctx.moveTo(X2, Y2);
+      }
+      ctx.stroke(); ctx.globalAlpha = 1;
+    });
+    // output labels
+    const outLbl = (y, I, name) => {
+      ctx.fillStyle = pal.ray; ctx.globalAlpha = 0.15 + 0.85 * I; ctx.beginPath(); ctx.arc(x1 + fs * 1.2, y, fs * (0.4 + 0.6 * I), 0, 2 * PI); ctx.fill(); ctx.globalAlpha = 1;
+      label(ctx, `${name} ${fmt(I * 100, 0)} %`, x1 + fs * 2.6, y, 'left', 'middle', pal.ray, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    };
+    if (cx) { outLbl(yc - d * 0.6, a1 * a1, 'port 1'); outLbl(yc + d * 0.6, a2 * a2, 'port 2'); }
+    else outLbl(yc, a1 * a1, 'out');
+    label(ctx, 'in', x0, yc - fs * 1.4, 'left', 'bottom', pal.muted, `700 ${fs * 0.8}px ${getFont()}`, pal, false);
+    // phasors
+    const R = Math.min(H * 0.1, W * 0.045), pcx = W * 0.1, pcy = H * 0.16 + R * 1.3;
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.72}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('arm phasors', pcx + R * 1.3, pcy - fs * 0.6);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(pcx, pcy, R, 0, 2 * PI); ctx.stroke();
+    const arrow = (ang, len, col, lw) => { const xe = pcx + len * Math.cos(ang), ye = pcy - len * Math.sin(ang); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(pcx, pcy); ctx.lineTo(xe, ye); ctx.stroke(); const hl = fs * 0.4; ctx.beginPath(); ctx.moveTo(xe, ye); ctx.lineTo(xe - hl * Math.cos(ang - 0.4), ye + hl * Math.sin(ang - 0.4)); ctx.lineTo(xe - hl * Math.cos(ang + 0.4), ye + hl * Math.sin(ang + 0.4)); ctx.fill(); };
+    arrow(PI / 2 + p1, R * 0.95, pal.accent, 2); arrow(PI / 2 + p2, R * 0.95, pal.warm, 2);
+    if (Math.abs(a1) > 0.05) arrow(PI / 2 + (p1 + p2) / 2 + (a1 < 0 ? PI : 0), R * 0.95 * Math.abs(a1), pal.ray, 3);
+    ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.fillText(`Δφ = ${fmtPh(dp)}`, pcx + R * 1.3, pcy + fs * 0.6);
+    ctx.restore();
+  }
+
+  // ---------- transfer curve ----------
+  function drawTF(ctx, X, Y, W, H, c, t, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const B = { x0: fs * 3.8, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Transfer curve', fs * 0.8, fs * 0.6);
+    const vmax = Math.max(2.2 * c.Vpi, c.Vb + c.Vs + 0.5);
+    const { sx, sy } = axes(ctx, B, [0, vmax], [0, 1], pal, fs, 'Voltage V (V)', 'P_out / P_in', H, { yStep: 0.25, yf: v => v.toFixed(2) });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0 - 2, B.x1 - B.x0, B.y1 - B.y0 + 4); ctx.clip();
+    // V_π marks
+    for (let m = 1; m * c.Vpi <= vmax; m++) { ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.6; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(sx(m * c.Vpi), B.y0); ctx.lineTo(sx(m * c.Vpi), B.y1); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; }
+    // swing band
+    if (c.sig !== 'off' && c.Vs > 0) { ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.12; ctx.fillRect(sx(c.Vb - c.Vs), B.y0, sx(c.Vb + c.Vs) - sx(c.Vb - c.Vs), B.y1 - B.y0); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = pal.ray; ctx.lineWidth = 2.6; ctx.beginPath();
+    for (let i = 0; i <= 300; i++) { const v = vmax * i / 300; i ? ctx.lineTo(sx(v), sy(c.T(v))) : ctx.moveTo(sx(v), sy(c.T(v))); }
+    ctx.stroke();
+    // highlight the part of the curve the drive uses
+    if (c.sig !== 'off' && c.Vs > 0) { ctx.strokeStyle = pal.accent; ctx.lineWidth = 4.5; ctx.beginPath(); for (let i = 0; i <= 100; i++) { const v = c.Vb - c.Vs + 2 * c.Vs * i / 100; i ? ctx.lineTo(sx(v), sy(c.T(v))) : ctx.moveTo(sx(v), sy(c.T(v))); } ctx.stroke(); }
+    ctx.restore();
+    // bias and instantaneous points
+    ctx.strokeStyle = pal.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx(c.Vb), sy(c.Tb), fs * 0.45, 0, 2 * PI); ctx.stroke();
+    const V = c.vAt(t); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(sx(V), sy(c.T(V)), fs * 0.38, 0, 2 * PI); ctx.fill();
+    if (sx(c.Vpi) < B.x1) label(ctx, 'V_π', sx(c.Vpi), B.y0 - fs * 0.2, 'center', 'bottom', pal.muted, `700 ${fs * 0.78}px ${monoFont()}`, pal, false);
+    if (c.quad) label(ctx, 'quadrature', sx(c.Vb) + fs * 0.7, sy(c.Tb), 'left', 'middle', pal.ok, `700 ${fs * 0.78}px ${getFont()}`, pal);
+    ctx.restore();
+  }
+
+  // ---------- drive and output against time ----------
+  function drawWF(ctx, X, Y, W, H, c, t, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Drive in, light out', fs * 0.8, fs * 0.6);
+    const x0 = fs * 3.6, x1 = W - fs * 1.2, span = 2 * T_SIG;
+    const top = { y0: fs * 2.6, y1: H * 0.42 }, bot = { y0: H * 0.5, y1: H - fs * 2.6 };
+    const vlo = Math.min(c.Vb - c.Vs, 0), vhi = Math.max(c.Vb + c.Vs, c.Vpi) * 1.05;
+    const xt = u => x0 + (x1 - x0) * u;
+    // frames
+    for (const b of [top, bot]) { ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x0, b.y0, x1 - x0, b.y1 - b.y0); }
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.75}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText('V(t)', x0 - fs * 0.4, (top.y0 + top.y1) / 2); ctx.fillText('P(t)', x0 - fs * 0.4, (bot.y0 + bot.y1) / 2);
+    const yV = v => top.y1 - (top.y1 - top.y0) * (v - vlo) / (vhi - vlo), yP = p => bot.y1 - (bot.y1 - bot.y0) * p * 0.92;
+    // V_π line on drive
+    ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.moveTo(x0, yV(c.Vpi)); ctx.lineTo(x1, yV(c.Vpi)); ctx.stroke(); ctx.setLineDash([]);
+    label(ctx, 'V_π', x1 - fs * 0.3, yV(c.Vpi), 'right', 'middle', pal.muted, `${fs * 0.7}px ${monoFont()}`, pal);
+    const tr = (fy, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); for (let i = 0; i <= 300; i++) { const u = i / 300, tt = t - span + span * u; const y = fy(tt); i ? ctx.lineTo(xt(u), y) : ctx.moveTo(xt(u), y); } ctx.stroke(); };
+    tr(tt => yV(c.vAt(tt)), pal.accent, 2.2);
+    tr(tt => yP(c.T(c.vAt(tt))), pal.ray, 2.6);
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.75}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('time →', (x0 + x1) / 2, H - fs * 1.9);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+    const info = c.sig === 'sine' && c.Vs > 0 ? `2nd ${fmtDb(c.h2)} · 3rd ${fmtDb(c.h3)}` : c.sig === 'bits' ? `extinction ${isFinite(c.er) ? fmt(c.er, 1) + ' dB' : '∞'}` : '';
+    if (info) label(ctx, info, x1, bot.y0 - fs * 0.35, 'right', 'bottom', pal.ink, `700 ${fs * 0.75}px ${monoFont()}`, pal, false);
+    ctx.restore();
+  }
+
+    function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function sizeCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  const ease = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+  const CREDIT = 'Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov';
+  // right-hand text column of the presentation frame
+  function demoPanel(ctx, W, H, px, pw, title, laws, rows, status, cap, foot, pal) {
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(title, px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 74}px ${monoFont()}`;
+    laws.forEach((l, i) => { ctx.fillText(l, px, y); y += W / 74 * (i === laws.length - 1 ? 2.0 : 1.5); });
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    if (status) { ctx.fillStyle = status[1]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`; ctx.fillText(status[0], px, y); y += W / 60 * 1.9; }
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, foot, px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(CREDIT, W - W * 0.02, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+
+  // ---------- presentation mode ----------
+  const DEMO_DURATION = 64;
+  const CAPTIONS = [
+    [0, 7, 'Split, shift, recombine', 'At 0 V both arms carry the same phase. They add in step at the output, and all the light comes out.'],
+    [7, 17, 'V_π: from bright to dark', 'Raising the voltage shifts the phase of the arms apart. At V = V_π the phase difference is π, the arms cancel, and the output goes dark.'],
+    [17, 25, 'Dark does not mean lost', 'With a 2×2 coupler the light leaves through the second port, P₂ = P_in sin²(Δφ/2). On a Y-junction it radiates into the chip instead.'],
+    [25, 36, 'Bias at quadrature', 'At V_b = V_π/2 the output sits at half power, where the curve is steepest and straightest. A small sine comes out as a clean sine.'],
+    [36, 46, 'Drive too hard', 'A swing of half V_π reaches the bends of the cos² curve. The output flattens, and odd harmonics appear.'],
+    [46, 54, 'Bias off quadrature', 'Move the bias away from V_π/2 and the curve is no longer symmetric about it. Even harmonics appear too.'],
+    [54, 64, 'Digital data: use the whole swing', 'For on–off keying bias at V_π/2 and swing ±V_π/2. The light goes fully on and off, and push-pull drive keeps it free of chirp.'],
+  ];
+  function demoState(t) {
+    const st = { Vb: 0, Vs: 0, Vpi: 4, sig: 'off', pp: true, cx: false };
+    if (t < 7) st.Vb = 0;
+    else if (t < 17) st.Vb = 4 * ease((t - 7) / 7);
+    else if (t < 25) { st.cx = true; st.Vb = t < 21 ? 4 : 4 - 2 * ease((t - 21) / 3); }
+    else if (t < 36) { st.Vb = 2; st.sig = 'sine'; st.Vs = 0.6 * ease((t - 25) / 2); }
+    else if (t < 46) { st.Vb = 2; st.sig = 'sine'; st.Vs = 0.6 + 1.4 * ease((t - 36) / 4); }
+    else if (t < 54) { st.sig = 'sine'; st.Vs = 1.2; st.Vb = 2 - 1.0 * ease((t - 46) / 3); }
+    else { st.sig = 'bits'; st.Vb = 2; st.Vs = 2; }
+    return st;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), c = mzm(st);
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
+    drawDev(ctx, 0, 0, sw, sh, c, t, { fontSize: W / 80 });
+    const bw = (sw - pad) / 2;
+    drawTF(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, t, { fontSize: W / 100 });
+    drawWF(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, t, { fontSize: W / 100 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    const V = c.vAt(t);
+    const rows = [['Voltage V', `${fmt(V, 2)} V`], ['Half-wave V_π', `${fmt(st.Vpi, 1)} V`], ['Phase difference', fmtPh(PI * V / st.Vpi)], ['Output P_out/P_in', `${fmt(c.T(V) * 100, 0)} %`]];
+    const cap = CAPTIONS.find(cc => t >= cc[0] && t < cc[1]) || CAPTIONS[CAPTIONS.length - 1];
+    demoPanel(ctx, W, H, px, pw, 'Mach–Zehnder modulator', ['P_out = P_in cos²(Δφ/2)', 'Δφ = π V / V_π'], rows, null, cap, 'Ideal lithium niobate modulator, push-pull electrodes, V_π = 4 V.', pal);
+  }
+
+  // ---------- app wiring ----------
+  const dc = $('dev'), tc = $('tf'), wc = $('wf');
+  const state = { Vb: 2, Vs: 0.6, Vpi: 4, sig: 'sine', pp: true, cx: false };
+  let cur = mzm(state), simT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function syncUI() {
+    const c = cur = mzm(state);
+    $('vb').value = state.Vb; $('vs').value = state.Vs; $('vpi').value = state.Vpi;
+    $('vbOut').textContent = `${fmt(state.Vb, 2)} V`; $('vsOut').textContent = `${fmt(state.Vs, 2)} V`; $('vpiOut').textContent = `${fmt(state.Vpi, 1)} V`;
+    $('vbHint').textContent = `V_b / V_π = ${fmt(state.Vb / state.Vpi, 2)}${c.quad ? ' (quadrature)' : ''}`;
+    $('vs').disabled = state.sig === 'off';
+    const s = $('status');
+    if (state.sig === 'off') { s.className = 'status bad'; s.innerHTML = `DC only<small>Slide the bias to trace the cos² curve; V_π takes the output from bright to dark.</small>`; }
+    else if (state.sig === 'bits') { const full = c.pmin < 0.02 && c.pmax > 0.98; s.className = full ? 'status ok' : 'status hot'; s.innerHTML = full ? `Full on–off keying<small>The swing covers bright to dark, ${isFinite(c.er) ? fmt(c.er, 0) + ' dB' : 'infinite'} extinction.</small>` : `Partial swing<small>The bits do not reach full on and off: extinction ${isFinite(c.er) ? fmt(c.er, 1) + ' dB' : '∞'}. Aim for V_b = V_π/2, V_s = V_π/2.</small>`; }
+    else { const lin = c.h2 < -30 && c.h3 < -30; s.className = lin ? 'status ok' : 'status hot'; s.innerHTML = lin ? `Linear<small>Harmonics below −30 dBc: the output follows the drive.</small>` : `Distorted<small>${!c.quad ? 'Off quadrature: even harmonics appear. ' : ''}${c.h3 > -30 ? 'The swing reaches the bends of the curve.' : ''}</small>`; }
+    $('rDp').textContent = fmtPh(c.dphi); $('rT').textContent = `${fmt(c.Tb * 100, 1)} %`;
+    $('rLostL').textContent = state.cx ? 'Second port P₂/P_in' : 'Radiated into the chip'; $('rLost').textContent = `${fmt((1 - c.Tb) * 100, 1)} %`;
+    $('rSw').textContent = state.sig === 'off' ? '—' : `${fmt(c.pmin * 100, 0)} – ${fmt(c.pmax * 100, 0)} %`;
+    $('rEr').textContent = state.sig === 'off' ? '—' : isFinite(c.er) ? `${fmt(c.er, 1)} dB` : '∞';
+    $('rH2').textContent = state.sig === 'sine' ? fmtDb(c.h2) : '—'; $('rH3').textContent = state.sig === 'sine' ? fmtDb(c.h3) : '—';
+    $('rCh').textContent = state.sig === 'off' ? '—' : state.pp ? '0 (push-pull)' : `${fmtPh(c.chirp)} p-p`;
+  }
+  function draw(t) {
+    let { w, h, dpr } = sizeCanvas(dc), ctx = dc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDev(ctx, 0, 0, w, h, cur, t);
+    ({ w, h, dpr } = sizeCanvas(tc)); ctx = tc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawTF(ctx, 0, 0, w, h, cur, t);
+    ({ w, h, dpr } = sizeCanvas(wc)); ctx = wc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawWF(ctx, 0, 0, w, h, cur, t);
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now; if (!reduced) simT += dt;
+    if (DEMO) { const { w, h, dpr } = sizeCanvas(dc); const ctx = dc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION); }
+    else draw(simT);
+    requestAnimationFrame(frame);
+  }
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); if (reduced) draw(simT); }); } };
+  const onInput = (id, key) => $(id).addEventListener('input', e => { state[key] = +e.target.value; later(); });
+  onInput('vb', 'Vb'); onInput('vs', 'Vs'); onInput('vpi', 'Vpi');
+  const seg = (ids, key, vals) => ids.forEach((id, i) => $(id).addEventListener('click', () => { state[key] = vals[i]; ids.forEach((j, k) => $(j).setAttribute('aria-pressed', String(k === i))); later(); }));
+  seg(['cY', 'cX'], 'cx', [false, true]); seg(['aPP', 'a1'], 'pp', [true, false]); seg(['sOff', 'sSin', 'sBit'], 'sig', ['off', 'sine', 'bits']);
+
+  window.mzDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(dc); const ctx = dc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, mzm, demoState };
+
+  syncUI();
+  if (reduced) draw(0.3);
+  if (!window.__noLoop) requestAnimationFrame(frame);
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

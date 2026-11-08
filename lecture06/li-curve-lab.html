@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>L–I Curve Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: L–I curve on top, electron/photon tanks and carrier clamping below, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* electrons, current */
+  --ray: #d8402a;     /* photons, light out */
+  --ok: #1d8a3a;
+  --warm: #c27a00;    /* temperature, spontaneous */
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --warm: #f0b03c; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --warm: #f0b03c; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+#li { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+#tank, #nI { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { #li { aspect-ratio: 4 / 3; } }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--muted); }
+.status.hot { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+body.demo #li { aspect-ratio: 16 / 9; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>L–I Curve Lab</h1>
+    <p>The rate equations trade electrons for photons: <span class="law">dP/dt = (G − 1/τ_p)P + R_sp</span> and <span class="law">dN/dt = I/q − N/τ_e − GP</span>, with <span class="law">G = G_N(N − N₀)</span>. Turn up the current and find the threshold, watch the carrier number clamp, and see what the facets and the temperature do to the output.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="li" aria-label="Output power against drive current, with the operating point marked"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Power axis">
+            <button id="sLin" aria-pressed="true">Linear</button>
+            <button id="sLog" aria-pressed="false">Log</button>
+          </div>
+          <div class="legend"><span><i style="background:var(--ray)"></i>output power</span><span><i style="background:var(--muted)"></i>at 25 °C, R = 0.31</span><span><i style="background:var(--accent)"></i>operating point</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="tank" aria-label="Electrons and photons as two tanks, with the flows between them"></canvas></div>
+        <div class="card scene"><canvas id="nI" aria-label="Carrier number against current: it rises, then clamps at threshold"></canvas></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="cur">Drive current I <output id="curOut"></output></label>
+          <input id="cur" type="range" min="0" max="100" step="0.1" value="30">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="rr">Facet reflectivity R (both) <output id="rrOut"></output></label>
+          <input id="rr" type="range" min="0.05" max="0.95" step="0.01" value="0.31">
+          <span class="hint">Cleaved facet: R = ((n − 1)/(n + 1))² ≈ 0.31</span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="ai">Internal loss α_int <output id="aiOut"></output></label>
+          <input id="ai" type="range" min="0" max="40" step="1" value="10">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="tt">Temperature T <output id="ttOut"></output></label>
+          <input id="tt" type="range" min="0" max="85" step="1" value="25">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="t0">Characteristic temperature T₀ <output id="t0Out"></output></label>
+          <input id="t0" type="range" min="30" max="150" step="1" value="60">
+          <span class="hint">I_th(T) = I_th(25 °C) · e^((T − 25)/T₀); InGaAsP: 50–70 K</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Mirror loss α_mir</dt><dd id="rAm"></dd>
+          <dt>Photon lifetime τ_p</dt><dd id="rTp"></dd>
+          <dt>Threshold carriers N_th</dt><dd id="rNth"></dd>
+          <dt>Threshold current I_th</dt><dd id="rIth"></dd>
+          <div class="sep"></div>
+          <dt>Carriers N / N_th</dt><dd id="rN"></dd>
+          <dt>Photons in cavity P</dt><dd id="rP"></dd>
+          <dt>Output power (front facet)</dt><dd id="rPo"></dd>
+          <div class="sep"></div>
+          <dt>Slope efficiency dP/dI</dt><dd id="rSl"></dd>
+          <dt>Differential efficiency η_d</dt><dd id="rEd"></dd>
+          <dt>External efficiency η_ext</dt><dd id="rEx"></dd>
+          <dt>Total efficiency η_tot</dt><dd id="rEt"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Steady state of the two rate equations of slide 67, solved exactly including spontaneous emission into the lasing mode, R_sp = β_sp N/τ_e with β_sp = 10⁻⁴. InGaAsP laser at 1550 nm: cavity 250 × 2 × 0.2 µm, Γ = 0.3, n_g = 3.4, differential gain 2.5 × 10⁻¹⁶ cm², transparency 10¹⁸ cm⁻³ (N₀ = 10⁸ electrons), τ_e = 2.2 ns, all injected electrons reach the active layer. Photon lifetime 1/τ_p = v_g(α_int + α_mir) with α_mir = (1/L) ln(1/R). Output from one facet: P_out = ½ ħω v_g α_mir P. Temperature enters through I_th ∝ e^(T/T₀): N₀ grows and the gain constant shrinks by the same factor, so the slope stays fixed (real lasers also lose some slope when hot). η_d = (q/ħω) dP_out/dI per facet, η_ext = (P_out/ħω)/(I/q), η_tot = P_out/(IV) with V = ħω/q + I · 5 Ω.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- physics: numbers of carriers and photons ----------
+  const Q = 1.602e-19, HW = 0.8 * 1.602e-19, VG = 2.998e10 / 3.4;     // J, J (1550 nm), cm/s
+  const LCM = 0.025, VOL = 250e-4 * 2e-4 * 0.2e-4, GAM = 0.3, AN = 2.5e-16, NT = 1e18, TAUE = 2.2e-9, BETA = 1e-4, RS = 5;
+  const GN0 = GAM * VG * AN / VOL, N00 = NT * VOL;                     // s⁻¹ per carrier, carriers
+  const I_MAX = 100;                                                   // mA
+  // st: { I (mA), R, ai (cm⁻¹), T (°C), T0 (K) }
+  function laser(st) {
+    const am = Math.log(1 / st.R) / LCM, tp = 1 / (VG * (st.ai + am));
+    const k = Math.exp((st.T - 25) / st.T0), GN = GN0 / k, N0 = N00 * k;
+    const Nth = N0 + 1 / (GN * tp), Ith = Q * Nth / TAUE * 1e3;        // mA
+    // steady state at current I: bisect on x = N/N_th
+    function solve(ImA) {
+      const I = ImA * 1e-3;
+      if (I <= 0) return { N: 0, P: 0 };
+      const at = x => { const N = x * Nth, G = GN * (N - N0), P = BETA * N / TAUE / (1 / tp - G); return { N, P, I: Q * (N / TAUE + G * P) }; };
+      let lo = 0, hi = 1 - 1e-15;
+      for (let i = 0; i < 90; i++) { const mid = (lo + hi) / 2; at(mid).I < I ? lo = mid : hi = mid; }
+      const r = at((lo + hi) / 2); return { N: r.N, P: r.P };
+    }
+    const pout = P => 0.5 * HW * VG * am * P;                           // W
+    const s = solve(st.I), Po = pout(s.P);
+    const dI = 0.05, Po2 = pout(solve(st.I + dI).P), slope = (Po2 - Po) / (dI * 1e-3);  // W/A
+    const V = HW / Q + st.I * 1e-3 * RS;
+    return { ...st, am, tp, k, GN, N0, Nth, Ith, solve, pout, N: s.N, P: s.P, Po, slope,
+      etaD: slope * Q / HW, etaExt: st.I > 0 ? (Po / HW) / (st.I * 1e-3 / Q) : 0, etaTot: st.I > 0 ? Po / (st.I * 1e-3 * V) : 0, V,
+      above: st.I > Ith * 1.02, near: Math.abs(st.I - Ith) <= Ith * 0.02 };
+  }
+  const curveCache = new Map();
+  function curve(c) {
+    const key = [c.R, c.ai, c.T, c.T0].join();
+    if (curveCache.has(key)) return curveCache.get(key);
+    const pts = [];
+    for (let i = 0; i <= 400; i++) { const I = I_MAX * i / 400, s = c.solve(I); pts.push({ I, Po: c.pout(s.P), x: s.N / c.Nth }); }
+    if (curveCache.size > 60) curveCache.clear();
+    curveCache.set(key, pts); return pts;
+  }
+  const REF = { R: 0.31, ai: 10, T: 25, T0: 60 };
+
+  // ---------- colors and text ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', warm: '#c27a00', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtP = w => w >= 1e-3 ? `${fmt(w * 1e3, w >= 0.01 ? 1 : 2)} mW` : w >= 1e-6 ? `${fmt(w * 1e6, w >= 1e-5 ? 1 : 2)} µW` : `${fmt(w * 1e9, 1)} nW`;
+  const fmtE = v => { if (!isFinite(v) || v <= 0) return '0'; const e = Math.floor(Math.log10(v)), m = v / 10 ** e; return `${m.toFixed(2)} × 10${sup(e)}`; };
+  const sup = n => String(n).split('').map(ch => '⁰¹²³⁴⁵⁶⁷⁸⁹'['0123456789'.indexOf(ch)] || (ch === '-' ? '⁻' : ch)).join('');
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    return { sx, sy };
+  }
+
+  // ---------- L–I curve ----------
+  // opts: { fontSize, log, upto (mA, draw curve only up to here), ref (bool) }
+  function drawLI(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const B = { x0: fs * 4.6, x1: W - fs * 1.4, y0: fs * 2.2, y1: H - fs * 3.2 };
+    const log = !!opts.log, PMAX = 30;                                    // mW
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const yr = log ? [-6, 2] : [0, PMAX];
+    const { sx, sy } = axes(ctx, B, [0, I_MAX], yr, pal, fs, 'Drive current I (mA)', log ? 'Output power (mW, log)' : 'Output power (mW)', H,
+      { xStep: 10, yStep: log ? 1 : 5, yf: log ? (v => v >= 0 ? String(10 ** v) : `10${sup(v)}`) : undefined });
+    const yOf = Po => log ? sy(Math.max(yr[0] - 0.5, Math.log10(Math.max(1e-12, Po * 1e3)))) : sy(Po * 1e3);
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    const pts = curve(c), upto = opts.upto ?? I_MAX;
+    // reference curve
+    const isRef = c.R === REF.R && c.ai === REF.ai && c.T === REF.T;
+    if (opts.ref !== false && !isRef) {
+      const rc = laser({ ...c, ...REF, T0: c.T0 }), rp = curve(rc);
+      ctx.strokeStyle = pal.muted; ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ctx.globalAlpha = 0.8; ctx.beginPath();
+      rp.forEach((p, i) => i ? ctx.lineTo(sx(p.I), yOf(p.Po)) : ctx.moveTo(sx(p.I), yOf(p.Po))); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    }
+    // threshold line
+    if (c.Ith < I_MAX) {
+      ctx.strokeStyle = pal.ok; ctx.lineWidth = 1.6; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(sx(c.Ith), B.y0); ctx.lineTo(sx(c.Ith), B.y1); ctx.stroke(); ctx.setLineDash([]);
+    }
+    // spontaneous region shading
+    ctx.fillStyle = pal.warm; ctx.globalAlpha = 0.07; ctx.fillRect(B.x0, B.y0, Math.max(0, Math.min(sx(c.Ith), B.x1) - B.x0), B.y1 - B.y0); ctx.globalAlpha = 1;
+    // the curve
+    ctx.strokeStyle = pal.ray; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.beginPath();
+    let started = false;
+    for (const p of pts) { if (p.I > upto + 1e-9) break; started ? ctx.lineTo(sx(p.I), yOf(p.Po)) : ctx.moveTo(sx(p.I), yOf(p.Po)); started = true; }
+    if (upto < I_MAX && upto > 0) { const s = c.solve(upto); ctx.lineTo(sx(upto), yOf(c.pout(s.P))); }
+    ctx.stroke();
+    ctx.restore();
+    // labels
+    if (c.Ith < I_MAX) label(ctx, `I_th = ${fmt(c.Ith, 1)} mA`, sx(c.Ith) + fs * 0.4, B.y0 + fs * 0.4, 'left', 'top', pal.ok, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    if (c.Ith > fs * 0.5 && sx(c.Ith) - B.x0 > fs * 8) label(ctx, 'spontaneous only (LED-like)', (B.x0 + Math.min(sx(c.Ith), B.x1)) / 2, log ? sy(-5.3) : B.y1 - fs * 1.4, 'center', 'middle', pal.warm, `700 ${fs * 0.75}px ${getFont()}`, pal);
+    // operating point
+    const op = opts.op ?? c.I;
+    if (op <= upto + 1e-9) {
+      const s = c.solve(op), x = sx(op), y = Math.max(B.y0, Math.min(B.y1, yOf(c.pout(s.P))));
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.6; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x, B.y1); ctx.lineTo(x, y); ctx.lineTo(B.x0, y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+      ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(x, y, fs * 0.42, 0, 2 * PI); ctx.fill();
+      ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.stroke();
+      const Po = c.pout(s.P);
+      label(ctx, `${fmt(op, 1)} mA → ${fmtP(Po)}`, x + (x > (B.x0 + B.x1) * 0.6 ? -fs * 0.8 : fs * 0.8), y - fs * 0.9, x > (B.x0 + B.x1) * 0.6 ? 'right' : 'left', 'bottom', pal.accent, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    }
+    // slope annotation
+    if (c.Ith < I_MAX * 0.8 && !log) {
+      const I1 = Math.min(I_MAX - 5, c.Ith + (I_MAX - c.Ith) * 0.62), P1 = c.pout(c.solve(I1).P);
+      if (P1 * 1e3 < PMAX * 0.92 && upto >= I1) label(ctx, `slope ${fmt(c.slope > 0 && c.above ? c.slope : (c.pout(c.solve(I1 + 1).P) - P1) / 1e-3, 2)} W/A`, sx(I1) + fs * 0.6, yOf(P1) + fs * 0.6, 'left', 'top', pal.ray, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    }
+    ctx.restore();
+  }
+
+  // ---------- carrier clamping: N/N_th against I ----------
+  function drawNI(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const B = { x0: fs * 4.2, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Carriers clamp at threshold', fs * 0.8, fs * 0.6);
+    const { sx, sy } = axes(ctx, B, [0, I_MAX], [0, 1.2], pal, fs, 'Current I (mA)', 'N / N_th', H, { xStep: 20, yStep: 0.2, yf: v => v.toFixed(1) });
+    const pts = curve(c), upto = opts.upto ?? I_MAX;
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.2; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(B.x0, sy(1)); ctx.lineTo(B.x1, sy(1)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.6; ctx.beginPath(); let st = false;
+    for (const p of pts) { if (p.I > upto + 1e-9) break; st ? ctx.lineTo(sx(p.I), sy(p.x)) : ctx.moveTo(sx(p.I), sy(p.x)); st = true; }
+    ctx.stroke();
+    const op = opts.op ?? c.I;
+    if (op <= upto + 1e-9) { const s = c.solve(op); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(sx(op), sy(s.N / c.Nth), fs * 0.38, 0, 2 * PI); ctx.fill(); }
+    ctx.restore();
+    label(ctx, 'N_th: gain = loss', B.x1 - fs * 0.3, sy(1) - fs * 0.4, 'right', 'bottom', pal.muted, `700 ${fs * 0.78}px ${getFont()}`, pal);
+    ctx.restore();
+  }
+
+  // ---------- two tanks: electrons and photons with their flows ----------
+  function drawTank(ctx, X, Y, W, H, c, t, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Where the electrons go', fs * 0.8, fs * 0.6);
+    const I = c.I * 1e-3, G = c.GN * (c.N - c.N0);
+    const rIn = I / Q, rSp = c.N / TAUE, rSt = Math.max(0, G * c.P), rOut = c.P / c.tp * (c.am / (c.am + c.ai)), rInt = c.P / c.tp * (c.ai / (c.am + c.ai));
+    const tw = W * 0.18, th = H * 0.46, ty = H * 0.32;
+    const ex = W * 0.14, px = W * 0.54;
+    // tanks
+    const tank = (x, lvl, col, name, val) => {
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(x, ty, tw, th);
+      ctx.fillStyle = col; ctx.globalAlpha = 0.25; const h = th * Math.max(0, Math.min(1, lvl)); ctx.fillRect(x + 2, ty + th - h, tw - 4, h); ctx.globalAlpha = 1;
+      ctx.fillStyle = col; ctx.font = `700 ${fs * 0.9}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(name, x + tw / 2, ty + th + fs * 0.4);
+      ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.75}px ${monoFont()}`; ctx.fillText(val, x + tw / 2, ty + th + fs * 1.5);
+    };
+    tank(ex, c.N / c.Nth / 1.15, pal.accent, 'Electrons N', `${fmt(c.N / c.Nth, 3)} N_th`);
+    tank(px, (Math.log10(Math.max(1, c.P)) - 1) / 5, pal.ray, 'Photons P', fmtE(c.P));
+    // N_th mark
+    const yth = ty + th - th / 1.15; ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(ex - fs * 0.4, yth); ctx.lineTo(ex + tw + fs * 0.4, yth); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.7}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('N_th', ex - fs * 0.5, yth);
+    // flows: width ∝ rate (normalized to the input), dots move along
+    const ref = Math.max(rIn, 1e9);
+    const flow = (x0, y0, x1, y1, rate, col, name) => {
+      const f = Math.min(1, rate / ref), w = 1 + fs * 0.7 * Math.sqrt(f);
+      ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.5 * Math.sqrt(f); ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+      const a = Math.atan2(y1 - y0, x1 - x0), hl = fs * 0.6 + w;
+      ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - hl * Math.cos(a - 0.45), y1 - hl * Math.sin(a - 0.45)); ctx.lineTo(x1 - hl * Math.cos(a + 0.45), y1 - hl * Math.sin(a + 0.45)); ctx.fill();
+      ctx.globalAlpha = 1;
+      const nd = Math.round(10 * Math.sqrt(f));
+      for (let i = 0; i < nd; i++) { const u = ((t * 0.8 + i / Math.max(1, nd)) % 1); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x0 + (x1 - x0) * u * 0.9, y0 + (y1 - y0) * u * 0.9, Math.max(1.5, w * 0.35), 0, 2 * PI); ctx.fill(); }
+      if (name) label(ctx, name, (x0 + x1) / 2, (y0 + y1) / 2 - w / 2 - fs * 0.25, 'center', 'bottom', col, `700 ${fs * 0.72}px ${getFont()}`, pal);
+    };
+    flow(ex + tw / 2, ty - fs * 3.0, ex + tw / 2, ty - 2, rIn, pal.accent, '');
+    label(ctx, `pump I/q`, ex + tw / 2 + fs * 0.6, ty - fs * 2.2, 'left', 'middle', pal.accent, `700 ${fs * 0.72}px ${getFont()}`, pal);
+    flow(ex + tw + 2, ty + th * 0.35, px - 2, ty + th * 0.35, rSt, pal.ray, 'stimulated GP');
+    flow(ex + tw * 0.3, ty + th + fs * 2.6, ex - fs * 1.6, H - fs * 0.6, rSp, pal.warm, '');
+    label(ctx, 'spontaneous N/τ_e', ex + tw * 0.35, H - fs * 1.1, 'left', 'middle', pal.warm, `700 ${fs * 0.72}px ${getFont()}`, pal);
+    flow(px + tw + 2, ty + th * 0.5, W - fs * 0.5, ty + th * 0.5, rOut, pal.ray, '');
+    label(ctx, 'out of the mirrors', W - fs * 0.5, ty + th * 0.5 - fs * 1.2, 'right', 'bottom', pal.ray, `700 ${fs * 0.72}px ${getFont()}`, pal);
+    flow(px + tw / 2, ty + th + fs * 2.6, px + tw / 2, H - fs * 0.3, rInt, pal.muted, '');
+    label(ctx, 'internal loss', px + tw / 2 + fs * 0.5, H - fs * 1.1, 'left', 'middle', pal.muted, `700 ${fs * 0.72}px ${getFont()}`, pal);
+    ctx.restore();
+  }
+
+  // ---------- presentation mode ----------
+  const ease = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+  const DEMO_DURATION = 58;
+  const CAPTIONS = [
+    [0, 5, 'No current, no light', 'The chip is a forward-biased PIN diode. Electrons pumped into the active layer either recombine or are turned into photons.'],
+    [5, 10, 'Below threshold: an LED', 'Electrons recombine spontaneously in every direction. Only a tiny fraction lands in the laser mode, so the output is weak.'],
+    [10, 14, 'Threshold: gain equals loss', 'At N = N_th the stimulated gain matches the photon loss, G_N(N_th − N₀) = 1/τ_p. The current that holds N there is I_th = qN_th/τ_e.'],
+    [14, 22, 'Above threshold: N clamps', 'N stays at N_th. Every extra electron becomes a photon, so the power grows linearly with I − I_th.'],
+    [22, 37, 'Lower the facet reflectivity', 'R from 0.31 to 0.08: more light leaves through the mirrors. The threshold rises, but so does the slope, because the mirrors take a larger share of the photons.'],
+    [37, 52, 'Heat the laser', 'From 25 to 75 °C with T₀ = 60 K the threshold grows by e^(50/60) ≈ 2.3. At a fixed 40 mA the output falls sharply.'],
+    [52, 58, 'Hold the temperature', 'That is why a telecom laser module sits on a thermistor and a thermoelectric cooler: the bias point stays put.'],
+  ];
+  function demoState(t) {
+    const st = { I: 0, R: 0.31, ai: 10, T: 25, T0: 60, upto: 0 };
+    if (t < 5) { st.I = 0; st.upto = 0; }
+    else if (t < 20) { st.I = 60 * ease((t - 5) / 15); st.upto = st.I; }
+    else { st.I = 60; st.upto = I_MAX; }
+    if (t >= 22 && t < 37) { const u = t < 28 ? ease((t - 22) / 6) : t < 31 ? 1 : 1 - ease((t - 31) / 6); st.R = 0.31 - 0.23 * u; }
+    if (t >= 37) { st.I = 60 - 20 * ease((t - 37) / 2); const u = t < 50 ? ease((t - 39) / 11) : 1; st.T = 25 + 50 * u; }
+    return st;
+  }
+  function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), c = laser(st);
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
+    drawLI(ctx, 0, 0, sw, sh, c, { fontSize: W / 80, upto: st.upto });
+    const bw = (sw - pad) / 2;
+    drawTank(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, t, { fontSize: W / 100 });
+    drawNI(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100, upto: st.upto });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('The L–I curve', px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 74}px ${monoFont()}`;
+    ctx.fillText('I_th = q N_th / τ_e', px, y); y += W / 74 * 1.5;
+    ctx.fillText('P_out ∝ (α_mir/α_tot)(I − I_th)', px, y); y += W / 74 * 2.0;
+    const rows = [['Current I', `${fmt(st.I, 1)} mA`], ['Facets R', fmt(st.R, 2)], ['Temperature', `${fmt(st.T, 0)} °C`], ['Threshold I_th', `${fmt(c.Ith, 1)} mA`], ['Output power', fmtP(c.Po)]];
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    ctx.fillStyle = c.above ? pal.ray : c.near ? pal.ok : pal.muted; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`;
+    ctx.fillText(c.above ? '● Lasing' : c.near ? '● At threshold' : '● Below threshold', px, y); y += W / 60 * 1.9;
+    const cap = CAPTIONS.find(cc => t >= cc[0] && t < cc[1]) || CAPTIONS[CAPTIONS.length - 1];
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, 'InGaAsP laser at 1550 nm, L = 250 µm, α_int = 10 cm⁻¹, τ_e = 2.2 ns. Dashed: 25 °C, R = 0.31.', px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov', W - pad, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+  // ---------- app wiring ----------
+  const lc = $('li'), tc = $('tank'), nc = $('nI');
+  const state = { I: 30, R: 0.31, ai: 10, T: 25, T0: 60, log: false };
+  let cur = laser(state), dirty = true, simT = 0, last = performance.now();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  function syncUI() {
+    const c = cur = laser(state);
+    $('cur').value = state.I; $('rr').value = state.R; $('ai').value = state.ai; $('tt').value = state.T; $('t0').value = state.T0;
+    $('curOut').textContent = `${fmt(state.I, 1)} mA`; $('rrOut').textContent = fmt(state.R, 2); $('aiOut').textContent = `${fmt(state.ai, 0)} cm⁻¹`;
+    $('ttOut').textContent = `${fmt(state.T, 0)} °C`; $('t0Out').textContent = `${fmt(state.T0, 0)} K`;
+    const s = $('status');
+    if (c.near) { s.className = 'status ok'; s.innerHTML = `At threshold<small>Gain equals loss. A little more current and stimulated emission takes over.</small>`; }
+    else if (!c.above) { s.className = 'status bad'; s.innerHTML = `Below threshold<small>Spontaneous emission only, like an LED. Threshold at ${fmt(c.Ith, 1)} mA.</small>`; }
+    else { s.className = 'status hot'; s.innerHTML = `Lasing<small>N is clamped at N_th; the ${fmt(state.I - c.Ith, 1)} mA above threshold go into photons.</small>`; }
+    $('rAm').textContent = `${fmt(c.am, 1)} cm⁻¹`; $('rTp').textContent = `${fmt(c.tp * 1e12, 2)} ps`;
+    $('rNth').textContent = fmtE(c.Nth); $('rIth').textContent = `${fmt(c.Ith, 1)} mA`;
+    $('rN').textContent = fmt(c.N / c.Nth, 4); $('rP').textContent = fmtE(c.P); $('rPo').textContent = fmtP(c.Po);
+    $('rSl').textContent = `${fmt(c.slope, 3)} W/A`; $('rEd').textContent = `${fmt(c.etaD * 100, 1)} %`;
+    $('rEx').textContent = `${fmt(c.etaExt * 100, 1)} %`; $('rEt').textContent = `${fmt(c.etaTot * 100, 1)} %`;
+    dirty = true;
+  }
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now; simT += dt;
+    if (DEMO) {
+      const { w, h, dpr } = sizeCanvas(lc); const ctx = lc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION);
+    } else {
+      let { w, h, dpr } = sizeCanvas(lc), ctx;
+      if (dirty) { ctx = lc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawLI(ctx, 0, 0, w, h, cur, { log: state.log });
+        ({ w, h, dpr } = sizeCanvas(nc)); ctx = nc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawNI(ctx, 0, 0, w, h, cur); }
+      if (dirty || !reduced) { ({ w, h, dpr } = sizeCanvas(tc)); ctx = tc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawTank(ctx, 0, 0, w, h, cur, reduced ? 0.3 : simT); }
+      dirty = false;
+    }
+    requestAnimationFrame(frame);
+  }
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  const onInput = (id, key) => $(id).addEventListener('input', e => { state[key] = +e.target.value; later(); });
+  onInput('cur', 'I'); onInput('rr', 'R'); onInput('ai', 'ai'); onInput('tt', 'T'); onInput('t0', 'T0');
+  function setLog(v) { state.log = v; $('sLin').setAttribute('aria-pressed', String(!v)); $('sLog').setAttribute('aria-pressed', String(v)); dirty = true; }
+  $('sLin').addEventListener('click', () => setLog(false));
+  $('sLog').addEventListener('click', () => setLog(true));
+  window.addEventListener('resize', () => { dirty = true; });
+  new MutationObserver(() => { dirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { dirty = true; });
+
+  window.liDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(lc); const ctx = lc.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, laser, demoState };
+
+  syncUI();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

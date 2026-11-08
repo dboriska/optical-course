@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Direct Modulation Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a four-trace scope on top (current, carriers, light, chirp), modulation response and eye diagram below, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* electrons, current */
+  --ray: #d8402a;     /* photons, light out */
+  --ok: #1d8a3a;
+  --warm: #c27a00;    /* temperature, spontaneous */
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --warm: #f0b03c; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --warm: #f0b03c; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--muted); }
+.status.hot { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+canvas.big { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.small { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.big { aspect-ratio: 4 / 3; } }
+body.demo canvas.big { aspect-ratio: 16 / 9; }
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Direct Modulation Lab</h1>
+    <p>Switch the laser current and the light follows, but not at once: electrons and photons trade energy back and forth at the relaxation frequency, <span class="law">f_R ∝ √(I − I_th)</span>, and the carrier swing also shifts the optical frequency (chirp). Drive the laser with a step or with bits and find where direct modulation runs out.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="scope" class="big" aria-label="Drive current, carrier number, output power and frequency chirp against time"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Drive">
+            <button id="mStep" aria-pressed="true">Current step</button>
+            <button id="mBits" aria-pressed="false">Bits</button>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>current, carriers</span><span><i style="background:var(--ray)"></i>light out</span><span><i style="background:var(--warm)"></i>chirp Δν</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="resp" class="small" aria-label="Small-signal modulation response in decibels against frequency"></canvas></div>
+        <div class="card scene"><canvas id="eye" class="small" aria-label="Eye diagram of the output power"></canvas></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div class="ctl">
+          <label for="ib">Bias current I_b (the "0" level) <output id="ibOut"></output></label>
+          <input id="ib" type="range" min="0" max="80" step="0.5" value="20">
+          <span class="hint" id="ibHint"></span>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="im">Current step I_m (the "1" adds) <output id="imOut"></output></label>
+          <input id="im" type="range" min="1" max="60" step="0.5" value="20">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="br">Bit rate B <output id="brOut"></output></label>
+          <input id="br" type="range" min="1" max="25" step="0.5" value="2.5">
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="al">Linewidth enhancement α <output id="alOut"></output></label>
+          <input id="al" type="range" min="0" max="8" step="0.1" value="5">
+          <span class="hint">Δν(t) = (α/4π)[G(N) − 1/τ_p]: carriers change the index too</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts">
+          <dt>Threshold I_th</dt><dd id="rIth"></dd>
+          <dt>Relaxation frequency f_R</dt><dd id="rFr"></dd>
+          <dt>Modulation bandwidth f_3dB</dt><dd id="rF3"></dd>
+          <dt id="rRbL">Bit rate / f_3dB</dt><dd id="rRb"></dd>
+          <div class="sep"></div>
+          <dt>Power "0" / "1"</dt><dd id="rP01"></dd>
+          <dt>Overshoot</dt><dd id="rOv"></dd>
+          <dt>Turn-on delay</dt><dd id="rTd"></dd>
+          <dt>Chirp swing Δν (p-p)</dt><dd id="rCh"></dd>
+          <dt>in wavelength</dt><dd id="rChl"></dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Rate equations of slides 67 and 72, integrated with Runge–Kutta (0.25 ps steps), same InGaAsP laser as the L–I Curve Lab (L = 250 µm, R = 0.31, α_int = 10 cm⁻¹, τ_p ≈ 2 ps, τ_e = 2.2 ns, I_th ≈ 12.8 mA), plus gain compression G = G_N(N − N₀)/(1 + εP) with ε = 10⁻⁷ per photon, which damps the oscillations as on a real chip. The response |H(f)| is the exact small-signal solution of the linearized equations around the bias (slides 73–74). The frequency shift Δν = (α/4π)[G − 1/τ_p] contains the transient chirp (where the power changes) and the adiabatic chirp (from gain compression). The current has a 15 ps electrical rise time. The bit pattern is a PRBS-7 sequence; the eye overlays all of it.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- physics ----------
+  const Q = 1.602e-19, HW = 0.8 * 1.602e-19, VG = 2.998e10 / 3.4, LAM = 1550e-9, C = 2.998e8;
+  const LCM = 0.025, VOL = 250e-4 * 2e-4 * 0.2e-4, GN = 0.3 * VG * 2.5e-16 / VOL, N0 = 1e18 * VOL, TAUE = 2.2e-9, BETA = 1e-4, EPS = 1e-7;
+  const AM = Math.log(1 / 0.31) / LCM, TP = 1 / (VG * (10 + AM)), POUT = 0.5 * HW * VG * AM;   // W per photon-rate factor
+  const NTH = N0 + 1 / (GN * TP), ITH = Q * NTH / TAUE * 1e3;
+  const gain = (N, P) => GN * (N - N0) / (1 + EPS * P);
+  // steady state at current I (mA): bisect on log P
+  function steady(ImA) {
+    const I = ImA * 1e-3;
+    const nOf = P => { const g = GN * P / (1 + EPS * P); return (P / TP + g * N0) / (g + BETA / TAUE); };
+    const iOf = P => { const N = nOf(P); return Q * (N / TAUE + gain(N, P) * P); };
+    let lo = -6, hi = 8;
+    for (let i = 0; i < 80; i++) { const mid = (lo + hi) / 2; iOf(10 ** mid) < I ? lo = mid : hi = mid; }
+    const P = 10 ** ((lo + hi) / 2); return { N: nOf(P), P };
+  }
+  // small-signal response, normalized to f → 0
+  function response(ImA) {
+    const { N, P } = steady(ImA), d = 1 + EPS * P, G = gain(N, P), gN = GN / d, gP = -GN * (N - N0) * EPS / (d * d);
+    const a11 = -1 / TAUE - gN * P, a12 = -(G + gP * P), a21 = gN * P + BETA / TAUE, a22 = (G - 1 / TP) + gP * P;
+    const mag = f => { const w = 2 * PI * f;   // det = (iw − a11)(iw − a22) − a12 a21
+      const re = -w * w + a11 * a22 - a12 * a21, im = -w * (a11 + a22); return 1 / Math.hypot(re, im); };
+    const m0 = mag(0), db = f => 20 * Math.log10(mag(f) / m0);
+    let fpk = 0, best = -1e9; for (let f = 0; f <= 40e9; f += 0.02e9) { const v = db(f); if (v > best) { best = v; fpk = f; } }
+    let f3 = NaN; for (let f = fpk; f <= 60e9; f += 0.01e9) if (db(f) < -3) { f3 = f; break; }
+    return { db, fpk, peak: best, f3, fR: Math.sqrt(Math.max(0, -a12 * a21)) / (2 * PI), P, N };
+  }
+  // PRBS-7
+  const PRBS = (() => { let r = 0x7f; const out = []; for (let i = 0; i < 127; i++) { const b = ((r >> 6) ^ (r >> 5)) & 1; r = ((r << 1) | b) & 0x7f; out.push(b); } return out.slice(11).concat(out.slice(0, 11)); })();   // rotated so the first bits are mixed
+  const TR = 15e-12;
+  // st: { mode, Ib, Im, B (Gb/s), al }
+  function simulate(st) {
+    const dt = 0.25e-12;
+    const T0 = st.mode === 'step' ? 0.2e-9 : 0, Tb = 1 / (st.B * 1e9);
+    const nb = st.mode === 'step' ? 0 : Math.min(127, Math.max(40, Math.round(16e-9 / Tb)));
+    const Tend = st.mode === 'step' ? 2.2e-9 : nb * Tb;
+    const smooth = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+    const cur = t => {
+      if (st.mode === 'step') return st.Ib + st.Im * smooth((t - T0) / TR);
+      const k = Math.floor(t / Tb), u = t - k * Tb, b0 = k > 0 ? PRBS[(k - 1) % 127] : 0, b1 = PRBS[k % 127];
+      return st.Ib + st.Im * (b0 + (b1 - b0) * smooth(u / TR));
+    };
+    const s0 = steady(st.Ib), pRef = POUT * steady(st.Ib + st.Im).P;
+    let N = s0.N, P = s0.P;
+    const f = (t, N, P) => { const I = cur(t) * 1e-3, G = gain(N, P); return [I / Q - N / TAUE - G * P, (G - 1 / TP) * P + BETA * N / TAUE]; };
+    const n = Math.round(Tend / dt), every = Math.max(1, Math.round(n / 4000));
+    const out = { t: [], I: [], N: [], P: [], dnu: [] };
+    for (let i = 0; i <= n; i++) {
+      const t = i * dt;
+      if (i % every === 0) { out.t.push(t); out.I.push(cur(t)); out.N.push(N); out.P.push(POUT * P); out.dnu.push(POUT * P > 0.02 * pRef ? st.al / (4 * PI) * (gain(N, P) - 1 / TP) : NaN); }   // no frequency without laser light
+      const k1 = f(t, N, P), k2 = f(t + dt / 2, N + dt / 2 * k1[0], P + dt / 2 * k1[1]), k3 = f(t + dt / 2, N + dt / 2 * k2[0], P + dt / 2 * k2[1]), k4 = f(t + dt, N + dt * k3[0], P + dt * k3[1]);
+      N += dt / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]); P += dt / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]); if (P < 0) P = 1e-6;
+    }
+    const sHi = steady(st.Ib + st.Im), p0 = POUT * s0.P, p1 = POUT * sHi.P;
+    // step metrics
+    let pmax = -Infinity, tOn = NaN;
+    for (let i = 0; i < out.t.length; i++) { pmax = Math.max(pmax, out.P[i]); if (isNaN(tOn) && out.t[i] > T0 && out.P[i] > p0 + 0.5 * (p1 - p0)) tOn = out.t[i] - T0; }
+    let dmin = Infinity, dmax = -Infinity; const skip = st.mode === 'step' ? 0 : Math.round(out.t.length * 0.05);
+    for (let i = skip; i < out.t.length; i++) { const v = out.dnu[i]; if (isNaN(v)) continue; dmin = Math.min(dmin, v); dmax = Math.max(dmax, v); }
+    if (!isFinite(dmin)) { dmin = dmax = 0; }
+    return { ...st, out, T0, Tb, nb, Tend, p0, p1, over: st.mode === 'step' ? (pmax - p1) / Math.max(1e-9, p1 - p0) : NaN, tOn, chirp: dmax - dmin, dmin, dmax };
+  }
+  function model(st) { const r = response(Math.max(st.Ib, 0.1)); return { ...simulate(st), r, ith: ITH }; }
+
+  // ---------- colors and text ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', warm: '#c27a00', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtE = v => { if (!isFinite(v) || v <= 0) return '0'; const e = Math.floor(Math.log10(v)), m = v / 10 ** e; return `${m.toFixed(2)} × 10${sup(e)}`; };
+  const sup = n => String(n).split('').map(ch => '⁰¹²³⁴⁵⁶⁷⁸⁹'['0123456789'.indexOf(ch)] || (ch === '-' ? '⁻' : ch)).join('');
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    return { sx, sy };
+  }
+
+
+  const fmtP = w => w >= 1e-3 ? `${fmt(w * 1e3, w >= 0.01 ? 1 : 2)} mW` : w >= 1e-6 ? `${fmt(w * 1e6, 1)} µW` : `${fmt(w * 1e9, 1)} nW`;
+  const fmtF = f => !isFinite(f) ? '—' : `${fmt(f / 1e9, f < 10e9 ? 2 : 1)} GHz`;
+
+  // ---------- scope ----------
+  // opts: { fontSize, sweep (0–1 of the window drawn) }
+  function drawScope(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const o = c.out, x0 = fs * 6.4, x1 = W - fs * 1.2, y0 = fs * 1.2, y1 = H - fs * 3.0;
+    const win = c.mode === 'step' ? [0, c.Tend] : [0, Math.min(c.Tend, 12 * c.Tb)];
+    const sweep = opts.sweep ?? 1, tCut = win[0] + (win[1] - win[0]) * sweep;
+    const sx = t => x0 + (x1 - x0) * (t - win[0]) / (win[1] - win[0]);
+    const strips = [
+      { key: 'I', name: 'Current I', unit: 'mA', col: pal.accent, lo: 0, hi: Math.max(c.Ib + c.Im, 1) * 1.12, ref: [[ITH, 'I_th']] },
+      { key: 'N', name: 'Carriers N/N_th', unit: '', col: pal.accent, f: v => v / NTH, lo: null, hi: null, ref: [[1, 'N_th']] },
+      { key: 'P', name: 'Light out', unit: 'mW', col: pal.ray, f: v => v * 1e3, lo: 0, hi: null },
+      { key: 'dnu', name: 'Chirp Δν', unit: 'GHz', col: pal.warm, f: v => v / 1e9, lo: null, hi: null, ref: [[0, '']] },
+    ];
+    const gap = fs * 0.7, sh = (y1 - y0 - gap * 3) / 4;
+    // ranges from the full window
+    const i1 = o.t.findIndex(t => t > win[1]); const iEnd = i1 < 0 ? o.t.length : i1;
+    strips.forEach((s, k) => {
+      const tr = s.f || (v => v);
+      if (s.lo === null || s.hi === null) {
+        let mn = Infinity, mx = -Infinity; for (let i = 0; i < iEnd; i++) { const v = tr(o[s.key][i]); if (isNaN(v)) continue; mn = Math.min(mn, v); mx = Math.max(mx, v); }
+        if (!isFinite(mn)) { mn = -1; mx = 1; }
+        if (s.ref) for (const [r] of s.ref) { mn = Math.min(mn, r); mx = Math.max(mx, r); }
+        const span = Math.max(mx - mn, s.key === 'N' ? 0.02 : s.key === 'dnu' ? 1 : 0.1);
+        if (s.lo === null) s.lo = mn - span * 0.12; if (s.hi === null) s.hi = mx + span * 0.12;
+      }
+      const top = y0 + k * (sh + gap), bot = top + sh, sy = v => bot - (bot - top) * (v - s.lo) / (s.hi - s.lo);
+      ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x0, top, x1 - x0, sh);
+      ctx.fillStyle = s.col; ctx.font = `700 ${fs * 0.78}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText(s.name, x0 - fs * 0.4, top + sh * 0.35);
+      ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.66}px ${monoFont()}`;
+      const fv = v => Math.abs(s.hi - s.lo) < 0.2 ? v.toFixed(3) : Math.abs(s.hi - s.lo) < 5 ? v.toFixed(1) : v.toFixed(0);
+      ctx.fillText(`${fv(s.lo)} to ${fv(s.hi)}${s.unit ? ' ' + s.unit : ''}`, x0 - fs * 0.4, top + sh * 0.68);
+      ctx.save(); ctx.beginPath(); ctx.rect(x0, top, x1 - x0, sh); ctx.clip();
+      if (s.ref) for (const [r, nm] of s.ref) { if (r < s.lo || r > s.hi) continue; ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 4]); ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(x0, sy(r)); ctx.lineTo(x1, sy(r)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; if (nm) label(ctx, nm, x1 - fs * 0.3, sy(r) - fs * 0.15, 'right', 'bottom', pal.muted, `${fs * 0.68}px ${monoFont()}`, pal); }
+      if (c.mode === 'bits') { ctx.strokeStyle = pal.line; ctx.globalAlpha = 0.6; for (let tb = c.Tb; tb < win[1]; tb += c.Tb) { ctx.beginPath(); ctx.moveTo(sx(tb), top); ctx.lineTo(sx(tb), bot); ctx.stroke(); } ctx.globalAlpha = 1; }
+      ctx.strokeStyle = s.col; ctx.lineWidth = 2.2; ctx.lineJoin = 'round'; ctx.beginPath();
+      let pen = false;
+      for (let i = 0; i < iEnd && o.t[i] <= tCut; i++) { const v = tr(o[s.key][i]); if (isNaN(v)) { pen = false; continue; } const x = sx(o.t[i]), y = sy(v); pen ? ctx.lineTo(x, y) : ctx.moveTo(x, y); pen = true; }
+      ctx.stroke(); ctx.restore();
+    });
+    if (sweep < 1) { ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.35; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx(tCut), y0); ctx.lineTo(sx(tCut), y1); ctx.stroke(); ctx.globalAlpha = 1; }
+    // time axis
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.75}px ${monoFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    const tstep = niceStep((win[1] - win[0]) * 1e12, 8);
+    for (let t = 0; t <= (win[1] - win[0]) * 1e12 + 1e-6; t += tstep) ctx.fillText(String(Math.round(t)), sx(t * 1e-12), y1 + fs * 0.3);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textBaseline = 'bottom';
+    ctx.fillText(c.mode === 'bits' ? `Time (ps), ${fmt(c.B, 1)} Gb/s, bit slots marked` : 'Time (ps)', (x0 + x1) / 2, H - fs * 0.15);
+    ctx.restore();
+  }
+
+  // ---------- modulation response ----------
+  function drawResp(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const B = { x0: fs * 3.6, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('Small-signal response at the bias', fs * 0.8, fs * 0.6);
+    const fmax = 20e9;
+    const { sx, sy } = axes(ctx, B, [0, fmax / 1e9], [-20, 15], pal, fs, 'Modulation frequency (GHz)', '|H(f)| (dB)', H, { xStep: 5, yStep: 5 });
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+    ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(B.x0, sy(-3)); ctx.lineTo(B.x1, sy(-3)); ctx.stroke(); ctx.setLineDash([]);
+    if (opts.ghosts) for (const g of opts.ghosts) { ctx.strokeStyle = pal.muted; ctx.globalAlpha = 0.45; ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i <= 300; i++) { const f = fmax * i / 300; i ? ctx.lineTo(sx(f / 1e9), sy(g.db(f))) : ctx.moveTo(sx(f / 1e9), sy(g.db(f))); } ctx.stroke(); ctx.globalAlpha = 1; }
+    const above = c.Ib > ITH * 1.05;
+    if (above) {
+      ctx.strokeStyle = pal.ray; ctx.lineWidth = 2.6; ctx.beginPath();
+      for (let i = 0; i <= 400; i++) { const f = fmax * i / 400; i ? ctx.lineTo(sx(f / 1e9), sy(c.r.db(f))) : ctx.moveTo(sx(f / 1e9), sy(c.r.db(f))); }
+      ctx.stroke();
+      if (c.mode === 'bits') { ctx.strokeStyle = pal.accent; ctx.lineWidth = 1.5; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(sx(c.B / 2), B.y0); ctx.lineTo(sx(c.B / 2), B.y1); ctx.stroke(); ctx.setLineDash([]); }
+    }
+    ctx.restore();
+    if (above) {
+      if (c.r.fpk > 0.3e9 && c.r.fpk < fmax) label(ctx, `f_R ≈ ${fmt(c.r.fpk / 1e9, 1)} GHz`, sx(c.r.fpk / 1e9), sy(Math.min(14, c.r.peak)) - fs * 0.5, 'center', 'bottom', pal.ray, `700 ${fs * 0.78}px ${monoFont()}`, pal);
+      if (isFinite(c.r.f3) && c.r.f3 < fmax) { ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(sx(c.r.f3 / 1e9), sy(-3), fs * 0.3, 0, 2 * PI); ctx.fill(); label(ctx, `f_3dB ${fmt(c.r.f3 / 1e9, 1)}`, sx(c.r.f3 / 1e9) + fs * 0.5, sy(-3) + fs * 0.4, 'left', 'top', pal.ray, `700 ${fs * 0.72}px ${monoFont()}`, pal); }
+      if (c.mode === 'bits' && c.B / 2 < fmax / 1e9) label(ctx, 'B/2', sx(c.B / 2) + fs * 0.3, B.y1 - fs * 0.4, 'left', 'bottom', pal.accent, `700 ${fs * 0.72}px ${monoFont()}`, pal);
+    } else label(ctx, 'Bias below threshold: no stimulated emission to modulate', (B.x0 + B.x1) / 2, (B.y0 + B.y1) / 2, 'center', 'middle', pal.muted, `700 ${fs * 0.8}px ${getFont()}`, pal);
+    ctx.restore();
+  }
+
+  // ---------- eye diagram ----------
+  function drawEye(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const B = { x0: fs * 3.6, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(c.mode === 'bits' ? `Eye diagram, ${fmt(c.B, 1)} Gb/s` : 'Eye diagram (switch to Bits)', fs * 0.8, fs * 0.6);
+    const o = c.out, pmax = Math.max(...o.P) * 1.08 * 1e3;
+    const { sx, sy } = axes(ctx, B, [0, 2], [0, Math.max(0.5, pmax)], pal, fs, 'Time (bit periods)', 'Power (mW)', H, { xStep: 0.5, xf: v => v.toFixed(1) });
+    if (c.mode === 'bits') {
+      ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+      ctx.strokeStyle = pal.ray; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.28;
+      const dt = o.t[1] - o.t[0], per = Math.round(c.Tb / dt), nUse = Math.floor((opts.sweep ?? 1) * c.nb);
+      // trace windows of 2 bit periods, each starting half a bit before a slot, skipping the first 3 bits
+      for (let k = 3; k < Math.min(nUse, c.nb - 2); k++) {
+        const ts = (k - 0.5) * c.Tb; ctx.beginPath(); let st = false;
+        for (let i = Math.max(0, Math.floor(ts / dt)); i < o.t.length && o.t[i] <= ts + 2 * c.Tb; i++) { const x = sx((o.t[i] - ts) / c.Tb), y = sy(o.P[i] * 1e3); st ? ctx.lineTo(x, y) : ctx.moveTo(x, y); st = true; }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1; ctx.restore();
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 4]); [[c.p0, '"0"'], [c.p1, '"1"']].forEach(([p, nm]) => { ctx.beginPath(); ctx.moveTo(B.x0, sy(p * 1e3)); ctx.lineTo(B.x1, sy(p * 1e3)); ctx.stroke(); label(ctx, nm, B.x1 - fs * 0.2, sy(p * 1e3) - fs * 0.2, 'right', 'bottom', pal.muted, `700 ${fs * 0.72}px ${monoFont()}`, pal); }); ctx.setLineDash([]);
+    }
+    ctx.restore();
+  }
+
+    function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function sizeCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  const ease = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+  const CREDIT = 'Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov';
+  // right-hand text column of the presentation frame
+  function demoPanel(ctx, W, H, px, pw, title, laws, rows, status, cap, foot, pal) {
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(title, px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 74}px ${monoFont()}`;
+    laws.forEach((l, i) => { ctx.fillText(l, px, y); y += W / 74 * (i === laws.length - 1 ? 2.0 : 1.5); });
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    if (status) { ctx.fillStyle = status[1]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`; ctx.fillText(status[0], px, y); y += W / 60 * 1.9; }
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, foot, px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(CREDIT, W - W * 0.02, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+
+  // ---------- presentation mode ----------
+  const DEMO_DURATION = 66;
+  const SCENES = [   // [start, end, state, title, text]
+    [0, 13, { mode: 'step', Ib: 20, Im: 20, B: 2.5, al: 5 }, 'Step the current', 'From 20 to 40 mA. The carriers overshoot, the photons follow, and the two trade energy back and forth: relaxation oscillations at a few GHz.'],
+    [13, 24, { mode: 'step', Ib: 40, Im: 20, B: 2.5, al: 5 }, 'Higher bias, faster laser', 'The same step from 40 to 60 mA. More photons speed up the exchange: f_R grows like √(I − I_th), and the ringing dies faster.'],
+    [24, 34, { mode: 'step', Ib: 5, Im: 35, B: 2.5, al: 5 }, 'Starting below threshold', 'From 5 to 40 mA. The carriers must first fill up to N_th before any light comes out: a turn-on delay, then a big overshoot. That is why the "0" sits above I_th.'],
+    [34, 44, { mode: 'bits', Ib: 30, Im: 30, B: 2.5, al: 5 }, 'Bits at 2.5 Gb/s', 'With the "0" at 30 mA and the "1" at 60 mA, far below f_R, the light follows the current. The eye is wide open, apart from a little ringing on each rising edge.'],
+    [44, 54, { mode: 'bits', Ib: 30, Im: 30, B: 10, al: 5 }, 'Bits at 10 Gb/s', 'Now the bit period is close to the oscillation period. Each bit still rings when the next one starts, and the eye begins to close.'],
+    [54, 66, { mode: 'bits', Ib: 30, Im: 30, B: 20, al: 5 }, 'Bits at 20 Gb/s, and chirp', 'Past f_R the laser cannot keep up. The carrier swing also shifts the frequency by GHz on every edge, and fiber dispersion turns that chirp into more spreading. Hence a CW laser and an external modulator.'],
+  ];
+  const demoCache = new Map();
+  function demoModel(k) { if (!demoCache.has(k)) demoCache.set(k, model(SCENES[k][2])); return demoCache.get(k); }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const k = Math.max(0, SCENES.findIndex(s => t >= s[0] && t < s[1])), sc = SCENES[k], c = demoModel(k);
+    const sweep = Math.min(1, (t - sc[0]) / Math.min(6, (sc[1] - sc[0]) * 0.6));
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
+    drawScope(ctx, 0, 0, sw, sh, c, { fontSize: W / 80, sweep });
+    const bw = (sw - pad) / 2;
+    const ghosts = c.mode === 'step' && c.Ib === 40 ? [demoModel(0).r] : null;
+    drawResp(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100, ghosts });
+    drawEye(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100, sweep });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    const rows = c.mode === 'step'
+      ? [['Current step', `${fmt(c.Ib, 0)} → ${fmt(c.Ib + c.Im, 0)} mA`], ['Threshold I_th', `${fmt(ITH, 1)} mA`], ['f_R at the bias', c.Ib > ITH ? fmtF(c.r.fpk) : '—'], ['Chirp swing', `${fmt(c.chirp / 1e9, 1)} GHz`]]
+      : [['Bit rate', `${fmt(c.B, 1)} Gb/s`], ['Current "0" / "1"', `${fmt(c.Ib, 0)} / ${fmt(c.Ib + c.Im, 0)} mA`], ['f_3dB at the bias', fmtF(c.r.f3)], ['Chirp swing', `${fmt(c.chirp / 1e9, 1)} GHz`]];
+    demoPanel(ctx, W, H, px, pw, 'Direct modulation', ['dN/dt = I/q − N/τ_e − GP', 'dP/dt = (G − 1/τ_p)P + R_sp'], rows, null, [0, 0, sc[3], sc[4]], 'InGaAsP laser, L = 250 µm, I_th = 12.8 mA, α = 5, gain compression ε = 10⁻⁷.', pal);
+  }
+
+  // ---------- app wiring ----------
+  const scv = $('scope'), rcv = $('resp'), ecv = $('eye');
+  const state = { mode: 'step', Ib: 20, Im: 20, B: 2.5, al: 5 };
+  let cur = null, simT = 0, last = performance.now(), sweepStart = 0, dirty = true;
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function syncUI() {
+    const c = cur = model(state); sweepStart = simT; dirty = true;
+    $('ib').value = state.Ib; $('im').value = state.Im; $('br').value = state.B; $('al').value = state.al;
+    $('ibOut').textContent = `${fmt(state.Ib, 1)} mA`; $('imOut').textContent = `${fmt(state.Im, 1)} mA`; $('brOut').textContent = `${fmt(state.B, 1)} Gb/s`; $('alOut').textContent = fmt(state.al, 1);
+    $('br').disabled = state.mode === 'step';
+    $('ibHint').textContent = state.Ib < ITH ? `Below I_th = ${fmt(ITH, 1)} mA: expect a turn-on delay` : `I_b / I_th = ${fmt(state.Ib / ITH, 2)}`;
+    const r = c.r, above = state.Ib > ITH * 1.05, s = $('status');
+    if (!above) { s.className = 'status hot'; s.innerHTML = `Biased below threshold<small>The carriers start from below N_th, so every "1" waits for them to fill up first.</small>`; }
+    else if (state.mode === 'step') { s.className = 'status ok'; s.innerHTML = `Relaxation oscillations<small>Ringing at about ${fmtF(r.fpk)}, ${fmt(c.over * 100, 0)} % overshoot.</small>`; }
+    else { const ratio = state.B / (r.f3 / 1e9); const ok = ratio < 0.8; s.className = ok ? 'status ok' : 'status hot'; s.innerHTML = ok ? `The light keeps up<small>B is ${fmt(ratio, 2)} × f_3dB; the eye stays open.</small>` : `Too fast for this bias<small>B is ${fmt(ratio, 2)} × f_3dB; ringing from one bit runs into the next.</small>`; }
+    $('rIth').textContent = `${fmt(ITH, 1)} mA`; $('rFr').textContent = above ? fmtF(r.fpk) : '—'; $('rF3').textContent = above ? fmtF(r.f3) : '—';
+    $('rRb').textContent = state.mode === 'bits' && above ? fmt(state.B / (r.f3 / 1e9), 2) : '—';
+    $('rP01').textContent = `${fmtP(c.p0)} / ${fmtP(c.p1)}`;
+    $('rOv').textContent = state.mode === 'step' ? `${fmt(c.over * 100, 0)} %` : '—';
+    $('rTd').textContent = state.mode === 'step' && isFinite(c.tOn) ? `${fmt(c.tOn * 1e12, 0)} ps (to 50 %)` : '—';
+    $('rCh').textContent = `${fmt(c.chirp / 1e9, 1)} GHz`; $('rChl').textContent = `${fmt(c.chirp * LAM * LAM / C * 1e9, 3)} nm`;
+  }
+  function draw(sweep) {
+    let { w, h, dpr } = sizeCanvas(scv), ctx = scv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawScope(ctx, 0, 0, w, h, cur, { sweep });
+    ({ w, h, dpr } = sizeCanvas(ecv)); ctx = ecv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawEye(ctx, 0, 0, w, h, cur, { sweep });
+    if (dirty) { ({ w, h, dpr } = sizeCanvas(rcv)); ctx = rcv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawResp(ctx, 0, 0, w, h, cur); }
+  }
+  let lastSweep = -1;
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now; simT += dt;
+    if (DEMO) { const { w, h, dpr } = sizeCanvas(scv); const ctx = scv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION); }
+    else { const sweep = reduced ? 1 : Math.min(1, (simT - sweepStart) / 2.5); if (sweep !== lastSweep || dirty) { draw(sweep); lastSweep = sweep; dirty = false; } }
+    requestAnimationFrame(frame);
+  }
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; setTimeout(() => { pending = false; syncUI(); }, 30); } };
+  const onInput = (id, key) => $(id).addEventListener('input', e => { state[key] = +e.target.value; later(); });
+  onInput('ib', 'Ib'); onInput('im', 'Im'); onInput('br', 'B'); onInput('al', 'al');
+  const seg = (ids, key, vals) => ids.forEach((id, i) => $(id).addEventListener('click', () => { state[key] = vals[i]; ids.forEach((j, k) => $(j).setAttribute('aria-pressed', String(k === i))); later(); }));
+  seg(['mStep', 'mBits'], 'mode', ['step', 'bits']);
+  window.addEventListener('resize', () => { dirty = true; lastSweep = -1; });
+  new MutationObserver(() => { dirty = true; lastSweep = -1; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { dirty = true; lastSweep = -1; });
+
+  window.dmDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(scv); const ctx = scv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, model, steady, response, ITH };
+
+  if (!DEMO) syncUI();
+  if (window.__noLoop && !DEMO) draw(1);
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; lastSweep = -1; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>

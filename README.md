@@ -64,6 +64,10 @@ The labs in the root and in the lecture folders are identical copies. Both work 
 | [Semiconductor Gain Lab](semiconductor-gain-lab.html): gain spectrum vs carrier density, transparency | `gain-lab.mp4` |
 | [Laser Cavity Lab](laser-cavity-lab.html): Fabry–Perot modes, threshold, gain clamping | `laser-cavity.mp4` |
 | [Bragg Grating animation](bragg-grating-animation.html): DFB laser grating | `bragg-grating.mp4` |
+| [Bragg Mirror Lab](bragg-mirror-lab.html): grating and VCSEL mirror reflectivity, DBR mode selection | `bragg-mirror.mp4` |
+| [L–I Curve Lab](li-curve-lab.html): rate equations in steady state, threshold, efficiencies, temperature | `li-curve.mp4` |
+| [Direct Modulation Lab](direct-modulation-lab.html): relaxation oscillations, modulation response, eye diagram, chirp | `direct-mod.mp4` |
+| [Mach–Zehnder Modulator Lab](mach-zehnder-modulator.html): V_π, quadrature bias, harmonics, second port, push-pull | `mzm.mp4` |
 
 ## About the labs
 

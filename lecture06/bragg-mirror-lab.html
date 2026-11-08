@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Bragg Mirror Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: reflectivity spectrum on top, the sum of the small reflections and the laser that uses the mirror below, instrument column on the right; stacks to one column on phones */
+:root {
+  --bg: #f3f6f8;
+  --panel: #ffffff;
+  --ink: #13202a;
+  --muted: #566775;
+  --line: #d3dce3;
+  --accent: #0b6bc0;  /* electrons, current */
+  --ray: #d8402a;     /* photons, light out */
+  --ok: #1d8a3a;
+  --warm: #c27a00;    /* temperature, spontaneous */
+  --core: #d6e8f6;
+  --clad: #edf3f7;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+    --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --warm: #f0b03c; --core: #183249; --clad: #1a252e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1419; --panel: #151d24; --ink: #e4ecf2; --muted: #93a4b2; --line: #26333d;
+  --accent: #5aa8ec; --ray: #ff6b52; --ok: #4cc36a; --warm: #f0b03c; --core: #183249; --clad: #1a252e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
+header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+.law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
+.main, .side { display: grid; gap: 14px; min-width: 0; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+@media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+.scene { padding: 0; overflow: hidden; }
+.scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.ctl { display: grid; gap: 4px; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.hint { font-size: 0.78rem; color: var(--muted); }
+button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.seg { display: inline-flex; gap: 0; }
+.seg button { border-radius: 0; }
+.seg button:first-child { border-radius: 7px 0 0 7px; }
+.seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
+.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.status.ok { color: var(--ok); }
+.status.bad { color: var(--muted); }
+.status.hot { color: var(--ray); }
+.status small { display: block; font-weight: 400; color: var(--muted); }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.readouts dt { color: var(--muted); }
+.readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
+.note { font-size: 0.85rem; color: var(--muted); }
+/* Presentation mode (#demo): canvas only */
+body.demo { background: #ffffff; }
+body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
+body.demo .wrap { max-width: none; padding: 0; }
+body.demo .grid { display: block; }
+body.demo .card.scene { border: 0; border-radius: 0; }
+canvas.big { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.small { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.big { aspect-ratio: 4 / 3; } }
+body.demo canvas.big { aspect-ratio: 16 / 9; }
+
+canvas.big { cursor: crosshair; touch-action: pan-y; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Bragg Mirror Lab</h1>
+    <p>A Bragg mirror is many weak reflections. Each period of the index pattern returns a little light, and the returns add in phase only near the Bragg wavelength, <span class="law">λ_B = 2n̄Λ</span>. Build a grating for a DBR laser, or a stack of semiconductor layers for a VCSEL, and see how strong and how narrow the mirror becomes.</p>
+  </header>
+
+  <div class="grid">
+    <div class="main">
+      <div class="card scene">
+        <canvas id="spec" class="big" aria-label="Reflectivity of the Bragg mirror against wavelength; drag to move the probe wavelength"></canvas>
+        <div class="scene-bar">
+          <div class="seg" role="group" aria-label="Structure">
+            <button id="kG" aria-pressed="true">Waveguide grating (DBR laser)</button>
+            <button id="kV" aria-pressed="false">VCSEL mirrors</button>
+          </div>
+          <div class="legend"><span><i style="background:var(--accent)"></i>reflectivity R(λ)</span><span><i style="background:var(--ray)"></i>probe λ</span></div>
+        </div>
+      </div>
+      <div class="pair">
+        <div class="card scene"><canvas id="chain" class="small" aria-label="The reflections from each period drawn as arrows added head to tail at the probe wavelength"></canvas></div>
+        <div class="card scene"><canvas id="use" class="small" aria-label="How the laser uses the mirror"></canvas></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <p class="section-title">Controls</p>
+        <div id="gCtl">
+          <div class="ctl">
+            <label for="lam">Period Λ <output id="lamOut"></output></label>
+            <input id="lam" type="range" min="234" max="250" step="0.05" value="242.2">
+            <span class="hint" id="lamHint"></span>
+          </div>
+          <div class="ctl" style="margin-top:8px">
+            <label for="dn">Index step Δn <output id="dnOut"></output></label>
+            <input id="dn" type="range" min="0.001" max="0.03" step="0.0005" value="0.005">
+          </div>
+          <div class="ctl" style="margin-top:8px">
+            <label for="np">Number of periods N <output id="npOut"></output></label>
+            <input id="np" type="range" min="1" max="3.6" step="0.01" value="3">
+            <span class="hint" id="npHint"></span>
+          </div>
+        </div>
+        <div id="vCtl" hidden>
+          <div class="ctl">
+            <label for="nt">Top mirror periods (to air) <output id="ntOut"></output></label>
+            <input id="nt" type="range" min="1" max="40" step="1" value="25">
+          </div>
+          <div class="ctl" style="margin-top:8px">
+            <label for="nlo">Top mirror low index n_L <output id="nloOut"></output></label>
+            <input id="nlo" type="range" min="2.95" max="3.45" step="0.01" value="3">
+            <span class="hint">GaAs n_H = 3.52; AlAs 2.95, Al₀.₉Ga₀.₁As ≈ 3.0, Al₀.₂Ga₀.₈As ≈ 3.4</span>
+          </div>
+          <div class="ctl" style="margin-top:8px">
+            <label for="nb">Bottom mirror periods (AlAs/GaAs) <output id="nbOut"></output></label>
+            <input id="nb" type="range" min="1" max="40" step="1" value="25">
+          </div>
+        </div>
+        <div class="ctl" style="margin-top:8px">
+          <label for="pr">Probe wavelength <output id="prOut"></output></label>
+          <input id="pr" type="range" min="0" max="1" step="0.001" value="0.5">
+          <span class="hint">Or drag on the spectrum</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="section-title">Readouts</p>
+        <div class="status" id="status"></div>
+        <dl class="readouts" id="ro"></dl>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">Exact transfer-matrix calculation at normal incidence. Grating: square index profile n̄ ± Δn/2 with n̄ = 3.2, half a period each, embedded in n̄; coupling coefficient κ = 2Δn/λ_B, peak reflectivity tanh²(κL_g). DBR laser: a 300 µm gain section (n = 3.5, α_int = 10 cm⁻¹) with a cleaved front facet (R = 0.31) and the grating as rear mirror, threshold g_th(λ) = α_int + (1/2L) ln(1/(R₁R(λ))); the gain spectrum is clamped where it first touches the threshold, and the extra phase of the grating is ignored. VCSEL: quarter-wave layers for 980 nm; top mirror from the GaAs cavity to air, bottom mirror AlAs/GaAs from the cavity into the GaAs substrate; active region three 8 nm quantum wells, so the gain needed per round trip is g_th ≈ ln(1/R_topR_bot)/(2 · 24 nm), without internal loss or standing-wave enhancement. The arrow chain is the weak-reflection picture: one arrow per period, each turned by 2π(λ_B/λ − 1) from the one before; it ignores the depletion of the light deep inside a strong mirror.</p>
+</div>
+
+<script>
+(() => {
+  const PI = Math.PI;
+  const $ = id => document.getElementById(id);
+  const DEMO = location.hash === '#demo';
+  if (DEMO) document.body.classList.add('demo');
+
+  // ---------- transfer matrices (complex 2×2 as [a, b, c, d], each [re, im]) ----------
+  const cm = (x, y) => [x[0] * y[0] - x[1] * y[1], x[0] * y[1] + x[1] * y[0]], ca = (x, y) => [x[0] + y[0], x[1] + y[1]];
+  const mm = (A, B) => [ca(cm(A[0], B[0]), cm(A[1], B[2])), ca(cm(A[0], B[1]), cm(A[1], B[3])), ca(cm(A[2], B[0]), cm(A[3], B[2])), ca(cm(A[2], B[1]), cm(A[3], B[3]))];
+  const layer = (n, d, lam) => { const dl = 2 * PI * n * d / lam, c = Math.cos(dl), s = Math.sin(dl); return [[c, 0], [0, s / n], [0, n * s], [c, 0]]; };
+  const ID = [[1, 0], [0, 0], [0, 0], [1, 0]];
+  function mpow(M, N) { let R = ID, B = M; while (N > 0) { if (N & 1) R = mm(R, B); B = mm(B, B); N >>= 1; } return R; }
+  function refl(M, n0, ns) {
+    const A = M[0], B = M[1], C = M[2], D = M[3];
+    const num = [n0 * A[0] + n0 * ns * B[0] - C[0] - ns * D[0], n0 * A[1] + n0 * ns * B[1] - C[1] - ns * D[1]];
+    const den = [n0 * A[0] + n0 * ns * B[0] + C[0] + ns * D[0], n0 * A[1] + n0 * ns * B[1] + C[1] + ns * D[1]];
+    return (num[0] ** 2 + num[1] ** 2) / (den[0] ** 2 + den[1] ** 2);
+  }
+
+  // ---------- structures ----------
+  const NB = 3.2, LG = 300, NG = 3.5, AI = 10, R1 = 0.31, L0 = 980, NH = 3.52, NAL = 2.95, DA = 24e-7;  // µm, -, cm⁻¹, -, nm, -, -, cm
+  // st: { kind: 'g'|'v', Lam (nm), dn, N, nt, nlo, nb, probe (nm) }
+  function grating(st) {
+    const lb = 2 * NB * st.Lam, R = lam => refl(mpow(mm(layer(NB + st.dn / 2, st.Lam / 2, lam), layer(NB - st.dn / 2, st.Lam / 2, lam)), st.N), NB, NB);
+    const kap = 2 * st.dn / lb * 1e7, Lg = st.N * st.Lam * 1e-7;                         // cm⁻¹, cm
+    const range = [1500, 1600];
+    const spec = []; for (let i = 0; i <= 2400; i++) { const l = range[0] + (range[1] - range[0]) * i / 2400; spec.push([l, R(l)]); }
+    let ip = 0; spec.forEach((p, i) => { if (p[1] > spec[ip][1]) ip = i; });
+    let a = ip, b = ip; while (a > 0 && spec[a - 1][1] < spec[a][1]) a--; while (b < spec.length - 1 && spec[b + 1][1] < spec[b][1]) b++;
+    const sb = spec[b][0] - spec[a][0];
+    // DBR laser: modes of the gain section
+    const Lcm = LG * 1e-4, gth = lam => AI + Math.log(1 / (R1 * Math.max(1e-9, R(lam)))) / (2 * Lcm);
+    const gthFP = AI + Math.log(1 / (R1 * R1)) / (2 * Lcm);
+    const shape = l => -0.045 * (l - 1550) ** 2;                                          // gain profile, peak at 1550 nm
+    const twoNL = 2 * NG * LG * 1000, modes = [];
+    for (let m = Math.ceil(twoNL / range[1]); m <= Math.floor(twoNL / range[0]); m++) { const l = twoNL / m, t = gth(l); modes.push({ lam: l, t, m: t - shape(l) }); }
+    modes.sort((x, y) => x.lam - y.lam);
+    let win = modes[0]; for (const md of modes) if (md.m < win.m) win = md;
+    const g0 = win.m, gainAt = l => g0 + shape(l);
+    let side = Infinity; for (const md of modes) if (md !== win) side = Math.min(side, md.t - gainAt(md.lam));
+    return { kind: 'g', st, lb, R, kap, Lg, kL: kap * Lg, Rpk: spec[ip][1], lpk: spec[ip][0], sb, spec, range, gth, gthFP, modes, win, gainAt, side, step: lam => 2 * PI * (lb / lam - 1), nchain: st.N, Rp: R(st.probe) };
+  }
+  function vcsel(st) {
+    const dL = n => L0 / (4 * n);
+    const Rt = lam => refl(mpow(mm(layer(st.nlo, dL(st.nlo), lam), layer(NH, dL(NH), lam)), st.nt), NH, 1);
+    const Rb = lam => refl(mpow(mm(layer(NAL, dL(NAL), lam), layer(NH, dL(NH), lam)), st.nb), NH, NH);
+    const range = [880, 1080], spec = [], specB = [];
+    for (let i = 0; i <= 600; i++) { const l = range[0] + (range[1] - range[0]) * i / 600; spec.push([l, Rt(l)]); specB.push([l, Rb(l)]); }
+    const rt = Rt(L0), rb = Rb(L0), gth = Math.log(1 / (rt * rb)) / (2 * DA);
+    let ip = 300, a = ip, b = ip; while (a > 0 && spec[a - 1][1] < spec[a][1]) a--; while (b < spec.length - 1 && spec[b + 1][1] < spec[b][1]) b++;
+    const thick = st.nt * (dL(st.nlo) + dL(NH)) / 1000;                                       // µm
+    const curve = []; for (let n = 1; n <= 40; n++) curve.push([n, refl(mpow(mm(layer(st.nlo, dL(st.nlo), L0), layer(NH, dL(NH), L0)), n), NH, 1)]);
+    return { kind: 'v', st, lb: L0, Rt, Rb, rt, rb, gth, spec, specB, range, sb: spec[b][0] - spec[a][0], thick, curve, step: lam => 2 * PI * (L0 / lam - 1), nchain: st.nt, Rp: Rt(st.probe) };
+  }
+  const model = st => st.kind === 'g' ? grating(st) : vcsel(st);
+
+  // ---------- colors and text ----------
+  const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', warm: '#c27a00', core: '#d6e8f6', clad: '#edf3f7' };
+  function palette() {
+    if (DEMO) return LIGHT;
+    const cs = getComputedStyle(document.documentElement), p = {};
+    for (const k of Object.keys(LIGHT)) p[k] = (cs.getPropertyValue('--' + k) || LIGHT[k]).trim() || LIGHT[k];
+    p.bg = cs.getPropertyValue('--panel').trim() || LIGHT.bg;
+    return p;
+  }
+  const getFont = () => '"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif';
+  const monoFont = () => '"JetBrains Mono", ui-monospace, Menlo, monospace';
+  const fmt = (v, n = 1) => (Math.abs(v) < 0.5 * 10 ** -n ? 0 : v).toFixed(n);
+  const fmtE = v => { if (!isFinite(v) || v <= 0) return '0'; const e = Math.floor(Math.log10(v)), m = v / 10 ** e; return `${m.toFixed(2)} × 10${sup(e)}`; };
+  const sup = n => String(n).split('').map(ch => '⁰¹²³⁴⁵⁶⁷⁸⁹'['0123456789'.indexOf(ch)] || (ch === '-' ? '⁻' : ch)).join('');
+  function label(ctx, text, x, y, align, base, color, font, pal, pill = true) {
+    ctx.save(); ctx.font = font; ctx.textAlign = align; ctx.textBaseline = base;
+    if (pill) {
+      const m = ctx.measureText(text), w = m.width, h = (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent) || 14, pd = h * 0.35;
+      const lx = align === 'center' ? x - w / 2 : align === 'right' ? x - w : x;
+      const ty = base === 'top' ? y : base === 'bottom' ? y - h : y - h / 2;
+      ctx.globalAlpha = 0.85; ctx.fillStyle = pal.bg; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd, pd) : ctx.rect(lx - pd, ty - pd, w + 2 * pd, h + 2 * pd); ctx.fill(); ctx.globalAlpha = 1;
+    }
+    ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.restore();
+  }
+  function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
+  function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
+    const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
+    ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+    return { sx, sy };
+  }
+
+
+  const fmtR = r => r > 0.9995 ? `${fmt(r * 100, 3)} %` : r > 0.995 ? `${fmt(r * 100, 2)} %` : `${fmt(r * 100, 1)} %`;
+
+  // ---------- reflectivity spectrum ----------
+  let specBox = null;
+  function drawSpec(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const B = { x0: fs * 4.4, x1: W - fs * 1.2, y0: fs * 2.2, y1: H - fs * 3.2 };
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    const { sx, sy } = axes(ctx, B, c.range, [0, 1], pal, fs, 'Wavelength λ (nm)', 'Reflectivity R', H, { xStep: c.kind === 'g' ? 10 : 20, yStep: 0.25, yf: v => v.toFixed(2) });
+    if (!opts.demo) specBox = { B, range: c.range };
+    ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0 - 3, B.x1 - B.x0, B.y1 - B.y0 + 6); ctx.clip();
+    // Bragg wavelength
+    ctx.strokeStyle = pal.ok; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(sx(c.lb), B.y0); ctx.lineTo(sx(c.lb), B.y1); ctx.stroke(); ctx.setLineDash([]);
+    if (c.kind === 'v') { ctx.strokeStyle = pal.muted; ctx.lineWidth = 1.8; ctx.setLineDash([6, 4]); ctx.beginPath(); c.specB.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.moveTo(sx(c.spec[0][0]), sy(0)); c.spec.forEach(p => ctx.lineTo(sx(p[0]), sy(p[1]))); ctx.lineTo(sx(c.spec[c.spec.length - 1][0]), sy(0)); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.beginPath(); c.spec.forEach((p, i) => i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))); ctx.stroke();
+    // probe
+    const pr = c.st.probe; ctx.strokeStyle = pal.ray; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(pr), B.y0); ctx.lineTo(sx(pr), B.y1); ctx.stroke();
+    ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(sx(pr), sy(c.Rp), fs * 0.4, 0, 2 * PI); ctx.fill();
+    ctx.restore();
+    label(ctx, `λ_B = ${fmt(c.lb, 1)} nm`, sx(c.lb) - fs * 0.4, B.y1 - fs * 0.5, 'right', 'bottom', pal.ok, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    const right = sx(pr) > (B.x0 + B.x1) * 0.62;
+    label(ctx, `R(${fmt(pr, 1)} nm) = ${fmtR(c.Rp)}`, sx(pr) + (right ? -fs * 0.7 : fs * 0.7), Math.min(B.y1 - fs * 1.5, sy(c.Rp) + fs * 1.4), right ? 'right' : 'left', 'top', pal.ray, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    if (c.kind === 'v') label(ctx, 'dashed: bottom mirror', B.x1 - fs * 0.4, B.y1 - fs * 0.5, 'right', 'bottom', pal.muted, `700 ${fs * 0.75}px ${getFont()}`, pal);
+    ctx.restore();
+  }
+
+  // ---------- arrow chain ----------
+  function drawChain(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('One arrow per period, added head to tail', fs * 0.8, fs * 0.6);
+    const N = c.nchain, ph = c.step(c.st.probe), ell = (W - fs * 4) / N;
+    // index pattern strip
+    const ys = fs * 2.6, hs = fs * 1.2, nShow = Math.min(N, 24), pw = (W - fs * 1.6) / nShow;
+    for (let j = 0; j < nShow; j++) { ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.45; ctx.fillRect(fs * 0.8 + j * pw, ys, pw / 2, hs); ctx.globalAlpha = 0.12; ctx.fillRect(fs * 0.8 + j * pw + pw / 2, ys, pw / 2, hs); }
+    ctx.globalAlpha = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.7}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(N > nShow ? `first ${nShow} of ${N} periods` : `${N} periods`, fs * 0.8, ys + hs + fs * 0.25);
+    // chain
+    const ox = fs * 2, oy = H * 0.62;
+    let x = ox, y = oy, minx = ox, maxx = ox, miny = oy, maxy = oy;
+    const pts = [[x, y]];
+    for (let j = 0; j < N; j++) { x += ell * Math.cos(j * ph); y -= ell * Math.sin(j * ph); pts.push([x, y]); }
+    // fit vertically if the chain curls into a circle bigger than the room
+    for (const [px, py] of pts) { minx = Math.min(minx, px); maxx = Math.max(maxx, px); miny = Math.min(miny, py); maxy = Math.max(maxy, py); }
+    const room = H - fs * 1.2 - (ys + hs + fs * 1.6), sc = Math.min(1, room / Math.max(1, maxy - miny), (W - fs * 3) / Math.max(1, maxx - minx));
+    const cy0 = (ys + hs + fs * 1.6 + H - fs * 1.2) / 2, mapX = px => W / 2 + (px - (minx + maxx) / 2) * sc, mapY = py => cy0 + (py - (miny + maxy) / 2) * sc;
+    ctx.strokeStyle = pal.accent; ctx.lineWidth = N > 200 ? 1.2 : 1.6; ctx.beginPath();
+    pts.forEach(([px, py], i) => i ? ctx.lineTo(mapX(px), mapY(py)) : ctx.moveTo(mapX(px), mapY(py))); ctx.stroke();
+    if (N <= 60) { ctx.fillStyle = pal.accent; for (let i = 1; i < pts.length; i++) { const [ax, ay] = pts[i - 1], [bx, by] = pts[i], a = Math.atan2(mapY(by) - mapY(ay), mapX(bx) - mapX(ax)), hl = Math.min(fs * 0.5, ell * sc * 0.4); ctx.beginPath(); ctx.moveTo(mapX(bx), mapY(by)); ctx.lineTo(mapX(bx) - hl * Math.cos(a - 0.5), mapY(by) - hl * Math.sin(a - 0.5)); ctx.lineTo(mapX(bx) - hl * Math.cos(a + 0.5), mapY(by) - hl * Math.sin(a + 0.5)); ctx.fill(); } }
+    // resultant
+    const [ex, ey] = pts[pts.length - 1];
+    ctx.strokeStyle = pal.ray; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(mapX(ox), mapY(oy)); ctx.lineTo(mapX(ex), mapY(ey)); ctx.stroke();
+    ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(mapX(ex), mapY(ey), fs * 0.3, 0, 2 * PI); ctx.fill();
+    const frac = Math.hypot(ex - ox, ey - oy) / (N * ell);
+    label(ctx, `|sum| = ${fmt(frac * 100, 0)} % of all in phase`, W - fs * 0.6, H - fs * 0.5, 'right', 'bottom', pal.ray, `700 ${fs * 0.78}px ${monoFont()}`, pal);
+    label(ctx, `turn per period ${fmt(((ph / PI) % 2 + 3) % 2 - 1, 3)}π`, W - fs * 0.6, H - fs * 1.9, 'right', 'bottom', pal.muted, `${fs * 0.72}px ${monoFont()}`, pal);
+    ctx.restore();
+  }
+
+  // ---------- how the laser uses it ----------
+  function drawUse(ctx, X, Y, W, H, c, opts = {}) {
+    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const B = { x0: fs * 4.0, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
+    ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+    ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    if (c.kind === 'g') {
+      ctx.fillText('DBR laser: the grating picks one mode', fs * 0.8, fs * 0.6);
+      const lr = [c.win.lam - 12, c.win.lam + 12];
+      const { sx, sy } = axes(ctx, B, lr, [0, 80], pal, fs, 'Wavelength λ (nm)', 'cm⁻¹', H, { xStep: 5, yStep: 20 });
+      ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(B.x0, sy(c.gthFP)); ctx.lineTo(B.x1, sy(c.gthFP)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.beginPath(); for (let i = 0; i <= 400; i++) { const l = lr[0] + (lr[1] - lr[0]) * i / 400, y = sy(Math.min(95, c.gth(l))); i ? ctx.lineTo(sx(l), y) : ctx.moveTo(sx(l), y); } ctx.stroke();
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.4; ctx.beginPath(); for (let i = 0; i <= 200; i++) { const l = lr[0] + (lr[1] - lr[0]) * i / 200, y = sy(c.gainAt(l)); i ? ctx.lineTo(sx(l), y) : ctx.moveTo(sx(l), y); } ctx.stroke();
+      for (const m of c.modes) { if (m.lam < lr[0] || m.lam > lr[1]) continue; const win = m === c.win; ctx.strokeStyle = win ? pal.ray : pal.muted; ctx.lineWidth = win ? 3 : 1; ctx.globalAlpha = win ? 1 : 0.6; ctx.beginPath(); ctx.moveTo(sx(m.lam), B.y1); ctx.lineTo(sx(m.lam), win ? sy(c.gainAt(m.lam)) : B.y1 - fs * 0.8); ctx.stroke(); ctx.globalAlpha = 1; }
+      ctx.restore();
+      label(ctx, 'cleaved rear facet', B.x0 + fs * 0.4, sy(c.gthFP) - fs * 0.3, 'left', 'bottom', pal.muted, `${fs * 0.72}px ${getFont()}`, pal);
+      label(ctx, 'threshold with grating', B.x1 - fs * 0.3, B.y0 + fs * 0.3, 'right', 'top', pal.ink, `700 ${fs * 0.72}px ${getFont()}`, pal);
+      label(ctx, `lasing ${fmt(c.win.lam, 2)} nm`, sx(c.win.lam), sy(c.gainAt(c.win.lam)) - fs * 0.6, 'center', 'bottom', pal.ray, `700 ${fs * 0.78}px ${monoFont()}`, pal);
+    } else {
+      ctx.fillText('VCSEL: tens of periods for a thin gain layer', fs * 0.8, fs * 0.6);
+      const { sx, sy } = axes(ctx, B, [0, 40], [0.9, 1], pal, fs, 'Top mirror periods', 'Peak R at 980 nm', H, { xStep: 5, yStep: 0.025, yf: v => v.toFixed(3) });
+      ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
+      for (const [r, nm] of [[0.99, '99 %'], [0.999, '99.9 %']]) { ctx.strokeStyle = pal.ok; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(B.x0, sy(r)); ctx.lineTo(B.x1, sy(r)); ctx.stroke(); ctx.setLineDash([]); label(ctx, nm, B.x0 + fs * 0.3, sy(r) + fs * 0.2, 'left', 'top', pal.ok, `${fs * 0.7}px ${monoFont()}`, pal); }
+      ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.4; ctx.beginPath(); c.curve.forEach(([n, r], i) => { const y = sy(Math.max(0.88, r)); i ? ctx.lineTo(sx(n), y) : ctx.moveTo(sx(n), y); }); ctx.stroke();
+      ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(sx(c.st.nt), sy(Math.max(0.885, c.rt)), fs * 0.42, 0, 2 * PI); ctx.fill();
+      ctx.restore();
+      const ok = c.gth < 3000;
+      label(ctx, `needs g_th ≈ ${c.gth > 1e5 ? '> 10⁵' : fmt(c.gth, 0)} cm⁻¹`, B.x1 - fs * 0.3, B.y1 - fs * 0.5, 'right', 'bottom', ok ? pal.ok : pal.ray, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+    }
+    ctx.restore();
+  }
+
+    function wrapText(ctx, text, x, y, maxW, lh) {
+    const words = text.split(' '); let line = '';
+    for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; } else line = test; }
+    if (line) ctx.fillText(line, x, y); return y + lh;
+  }
+  function sizeCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+    return { w, h, dpr };
+  }
+  const ease = u => u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u);
+  const CREDIT = 'Bar-Ilan University 2026 · Optical Communication 83-466 · Dr. Boris Desiatov';
+  // right-hand text column of the presentation frame
+  function demoPanel(ctx, W, H, px, pw, title, laws, rows, status, cap, foot, pal) {
+    let y = H * 0.06;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 46}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(title, px, y); y += W / 46 * 1.6;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 74}px ${monoFont()}`;
+    laws.forEach((l, i) => { ctx.fillText(l, px, y); y += W / 74 * (i === laws.length - 1 ? 2.0 : 1.5); });
+    for (const [kk, v] of rows) {
+      ctx.fillStyle = pal.muted; ctx.textAlign = 'left'; ctx.font = `${W / 66}px ${getFont()}`; ctx.fillText(kk, px, y);
+      ctx.fillStyle = pal.ink; ctx.font = `600 ${W / 66}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.fillText(v, px + pw, y);
+      y += W / 66 * 1.55;
+    }
+    y += W / 160;
+    if (status) { ctx.fillStyle = status[1]; ctx.textAlign = 'left'; ctx.font = `700 ${W / 60}px ${getFont()}`; ctx.fillText(status[0], px, y); y += W / 60 * 1.9; }
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, y); ctx.lineTo(px + pw, y); ctx.stroke(); y += W / 75;
+    ctx.fillStyle = pal.accent; ctx.font = `700 ${W / 54}px ${getFont()}`; ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+    y = wrapText(ctx, cap[2], px, y, pw, W / 54 * 1.25) + W / 160;
+    ctx.fillStyle = pal.ink; ctx.font = `${W / 68}px ${getFont()}`;
+    wrapText(ctx, cap[3], px, y, pw, W / 68 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.font = `${W / 100}px ${getFont()}`;
+    wrapText(ctx, foot, px, H - H * 0.1, pw, W / 100 * 1.4);
+    ctx.fillStyle = pal.muted; ctx.globalAlpha = 0.8; ctx.font = `${W / 125}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText(CREDIT, W - W * 0.02, H - H * 0.022); ctx.globalAlpha = 1;
+  }
+
+
+  // ---------- presentation mode ----------
+  const DEMO_DURATION = 62;
+  const CAPTIONS = [
+    [0, 10, 'Many weak reflections', 'A grating of 400 periods with Δn = 0.005. Each period reflects a tiny amount. Away from λ_B each arrow turns a little, and the chain curls up: almost nothing comes back.'],
+    [10, 20, 'In phase at λ_B = 2n̄Λ', 'At the Bragg wavelength every arrow points the same way and the reflections add. More periods, longer arrow chain: R = tanh²(κL) climbs toward 1.'],
+    [20, 28, 'A bigger index step', 'Δn from 0.005 to 0.02: each reflection is stronger, so fewer periods do the job and the stop band gets wider.'],
+    [28, 40, 'The grating picks the lasing mode', 'As the rear mirror of a 300 µm laser, the grating gives low threshold only near λ_B. One cavity mode wins. Change the period and the laser follows λ_B.'],
+    [40, 52, 'VCSEL: a very short gain path', 'Light crosses only 24 nm of quantum wells per pass, so the mirrors must reflect above 99.9 %. That takes 20–30 pairs of GaAs and AlGaAs layers, as on slide 65.'],
+    [52, 62, 'A smaller index contrast', 'Swap Al₀.₉GaAs (n ≈ 3.0) for Al₀.₂GaAs (n ≈ 3.35): each pair reflects less, 30 pairs no longer reach 99.9 %, and the stop band narrows.'],
+  ];
+  function demoState(t) {
+    const st = { kind: 'g', Lam: 242.2, dn: 0.005, N: 400, nt: 5, nlo: 3.2, nb: 25, probe: 1550 };
+    if (t < 10) st.probe = t < 8 ? 1550 - 18 * Math.cos(PI * t / 8) : 1550 + 18 * (1 - ease((t - 8) / 2));   // sweep 1532 → 1568, back to λ_B
+    else if (t < 20) { st.N = Math.round(400 * 10 ** (0.85 * ease((t - 11) / 8))); }
+    else if (t < 28) { st.N = Math.round(400 * 10 ** 0.85); st.dn = 0.005 + 0.015 * ease((t - 20) / 5); st.N = Math.round(st.N * (1 - 0.6 * ease((t - 20) / 5))); }
+    else if (t < 40) { st.dn = 0.01; st.N = 1200; st.Lam = 242.2 + (t < 34 ? 1.6 * ease((t - 29) / 4) : 1.6 - 3.2 * ease((t - 34) / 4)); }
+    else { st.kind = 'v'; st.probe = 980; st.nlo = t < 52 ? 3.0 : 3.0 + 0.35 * ease((t - 52) / 4); st.nt = t < 52 ? Math.round(1 + 29 * ease((t - 41) / 9)) : 30; }
+    if (st.kind === 'g' && t >= 10) st.probe = 2 * NB * st.Lam;
+    return st;
+  }
+  function drawDemo(ctx, W, H, t) {
+    const pal = LIGHT;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+    const st = demoState(t), c = model(st);
+    const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
+    drawSpec(ctx, 0, 0, sw, sh, c, { fontSize: W / 80, demo: true });
+    const bw = (sw - pad) / 2;
+    drawChain(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100 });
+    drawUse(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100 });
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
+    const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
+    const rows = c.kind === 'g'
+      ? [['Period Λ', `${fmt(st.Lam, 1)} nm`], ['Index step Δn', fmt(st.dn, 3)], ['Periods N', `${st.N} (${fmt(c.Lg * 1e4, 0)} µm)`], ['Peak R', fmtR(c.Rpk)]]
+      : [['Top mirror pairs', String(st.nt)], ['Low index n_L', fmt(st.nlo, 2)], ['Top mirror R', fmtR(c.rt)], ['Gain needed', c.gth > 1e5 ? '> 10⁵ cm⁻¹' : `${fmt(c.gth, 0)} cm⁻¹`]];
+    const cap = CAPTIONS.find(cc => t >= cc[0] && t < cc[1]) || CAPTIONS[CAPTIONS.length - 1];
+    demoPanel(ctx, W, H, px, pw, 'Bragg mirrors', ['λ_B = 2 n̄ Λ', 'R_peak = tanh²(κL)'], rows, null, cap, c.kind === 'g' ? 'InP waveguide grating, n̄ = 3.2, exact transfer-matrix calculation.' : 'GaAs VCSEL at 980 nm, quarter-wave layers, three 8 nm quantum wells.', pal);
+  }
+
+  // ---------- app wiring ----------
+  const scv = $('spec'), ccv = $('chain'), ucv = $('use');
+  const state = { kind: 'g', Lam: 242.2, dn: 0.005, N: 1000, nt: 25, nlo: 3.0, nb: 25, probe: 1550, pu: 0.5 };
+  let cur = null, dirty = true;
+  const rangeOf = k => k === 'g' ? [1500, 1600] : [880, 1080];
+  function syncUI() {
+    const rg = rangeOf(state.kind); state.probe = rg[0] + (rg[1] - rg[0]) * state.pu;
+    const c = cur = model(state); dirty = true;
+    $('gCtl').hidden = state.kind !== 'g'; $('vCtl').hidden = state.kind !== 'v';
+    $('lam').value = state.Lam; $('dn').value = state.dn; $('np').value = Math.log10(state.N); $('nt').value = state.nt; $('nlo').value = state.nlo; $('nb').value = state.nb; $('pr').value = state.pu;
+    $('lamOut').textContent = `${fmt(state.Lam, 2)} nm`; $('dnOut').textContent = fmt(state.dn, 4); $('npOut').textContent = String(state.N);
+    $('ntOut').textContent = String(state.nt); $('nloOut').textContent = fmt(state.nlo, 2); $('nbOut').textContent = String(state.nb); $('prOut').textContent = `${fmt(state.probe, 1)} nm`;
+    $('lamHint').textContent = `λ_B = 2n̄Λ = ${fmt(c.lb, 1)} nm (n̄ = 3.2)`;
+    if (c.kind === 'g') $('npHint').textContent = `Grating length N·Λ = ${fmt(c.Lg * 1e4, 0)} µm`;
+    const s = $('status'), ro = $('ro');
+    const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`;
+    if (c.kind === 'g') {
+      if (c.Rpk < 0.5) { s.className = 'status bad'; s.innerHTML = `Weak mirror<small>Peak R = ${fmtR(c.Rpk)}: κL = ${fmt(c.kL, 2)}. Add periods or index step.</small>`; }
+      else { s.className = 'status ok'; s.innerHTML = `Strong, narrow mirror<small>Peak R = ${fmtR(c.Rpk)} over a ${fmt(c.sb, 2)} nm stop band; the laser locks to ${fmt(c.win.lam, 2)} nm.</small>`; }
+      ro.innerHTML = row('Bragg wavelength λ_B', `${fmt(c.lb, 2)} nm`) + row('Coupling κ = 2Δn/λ_B', `${fmt(c.kap, 1)} cm⁻¹`) + row('Grating length L_g', `${fmt(c.Lg * 1e4, 0)} µm`) + row('κL_g', fmt(c.kL, 2)) +
+        '<div class="sep"></div>' + row('Peak R (exact)', fmtR(c.Rpk)) + row('tanh²(κL_g)', fmtR(Math.tanh(c.kL) ** 2)) + row('Stop band (null to null)', `${fmt(c.sb, 2)} nm`) + row('R at probe', fmtR(c.Rp)) +
+        '<div class="sep"></div>' + row('Lasing mode', `${fmt(c.win.lam, 2)} nm`) + row('Threshold, grating', `${fmt(c.win.t, 1)} cm⁻¹`) + row('Threshold, cleaved facet', `${fmt(c.gthFP, 1)} cm⁻¹`) + row('Next mode short by', `${fmt(c.side, 1)} cm⁻¹`);
+    } else {
+      const ok = c.gth < 3000;
+      s.className = ok ? 'status ok' : 'status hot';
+      s.innerHTML = ok ? `Can lase<small>Mirrors ${fmtR(c.rt)} and ${fmtR(c.rb)}: the wells need about ${fmt(c.gth, 0)} cm⁻¹ of gain.</small>` : `Mirrors too weak<small>The wells would need ${c.gth > 1e5 ? 'over 10⁵' : fmt(c.gth, 0)} cm⁻¹, more than quantum wells give (a few thousand).</small>`;
+      ro.innerHTML = row('Top mirror R (980 nm)', fmtR(c.rt)) + row('Bottom mirror R', fmtR(c.rb)) + row('Top mirror thickness', `${fmt(c.thick, 2)} µm`) + row('Stop band (top)', `${fmt(c.sb, 0)} nm`) +
+        '<div class="sep"></div>' + row('Active length (3 × 8 nm)', '24 nm') + row('Round-trip loss ln(1/R_tR_b)', fmt(Math.log(1 / (c.rt * c.rb)), 4)) + row('Gain needed g_th', c.gth > 1e5 ? '> 10⁵ cm⁻¹' : `${fmt(c.gth, 0)} cm⁻¹`) + row('R at probe', fmtR(c.Rp));
+    }
+  }
+  function draw() {
+    let { w, h, dpr } = sizeCanvas(scv), ctx = scv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawSpec(ctx, 0, 0, w, h, cur);
+    ({ w, h, dpr } = sizeCanvas(ccv)); ctx = ccv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawChain(ctx, 0, 0, w, h, cur);
+    ({ w, h, dpr } = sizeCanvas(ucv)); ctx = ucv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawUse(ctx, 0, 0, w, h, cur);
+  }
+  let simT = 0, last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now; simT += dt;
+    if (DEMO) { const { w, h, dpr } = sizeCanvas(scv); const ctx = scv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, simT % DEMO_DURATION); }
+    else if (dirty) { draw(); dirty = false; }
+    requestAnimationFrame(frame);
+  }
+  let pending = false;
+  const later = () => { if (!pending) { pending = true; requestAnimationFrame(() => { pending = false; syncUI(); }); } };
+  const onInput = (id, key, f = v => v) => $(id).addEventListener('input', e => { state[key] = f(+e.target.value); later(); });
+  onInput('lam', 'Lam'); onInput('dn', 'dn'); onInput('np', 'N', v => Math.max(10, Math.round(10 ** v))); onInput('nt', 'nt'); onInput('nlo', 'nlo'); onInput('nb', 'nb'); onInput('pr', 'pu');
+  const seg = (ids, key, vals) => ids.forEach((id, i) => $(id).addEventListener('click', () => { state[key] = vals[i]; ids.forEach((j, k) => $(j).setAttribute('aria-pressed', String(k === i))); later(); }));
+  seg(['kG', 'kV'], 'kind', ['g', 'v']);
+  // drag on the spectrum to move the probe
+  let dragging = false;
+  const setProbe = e => { if (!specBox) return; const r = scv.getBoundingClientRect(), x = e.clientX - r.left; state.pu = Math.max(0, Math.min(1, (x - specBox.B.x0) / (specBox.B.x1 - specBox.B.x0))); later(); };
+  scv.addEventListener('pointerdown', e => { dragging = true; scv.setPointerCapture(e.pointerId); setProbe(e); });
+  scv.addEventListener('pointermove', e => { if (dragging) setProbe(e); });
+  scv.addEventListener('pointerup', () => { dragging = false; });
+  window.addEventListener('resize', () => { dirty = true; });
+  new MutationObserver(() => { dirty = true; }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => { dirty = true; });
+
+  window.bgDemo = { duration: DEMO_DURATION, draw(t) { const { w, h, dpr } = sizeCanvas(scv); const ctx = scv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawDemo(ctx, w, h, t); }, model, demoState };
+
+  if (!DEMO) syncUI();
+  if (window.__noLoop && !DEMO) draw();
+  if (!window.__noLoop) requestAnimationFrame(frame);
+  if (document.fonts) Promise.all(['400 16px "Atkinson Hyperlegible"', '700 16px "Atkinson Hyperlegible"', '400 16px "JetBrains Mono"', '600 16px "JetBrains Mono"'].map(f => document.fonts.load(f).catch(() => {}))).then(() => { dirty = true; });
+})();
+</script>
+
+<script data-goatcounter="https://dbname.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</body>
+</html>
