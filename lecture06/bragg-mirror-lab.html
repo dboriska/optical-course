@@ -39,12 +39,12 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.45; }
 .wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
-header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
-header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+header h1 { font-size: 2.1rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 85ch; font-size: 1.05rem; }
 .law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
-.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
 @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
 .main, .side { display: grid; gap: 14px; min-width: 0; }
 .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
@@ -52,14 +52,14 @@ header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
 .scene { padding: 0; overflow: hidden; }
 .scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
-.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 0.95rem; margin-left: auto; }
+.legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
 .ctl { display: grid; gap: 4px; }
-.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
-.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
-.hint { font-size: 0.78rem; color: var(--muted); }
-button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 1.05rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-size: 1.12rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 4px 0; height: 22px; }
+.hint { font-size: 0.9rem; color: var(--muted); }
+button { font: inherit; font-size: 0.98rem; font-weight: 700; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -67,17 +67,17 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .seg button { border-radius: 0; }
 .seg button:first-child { border-radius: 7px 0 0 7px; }
 .seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
-.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
-.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.section-title { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; font-size: 1.15rem; padding: 10px 12px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
 .status.ok { color: var(--ok); }
 .status.bad { color: var(--muted); }
 .status.hot { color: var(--ray); }
-.status small { display: block; font-weight: 400; color: var(--muted); }
-.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.status small { display: block; font-weight: 400; font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 6px 12px; font-size: 1.02rem; }
 .readouts dt { color: var(--muted); }
 .readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
-.note { font-size: 0.85rem; color: var(--muted); }
+.note { font-size: 0.95rem; color: var(--muted); }
 /* Presentation mode (#demo): canvas only */
 body.demo { background: #ffffff; }
 body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
@@ -88,6 +88,17 @@ canvas.big { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%;
 canvas.small { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
 @media (max-width: 600px) { canvas.big { aspect-ratio: 4 / 3; } }
 body.demo canvas.big { aspect-ratio: 16 / 9; }
+/* Key values: big numbers that read from the back of the room */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 10px; padding: 10px 14px; min-width: 0; }
+.tile .k { font-size: 0.92rem; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .v { font-family: var(--font-mono); font-size: 1.9rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .v .u { font-size: 0.6em; font-weight: 400; color: var(--muted); }
+.tile.ray { border-left-color: var(--ray); } .tile.ray .v { color: var(--ray); }
+.tile.ok { border-left-color: var(--ok); } .tile.ok .v { color: var(--ok); }
+.tile.warm { border-left-color: var(--warm); }
+@media (max-width: 600px) { .tile .v { font-size: 1.5rem; } }
+body.demo .tiles { display: none !important; }
 
 canvas.big { cursor: crosshair; touch-action: pan-y; }
 </style>
@@ -102,6 +113,7 @@ canvas.big { cursor: crosshair; touch-action: pan-y; }
 
   <div class="grid">
     <div class="main">
+      <div class="tiles" id="tiles" aria-live="polite"></div>
       <div class="card scene">
         <canvas id="spec" class="big" aria-label="Reflectivity of the Bragg mirror against wavelength; drag to move the probe wavelength"></canvas>
         <div class="scene-bar">
@@ -254,25 +266,26 @@ canvas.big { cursor: crosshair; touch-action: pan-y; }
   function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
   function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
     const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
-    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.9}px ${monoFont()}`;
     const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
     for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
-    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.95}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
     ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
     return { sx, sy };
   }
 
+  const setTiles = arr => { const el = document.getElementById('tiles'); if (el) el.innerHTML = arr.map(([k, v, cls]) => `<div class="tile${cls ? ' ' + cls : ''}"><div class="k">${k}</div><div class="v">${String(v).replace(/^(\S+) (.+)$/, '$1<span class="u"> $2</span>')}</div></div>`).join(''); };
 
   const fmtR = r => r > 0.9995 ? `${fmt(r * 100, 3)} %` : r > 0.995 ? `${fmt(r * 100, 2)} %` : `${fmt(r * 100, 1)} %`;
 
   // ---------- reflectivity spectrum ----------
   let specBox = null;
   function drawSpec(ctx, X, Y, W, H, c, opts = {}) {
-    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const pal = palette(), fs = opts.fontSize || Math.max(15, Math.min(22, W / 44));
     const B = { x0: fs * 4.4, x1: W - fs * 1.2, y0: fs * 2.2, y1: H - fs * 3.2 };
     ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
@@ -288,16 +301,16 @@ canvas.big { cursor: crosshair; touch-action: pan-y; }
     const pr = c.st.probe; ctx.strokeStyle = pal.ray; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(pr), B.y0); ctx.lineTo(sx(pr), B.y1); ctx.stroke();
     ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(sx(pr), sy(c.Rp), fs * 0.4, 0, 2 * PI); ctx.fill();
     ctx.restore();
-    label(ctx, `λ_B = ${fmt(c.lb, 1)} nm`, sx(c.lb) - fs * 0.4, B.y1 - fs * 0.5, 'right', 'bottom', pal.ok, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+    label(ctx, `λ_B = ${fmt(c.lb, 1)} nm`, sx(c.lb) - fs * 0.4, B.y1 - fs * 0.5, 'right', 'bottom', pal.ok, `700 ${fs * 0.92}px ${monoFont()}`, pal);
     const right = sx(pr) > (B.x0 + B.x1) * 0.62;
-    label(ctx, `R(${fmt(pr, 1)} nm) = ${fmtR(c.Rp)}`, sx(pr) + (right ? -fs * 0.7 : fs * 0.7), Math.min(B.y1 - fs * 1.5, sy(c.Rp) + fs * 1.4), right ? 'right' : 'left', 'top', pal.ray, `700 ${fs * 0.85}px ${monoFont()}`, pal);
-    if (c.kind === 'v') label(ctx, 'dashed: bottom mirror', B.x1 - fs * 0.4, B.y1 - fs * 0.5, 'right', 'bottom', pal.muted, `700 ${fs * 0.75}px ${getFont()}`, pal);
+    label(ctx, `R(${fmt(pr, 1)} nm) = ${fmtR(c.Rp)}`, sx(pr) + (right ? -fs * 0.7 : fs * 0.7), Math.min(B.y1 - fs * 1.5, sy(c.Rp) + fs * 1.4), right ? 'right' : 'left', 'top', pal.ray, `700 ${fs * 0.92}px ${monoFont()}`, pal);
+    if (c.kind === 'v') label(ctx, 'dashed: bottom mirror', B.x1 - fs * 0.4, B.y1 - fs * 0.5, 'right', 'bottom', pal.muted, `700 ${fs * 0.92}px ${getFont()}`, pal);
     ctx.restore();
   }
 
   // ---------- arrow chain ----------
   function drawChain(ctx, X, Y, W, H, c, opts = {}) {
-    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const pal = palette(), fs = opts.fontSize || Math.max(14, Math.min(20, W / 27));
     ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
@@ -306,7 +319,7 @@ canvas.big { cursor: crosshair; touch-action: pan-y; }
     // index pattern strip
     const ys = fs * 2.6, hs = fs * 1.2, nShow = Math.min(N, 24), pw = (W - fs * 1.6) / nShow;
     for (let j = 0; j < nShow; j++) { ctx.fillStyle = pal.accent; ctx.globalAlpha = 0.45; ctx.fillRect(fs * 0.8 + j * pw, ys, pw / 2, hs); ctx.globalAlpha = 0.12; ctx.fillRect(fs * 0.8 + j * pw + pw / 2, ys, pw / 2, hs); }
-    ctx.globalAlpha = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.7}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.globalAlpha = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.92}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillText(N > nShow ? `first ${nShow} of ${N} periods` : `${N} periods`, fs * 0.8, ys + hs + fs * 0.25);
     // chain
     const ox = fs * 2, oy = H * 0.62;
@@ -325,14 +338,14 @@ canvas.big { cursor: crosshair; touch-action: pan-y; }
     ctx.strokeStyle = pal.ray; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(mapX(ox), mapY(oy)); ctx.lineTo(mapX(ex), mapY(ey)); ctx.stroke();
     ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(mapX(ex), mapY(ey), fs * 0.3, 0, 2 * PI); ctx.fill();
     const frac = Math.hypot(ex - ox, ey - oy) / (N * ell);
-    label(ctx, `|sum| = ${fmt(frac * 100, 0)} % of all in phase`, W - fs * 0.6, H - fs * 0.5, 'right', 'bottom', pal.ray, `700 ${fs * 0.78}px ${monoFont()}`, pal);
-    label(ctx, `turn per period ${fmt(((ph / PI) % 2 + 3) % 2 - 1, 3)}π`, W - fs * 0.6, H - fs * 1.9, 'right', 'bottom', pal.muted, `${fs * 0.72}px ${monoFont()}`, pal);
+    label(ctx, `|sum| = ${fmt(frac * 100, 0)} % of all in phase`, W - fs * 0.6, H - fs * 0.5, 'right', 'bottom', pal.ray, `700 ${fs * 0.92}px ${monoFont()}`, pal);
+    label(ctx, `turn per period ${fmt(((ph / PI) % 2 + 3) % 2 - 1, 3)}π`, W - fs * 0.6, H - fs * 1.9, 'right', 'bottom', pal.muted, `${fs * 0.92}px ${monoFont()}`, pal);
     ctx.restore();
   }
 
   // ---------- how the laser uses it ----------
   function drawUse(ctx, X, Y, W, H, c, opts = {}) {
-    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const pal = palette(), fs = opts.fontSize || Math.max(14, Math.min(20, W / 27));
     const B = { x0: fs * 4.0, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
     ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
@@ -347,19 +360,19 @@ canvas.big { cursor: crosshair; touch-action: pan-y; }
       ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.4; ctx.beginPath(); for (let i = 0; i <= 200; i++) { const l = lr[0] + (lr[1] - lr[0]) * i / 200, y = sy(c.gainAt(l)); i ? ctx.lineTo(sx(l), y) : ctx.moveTo(sx(l), y); } ctx.stroke();
       for (const m of c.modes) { if (m.lam < lr[0] || m.lam > lr[1]) continue; const win = m === c.win; ctx.strokeStyle = win ? pal.ray : pal.muted; ctx.lineWidth = win ? 3 : 1; ctx.globalAlpha = win ? 1 : 0.6; ctx.beginPath(); ctx.moveTo(sx(m.lam), B.y1); ctx.lineTo(sx(m.lam), win ? sy(c.gainAt(m.lam)) : B.y1 - fs * 0.8); ctx.stroke(); ctx.globalAlpha = 1; }
       ctx.restore();
-      label(ctx, 'cleaved rear facet', B.x0 + fs * 0.4, sy(c.gthFP) - fs * 0.3, 'left', 'bottom', pal.muted, `${fs * 0.72}px ${getFont()}`, pal);
-      label(ctx, 'threshold with grating', B.x1 - fs * 0.3, B.y0 + fs * 0.3, 'right', 'top', pal.ink, `700 ${fs * 0.72}px ${getFont()}`, pal);
-      label(ctx, `lasing ${fmt(c.win.lam, 2)} nm`, sx(c.win.lam), sy(c.gainAt(c.win.lam)) - fs * 0.6, 'center', 'bottom', pal.ray, `700 ${fs * 0.78}px ${monoFont()}`, pal);
+      label(ctx, 'cleaved rear facet', B.x1 - fs * 0.3, sy(c.gthFP) + fs * 0.35, 'right', 'top', pal.muted, `${fs * 0.92}px ${getFont()}`, pal);
+      label(ctx, 'threshold with grating', B.x1 - fs * 0.3, B.y0 + fs * 0.3, 'right', 'top', pal.ink, `700 ${fs * 0.92}px ${getFont()}`, pal);
+      label(ctx, `lasing ${fmt(c.win.lam, 2)} nm`, sx(c.win.lam), sy(c.gainAt(c.win.lam)) - fs * 0.6, 'center', 'bottom', pal.ray, `700 ${fs * 0.92}px ${monoFont()}`, pal);
     } else {
       ctx.fillText('VCSEL: tens of periods for a thin gain layer', fs * 0.8, fs * 0.6);
       const { sx, sy } = axes(ctx, B, [0, 40], [0.9, 1], pal, fs, 'Top mirror periods', 'Peak R at 980 nm', H, { xStep: 5, yStep: 0.025, yf: v => v.toFixed(3) });
       ctx.save(); ctx.beginPath(); ctx.rect(B.x0, B.y0, B.x1 - B.x0, B.y1 - B.y0); ctx.clip();
-      for (const [r, nm] of [[0.99, '99 %'], [0.999, '99.9 %']]) { ctx.strokeStyle = pal.ok; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(B.x0, sy(r)); ctx.lineTo(B.x1, sy(r)); ctx.stroke(); ctx.setLineDash([]); label(ctx, nm, B.x0 + fs * 0.3, sy(r) + fs * 0.2, 'left', 'top', pal.ok, `${fs * 0.7}px ${monoFont()}`, pal); }
+      for (const [r, nm] of [[0.99, '99 %'], [0.999, '99.9 %']]) { ctx.strokeStyle = pal.ok; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(B.x0, sy(r)); ctx.lineTo(B.x1, sy(r)); ctx.stroke(); ctx.setLineDash([]); label(ctx, nm, B.x0 + fs * 0.3, sy(r) + fs * 0.2, 'left', 'top', pal.ok, `${fs * 0.92}px ${monoFont()}`, pal); }
       ctx.strokeStyle = pal.accent; ctx.lineWidth = 2.4; ctx.beginPath(); c.curve.forEach(([n, r], i) => { const y = sy(Math.max(0.88, r)); i ? ctx.lineTo(sx(n), y) : ctx.moveTo(sx(n), y); }); ctx.stroke();
       ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(sx(c.st.nt), sy(Math.max(0.885, c.rt)), fs * 0.42, 0, 2 * PI); ctx.fill();
       ctx.restore();
       const ok = c.gth < 3000;
-      label(ctx, `needs g_th ≈ ${c.gth > 1e5 ? '> 10⁵' : fmt(c.gth, 0)} cm⁻¹`, B.x1 - fs * 0.3, B.y1 - fs * 0.5, 'right', 'bottom', ok ? pal.ok : pal.ray, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+      label(ctx, `needs g_th ≈ ${c.gth > 1e5 ? '> 10⁵' : fmt(c.gth, 0)} cm⁻¹`, B.x1 - fs * 0.3, B.y1 - fs * 0.5, 'right', 'bottom', ok ? pal.ok : pal.ray, `700 ${fs * 0.92}px ${monoFont()}`, pal);
     }
     ctx.restore();
   }
@@ -427,10 +440,10 @@ canvas.big { cursor: crosshair; touch-action: pan-y; }
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
     const st = demoState(t), c = model(st);
     const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
-    drawSpec(ctx, 0, 0, sw, sh, c, { fontSize: W / 80, demo: true });
+    drawSpec(ctx, 0, 0, sw, sh, c, { fontSize: W / 68, demo: true });
     const bw = (sw - pad) / 2;
-    drawChain(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100 });
-    drawUse(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100 });
+    drawChain(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 82 });
+    drawUse(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 82 });
     ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
     const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
     const rows = c.kind === 'g'
@@ -459,6 +472,7 @@ canvas.big { cursor: crosshair; touch-action: pan-y; }
     if (c.kind === 'g') {
       if (c.Rpk < 0.5) { s.className = 'status bad'; s.innerHTML = `Weak mirror<small>Peak R = ${fmtR(c.Rpk)}: κL = ${fmt(c.kL, 2)}. Add periods or index step.</small>`; }
       else { s.className = 'status ok'; s.innerHTML = `Strong, narrow mirror<small>Peak R = ${fmtR(c.Rpk)} over a ${fmt(c.sb, 2)} nm stop band; the laser locks to ${fmt(c.win.lam, 2)} nm.</small>`; }
+      setTiles([['Bragg λ_B', `${fmt(c.lb, 1)} nm`], ['Peak R', fmtR(c.Rpk), 'ray'], ['Stop band', `${fmt(c.sb, 2)} nm`], ['Lasing mode', `${fmt(c.win.lam, 2)} nm`, 'ok']]);
       ro.innerHTML = row('Bragg wavelength λ_B', `${fmt(c.lb, 2)} nm`) + row('Coupling κ = 2Δn/λ_B', `${fmt(c.kap, 1)} cm⁻¹`) + row('Grating length L_g', `${fmt(c.Lg * 1e4, 0)} µm`) + row('κL_g', fmt(c.kL, 2)) +
         '<div class="sep"></div>' + row('Peak R (exact)', fmtR(c.Rpk)) + row('tanh²(κL_g)', fmtR(Math.tanh(c.kL) ** 2)) + row('Stop band (null to null)', `${fmt(c.sb, 2)} nm`) + row('R at probe', fmtR(c.Rp)) +
         '<div class="sep"></div>' + row('Lasing mode', `${fmt(c.win.lam, 2)} nm`) + row('Threshold, grating', `${fmt(c.win.t, 1)} cm⁻¹`) + row('Threshold, cleaved facet', `${fmt(c.gthFP, 1)} cm⁻¹`) + row('Next mode short by', `${fmt(c.side, 1)} cm⁻¹`);
@@ -466,6 +480,7 @@ canvas.big { cursor: crosshair; touch-action: pan-y; }
       const ok = c.gth < 3000;
       s.className = ok ? 'status ok' : 'status hot';
       s.innerHTML = ok ? `Can lase<small>Mirrors ${fmtR(c.rt)} and ${fmtR(c.rb)}: the wells need about ${fmt(c.gth, 0)} cm⁻¹ of gain.</small>` : `Mirrors too weak<small>The wells would need ${c.gth > 1e5 ? 'over 10⁵' : fmt(c.gth, 0)} cm⁻¹, more than quantum wells give (a few thousand).</small>`;
+      setTiles([['Top mirror R', fmtR(c.rt), 'ray'], ['Bottom mirror R', fmtR(c.rb)], ['Gain needed', c.gth > 1e5 ? '> 10⁵ cm⁻¹' : `${fmt(c.gth, 0)} cm⁻¹`, ok ? 'ok' : 'warm'], ['Stop band', `${fmt(c.sb, 0)} nm`]]);
       ro.innerHTML = row('Top mirror R (980 nm)', fmtR(c.rt)) + row('Bottom mirror R', fmtR(c.rb)) + row('Top mirror thickness', `${fmt(c.thick, 2)} µm`) + row('Stop band (top)', `${fmt(c.sb, 0)} nm`) +
         '<div class="sep"></div>' + row('Active length (3 × 8 nm)', '24 nm') + row('Round-trip loss ln(1/R_tR_b)', fmt(Math.log(1 / (c.rt * c.rb)), 4)) + row('Gain needed g_th', c.gth > 1e5 ? '> 10⁵ cm⁻¹' : `${fmt(c.gth, 0)} cm⁻¹`) + row('R at probe', fmtR(c.Rp));
     }

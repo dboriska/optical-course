@@ -39,12 +39,12 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.45; }
 .wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
-header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
-header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+header h1 { font-size: 2.1rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 85ch; font-size: 1.05rem; }
 .law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
-.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
 @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
 .main, .side { display: grid; gap: 14px; min-width: 0; }
 .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
@@ -52,14 +52,14 @@ header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
 .scene { padding: 0; overflow: hidden; }
 .scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
-.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 0.95rem; margin-left: auto; }
+.legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
 .ctl { display: grid; gap: 4px; }
-.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
-.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
-.hint { font-size: 0.78rem; color: var(--muted); }
-button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 1.05rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-size: 1.12rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 4px 0; height: 22px; }
+.hint { font-size: 0.9rem; color: var(--muted); }
+button { font: inherit; font-size: 0.98rem; font-weight: 700; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -67,17 +67,17 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .seg button { border-radius: 0; }
 .seg button:first-child { border-radius: 7px 0 0 7px; }
 .seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
-.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
-.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.section-title { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; font-size: 1.15rem; padding: 10px 12px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
 .status.ok { color: var(--ok); }
 .status.bad { color: var(--muted); }
 .status.hot { color: var(--ray); }
-.status small { display: block; font-weight: 400; color: var(--muted); }
-.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.status small { display: block; font-weight: 400; font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 6px 12px; font-size: 1.02rem; }
 .readouts dt { color: var(--muted); }
 .readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
-.note { font-size: 0.85rem; color: var(--muted); }
+.note { font-size: 0.95rem; color: var(--muted); }
 /* Presentation mode (#demo): canvas only */
 body.demo { background: #ffffff; }
 body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
@@ -88,6 +88,17 @@ canvas.big { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%;
 canvas.small { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
 @media (max-width: 600px) { canvas.big { aspect-ratio: 4 / 3; } }
 body.demo canvas.big { aspect-ratio: 16 / 9; }
+/* Key values: big numbers that read from the back of the room */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 10px; padding: 10px 14px; min-width: 0; }
+.tile .k { font-size: 0.92rem; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .v { font-family: var(--font-mono); font-size: 1.9rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .v .u { font-size: 0.6em; font-weight: 400; color: var(--muted); }
+.tile.ray { border-left-color: var(--ray); } .tile.ray .v { color: var(--ray); }
+.tile.ok { border-left-color: var(--ok); } .tile.ok .v { color: var(--ok); }
+.tile.warm { border-left-color: var(--warm); }
+@media (max-width: 600px) { .tile .v { font-size: 1.5rem; } }
+body.demo .tiles { display: none !important; }
 
 </style>
 </head>
@@ -101,6 +112,7 @@ body.demo canvas.big { aspect-ratio: 16 / 9; }
 
   <div class="grid">
     <div class="main">
+      <div class="tiles" id="tiles" aria-live="polite"></div>
       <div class="card scene">
         <canvas id="scope" class="big" aria-label="Drive current, carrier number, output power and frequency chirp against time"></canvas>
         <div class="scene-bar">
@@ -259,18 +271,19 @@ body.demo canvas.big { aspect-ratio: 16 / 9; }
   function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
   function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
     const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
-    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.9}px ${monoFont()}`;
     const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
     for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
-    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.95}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
     ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
     return { sx, sy };
   }
 
+  const setTiles = arr => { const el = document.getElementById('tiles'); if (el) el.innerHTML = arr.map(([k, v, cls]) => `<div class="tile${cls ? ' ' + cls : ''}"><div class="k">${k}</div><div class="v">${String(v).replace(/^(\S+) (.+)$/, '$1<span class="u"> $2</span>')}</div></div>`).join(''); };
 
   const fmtP = w => w >= 1e-3 ? `${fmt(w * 1e3, w >= 0.01 ? 1 : 2)} mW` : w >= 1e-6 ? `${fmt(w * 1e6, 1)} µW` : `${fmt(w * 1e9, 1)} nW`;
   const fmtF = f => !isFinite(f) ? '—' : `${fmt(f / 1e9, f < 10e9 ? 2 : 1)} GHz`;
@@ -278,10 +291,10 @@ body.demo canvas.big { aspect-ratio: 16 / 9; }
   // ---------- scope ----------
   // opts: { fontSize, sweep (0–1 of the window drawn) }
   function drawScope(ctx, X, Y, W, H, c, opts = {}) {
-    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const pal = palette(), fs = opts.fontSize || Math.max(15, Math.min(22, W / 44));
     ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
-    const o = c.out, x0 = fs * 6.4, x1 = W - fs * 1.2, y0 = fs * 1.2, y1 = H - fs * 3.0;
+    const o = c.out, x0 = fs * 9.2, x1 = W - fs * 1.2, y0 = fs * 1.2, y1 = H - fs * 3.0;
     const win = c.mode === 'step' ? [0, c.Tend] : [0, Math.min(c.Tend, 12 * c.Tb)];
     const sweep = opts.sweep ?? 1, tCut = win[0] + (win[1] - win[0]) * sweep;
     const sx = t => x0 + (x1 - x0) * (t - win[0]) / (win[1] - win[0]);
@@ -305,13 +318,13 @@ body.demo canvas.big { aspect-ratio: 16 / 9; }
       }
       const top = y0 + k * (sh + gap), bot = top + sh, sy = v => bot - (bot - top) * (v - s.lo) / (s.hi - s.lo);
       ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.strokeRect(x0, top, x1 - x0, sh);
-      ctx.fillStyle = s.col; ctx.font = `700 ${fs * 0.78}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = s.col; ctx.font = `700 ${fs * 0.92}px ${getFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
       ctx.fillText(s.name, x0 - fs * 0.4, top + sh * 0.35);
-      ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.66}px ${monoFont()}`;
+      ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.92}px ${monoFont()}`;
       const fv = v => Math.abs(s.hi - s.lo) < 0.2 ? v.toFixed(3) : Math.abs(s.hi - s.lo) < 5 ? v.toFixed(1) : v.toFixed(0);
       ctx.fillText(`${fv(s.lo)} to ${fv(s.hi)}${s.unit ? ' ' + s.unit : ''}`, x0 - fs * 0.4, top + sh * 0.68);
       ctx.save(); ctx.beginPath(); ctx.rect(x0, top, x1 - x0, sh); ctx.clip();
-      if (s.ref) for (const [r, nm] of s.ref) { if (r < s.lo || r > s.hi) continue; ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 4]); ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(x0, sy(r)); ctx.lineTo(x1, sy(r)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; if (nm) label(ctx, nm, x1 - fs * 0.3, sy(r) - fs * 0.15, 'right', 'bottom', pal.muted, `${fs * 0.68}px ${monoFont()}`, pal); }
+      if (s.ref) for (const [r, nm] of s.ref) { if (r < s.lo || r > s.hi) continue; ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 4]); ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.moveTo(x0, sy(r)); ctx.lineTo(x1, sy(r)); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1; if (nm) label(ctx, nm, x1 - fs * 0.3, sy(r) - fs * 0.15, 'right', 'bottom', pal.muted, `${fs * 0.92}px ${monoFont()}`, pal); }
       if (c.mode === 'bits') { ctx.strokeStyle = pal.line; ctx.globalAlpha = 0.6; for (let tb = c.Tb; tb < win[1]; tb += c.Tb) { ctx.beginPath(); ctx.moveTo(sx(tb), top); ctx.lineTo(sx(tb), bot); ctx.stroke(); } ctx.globalAlpha = 1; }
       ctx.strokeStyle = s.col; ctx.lineWidth = 2.2; ctx.lineJoin = 'round'; ctx.beginPath();
       let pen = false;
@@ -320,17 +333,17 @@ body.demo canvas.big { aspect-ratio: 16 / 9; }
     });
     if (sweep < 1) { ctx.strokeStyle = pal.ink; ctx.globalAlpha = 0.35; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx(tCut), y0); ctx.lineTo(sx(tCut), y1); ctx.stroke(); ctx.globalAlpha = 1; }
     // time axis
-    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.75}px ${monoFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.92}px ${monoFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     const tstep = niceStep((win[1] - win[0]) * 1e12, 8);
     for (let t = 0; t <= (win[1] - win[0]) * 1e12 + 1e-6; t += tstep) ctx.fillText(String(Math.round(t)), sx(t * 1e-12), y1 + fs * 0.3);
-    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textBaseline = 'bottom';
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.92}px ${getFont()}`; ctx.textBaseline = 'bottom';
     ctx.fillText(c.mode === 'bits' ? `Time (ps), ${fmt(c.B, 1)} Gb/s, bit slots marked` : 'Time (ps)', (x0 + x1) / 2, H - fs * 0.15);
     ctx.restore();
   }
 
   // ---------- modulation response ----------
   function drawResp(ctx, X, Y, W, H, c, opts = {}) {
-    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const pal = palette(), fs = opts.fontSize || Math.max(14, Math.min(20, W / 27));
     const B = { x0: fs * 3.6, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
     ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
@@ -350,16 +363,16 @@ body.demo canvas.big { aspect-ratio: 16 / 9; }
     }
     ctx.restore();
     if (above) {
-      if (c.r.fpk > 0.3e9 && c.r.fpk < fmax) label(ctx, `f_R ≈ ${fmt(c.r.fpk / 1e9, 1)} GHz`, sx(c.r.fpk / 1e9), sy(Math.min(14, c.r.peak)) - fs * 0.5, 'center', 'bottom', pal.ray, `700 ${fs * 0.78}px ${monoFont()}`, pal);
-      if (isFinite(c.r.f3) && c.r.f3 < fmax) { ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(sx(c.r.f3 / 1e9), sy(-3), fs * 0.3, 0, 2 * PI); ctx.fill(); label(ctx, `f_3dB ${fmt(c.r.f3 / 1e9, 1)}`, sx(c.r.f3 / 1e9) + fs * 0.5, sy(-3) + fs * 0.4, 'left', 'top', pal.ray, `700 ${fs * 0.72}px ${monoFont()}`, pal); }
-      if (c.mode === 'bits' && c.B / 2 < fmax / 1e9) label(ctx, 'B/2', sx(c.B / 2) + fs * 0.3, B.y1 - fs * 0.4, 'left', 'bottom', pal.accent, `700 ${fs * 0.72}px ${monoFont()}`, pal);
-    } else label(ctx, 'Bias below threshold: no stimulated emission to modulate', (B.x0 + B.x1) / 2, (B.y0 + B.y1) / 2, 'center', 'middle', pal.muted, `700 ${fs * 0.8}px ${getFont()}`, pal);
+      if (c.r.fpk > 0.3e9 && c.r.fpk < fmax) label(ctx, `f_R ≈ ${fmt(c.r.fpk / 1e9, 1)} GHz`, sx(c.r.fpk / 1e9), sy(Math.min(14, c.r.peak)) - fs * 0.5, 'center', 'bottom', pal.ray, `700 ${fs * 0.92}px ${monoFont()}`, pal);
+      if (isFinite(c.r.f3) && c.r.f3 < fmax) { ctx.fillStyle = pal.ray; ctx.beginPath(); ctx.arc(sx(c.r.f3 / 1e9), sy(-3), fs * 0.3, 0, 2 * PI); ctx.fill(); label(ctx, `f_3dB ${fmt(c.r.f3 / 1e9, 1)}`, sx(c.r.f3 / 1e9) + fs * 0.5, sy(-3) + fs * 0.4, 'left', 'top', pal.ray, `700 ${fs * 0.92}px ${monoFont()}`, pal); }
+      if (c.mode === 'bits' && c.B / 2 < fmax / 1e9) label(ctx, 'B/2', sx(c.B / 2) + fs * 0.3, B.y1 - fs * 0.4, 'left', 'bottom', pal.accent, `700 ${fs * 0.92}px ${monoFont()}`, pal);
+    } else label(ctx, 'Bias below threshold: no stimulated emission to modulate', (B.x0 + B.x1) / 2, (B.y0 + B.y1) / 2, 'center', 'middle', pal.muted, `700 ${fs * 0.92}px ${getFont()}`, pal);
     ctx.restore();
   }
 
   // ---------- eye diagram ----------
   function drawEye(ctx, X, Y, W, H, c, opts = {}) {
-    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const pal = palette(), fs = opts.fontSize || Math.max(14, Math.min(20, W / 27));
     const B = { x0: fs * 3.6, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
     ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
@@ -378,7 +391,7 @@ body.demo canvas.big { aspect-ratio: 16 / 9; }
         ctx.stroke();
       }
       ctx.globalAlpha = 1; ctx.restore();
-      ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 4]); [[c.p0, '"0"'], [c.p1, '"1"']].forEach(([p, nm]) => { ctx.beginPath(); ctx.moveTo(B.x0, sy(p * 1e3)); ctx.lineTo(B.x1, sy(p * 1e3)); ctx.stroke(); label(ctx, nm, B.x1 - fs * 0.2, sy(p * 1e3) - fs * 0.2, 'right', 'bottom', pal.muted, `700 ${fs * 0.72}px ${monoFont()}`, pal); }); ctx.setLineDash([]);
+      ctx.strokeStyle = pal.muted; ctx.setLineDash([3, 4]); [[c.p0, '"0"'], [c.p1, '"1"']].forEach(([p, nm]) => { ctx.beginPath(); ctx.moveTo(B.x0, sy(p * 1e3)); ctx.lineTo(B.x1, sy(p * 1e3)); ctx.stroke(); label(ctx, nm, B.x1 - fs * 0.2, sy(p * 1e3) - fs * 0.2, 'right', 'bottom', pal.muted, `700 ${fs * 0.92}px ${monoFont()}`, pal); }); ctx.setLineDash([]);
     }
     ctx.restore();
   }
@@ -439,11 +452,11 @@ body.demo canvas.big { aspect-ratio: 16 / 9; }
     const k = Math.max(0, SCENES.findIndex(s => t >= s[0] && t < s[1])), sc = SCENES[k], c = demoModel(k);
     const sweep = Math.min(1, (t - sc[0]) / Math.min(6, (sc[1] - sc[0]) * 0.6));
     const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
-    drawScope(ctx, 0, 0, sw, sh, c, { fontSize: W / 80, sweep });
+    drawScope(ctx, 0, 0, sw, sh, c, { fontSize: W / 68, sweep });
     const bw = (sw - pad) / 2;
     const ghosts = c.mode === 'step' && c.Ib === 40 ? [demoModel(0).r] : null;
-    drawResp(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100, ghosts });
-    drawEye(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100, sweep });
+    drawResp(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 82, ghosts });
+    drawEye(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 82, sweep });
     ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
     const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
     const rows = c.mode === 'step'
@@ -467,6 +480,8 @@ body.demo canvas.big { aspect-ratio: 16 / 9; }
     if (!above) { s.className = 'status hot'; s.innerHTML = `Biased below threshold<small>The carriers start from below N_th, so every "1" waits for them to fill up first.</small>`; }
     else if (state.mode === 'step') { s.className = 'status ok'; s.innerHTML = `Relaxation oscillations<small>Ringing at about ${fmtF(r.fpk)}, ${fmt(c.over * 100, 0)} % overshoot.</small>`; }
     else { const ratio = state.B / (r.f3 / 1e9); const ok = ratio < 0.8; s.className = ok ? 'status ok' : 'status hot'; s.innerHTML = ok ? `The light keeps up<small>B is ${fmt(ratio, 2)} × f_3dB; the eye stays open.</small>` : `Too fast for this bias<small>B is ${fmt(ratio, 2)} × f_3dB; ringing from one bit runs into the next.</small>`; }
+    setTiles([['Threshold I_th', `${fmt(ITH, 1)} mA`], ['Relaxation f_R', above ? fmtF(r.fpk) : '—', 'ray'], ['Bandwidth f_3dB', above ? fmtF(r.f3) : '—', 'ok'],
+      state.mode === 'bits' ? ['Bit rate / f_3dB', above ? fmt(state.B / (r.f3 / 1e9), 2) : '—'] : ['Overshoot', `${fmt(c.over * 100, 0)} %`], ['Chirp (p-p)', `${fmt(c.chirp / 1e9, 1)} GHz`, 'warm']]);
     $('rIth').textContent = `${fmt(ITH, 1)} mA`; $('rFr').textContent = above ? fmtF(r.fpk) : '—'; $('rF3').textContent = above ? fmtF(r.f3) : '—';
     $('rRb').textContent = state.mode === 'bits' && above ? fmt(state.B / (r.f3 / 1e9), 2) : '—';
     $('rP01').textContent = `${fmtP(c.p0)} / ${fmtP(c.p1)}`;

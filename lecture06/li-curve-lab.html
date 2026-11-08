@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: L–I curve on top, electron/photon tanks and carrier clamping below, instrument column on the right; stacks to one column on phones */
+/* Layout: key values on top, L–I curve, electron/photon tanks and carrier clamping below, instrument column on the right; stacks to one column on phones */
 :root {
   --bg: #f3f6f8;
   --panel: #ffffff;
@@ -39,30 +39,27 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.45; }
 .wrap { max-width: 1280px; margin: 0 auto; padding-block: 20px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 16px; }
-header h1 { font-size: 1.6rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
-header p { margin: 4px 0 0; color: var(--muted); max-width: 80ch; }
+header h1 { font-size: 2.1rem; margin: 0; color: var(--accent); text-wrap: balance; letter-spacing: -0.01em; }
+header p { margin: 6px 0 0; color: var(--muted); max-width: 85ch; font-size: 1.05rem; }
 .law { font-family: var(--font-mono); font-size: 0.95em; color: var(--ink); white-space: nowrap; }
-.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
 @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .law { white-space: normal; } }
 .main, .side { display: grid; gap: 14px; min-width: 0; }
 .pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
 @media (max-width: 600px) { .pair { grid-template-columns: minmax(0, 1fr); } }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
 .scene { padding: 0; overflow: hidden; }
-#li { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
-#tank, #nI { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
-@media (max-width: 600px) { #li { aspect-ratio: 4 / 3; } }
 .scene-bar { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 14px; border-top: 1px solid var(--line); }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 0.85rem; margin-left: auto; }
-.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 0.95rem; margin-left: auto; }
+.legend i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
 .ctl { display: grid; gap: 4px; }
-.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 0.92rem; gap: 8px; }
-.ctl output { font-family: var(--font-mono); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
-input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
-.hint { font-size: 0.78rem; color: var(--muted); }
-button { font: inherit; font-size: 0.85rem; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+.ctl label { display: flex; justify-content: space-between; align-items: baseline; font-weight: 700; font-size: 1.05rem; gap: 8px; }
+.ctl output { font-family: var(--font-mono); font-size: 1.12rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--accent); white-space: nowrap; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 4px 0; height: 22px; }
+.hint { font-size: 0.9rem; color: var(--muted); }
+button { font: inherit; font-size: 0.98rem; font-weight: 700; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
 button:hover { border-color: var(--accent); }
 button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -70,24 +67,39 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .seg button { border-radius: 0; }
 .seg button:first-child { border-radius: 7px 0 0 7px; }
 .seg button:last-child { border-radius: 0 7px 7px 0; border-left: 0; }
-.section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
-.status { font-weight: 700; padding: 8px 10px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
+.section-title { font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 6px; font-weight: 700; }
+.status { font-weight: 700; font-size: 1.15rem; padding: 10px 12px; border-radius: 7px; margin-bottom: 10px; border: 1px solid currentColor; }
 .status.ok { color: var(--ok); }
 .status.bad { color: var(--muted); }
 .status.hot { color: var(--ray); }
-.status small { display: block; font-weight: 400; color: var(--muted); }
-.readouts { display: grid; grid-template-columns: auto auto; gap: 4px 12px; font-size: 0.9rem; }
+.status small { display: block; font-weight: 400; font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.readouts { display: grid; grid-template-columns: auto auto; gap: 6px 12px; font-size: 1.02rem; }
 .readouts dt { color: var(--muted); }
 .readouts dd { margin: 0; text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .readouts .sep { grid-column: 1 / -1; border-top: 1px solid var(--line); margin: 4px 0; }
-.note { font-size: 0.85rem; color: var(--muted); }
+.note { font-size: 0.95rem; color: var(--muted); }
 /* Presentation mode (#demo): canvas only */
 body.demo { background: #ffffff; }
 body.demo .wrap > *:not(.grid), body.demo .side, body.demo .scene-bar, body.demo .pair { display: none !important; }
 body.demo .wrap { max-width: none; padding: 0; }
 body.demo .grid { display: block; }
 body.demo .card.scene { border: 0; border-radius: 0; }
-body.demo #li { aspect-ratio: 16 / 9; }
+canvas.big { display: block; width: 100%; aspect-ratio: 16 / 8; max-width: 100%; }
+canvas.small { display: block; width: 100%; aspect-ratio: 3 / 2; max-width: 100%; }
+@media (max-width: 600px) { canvas.big { aspect-ratio: 4 / 3; } }
+body.demo canvas.big { aspect-ratio: 16 / 9; }
+/* Key values: big numbers that read from the back of the room */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: 10px; padding: 10px 14px; min-width: 0; }
+.tile .k { font-size: 0.92rem; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .v { font-family: var(--font-mono); font-size: 1.9rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .v .u { font-size: 0.6em; font-weight: 400; color: var(--muted); }
+.tile.ray { border-left-color: var(--ray); } .tile.ray .v { color: var(--ray); }
+.tile.ok { border-left-color: var(--ok); } .tile.ok .v { color: var(--ok); }
+.tile.warm { border-left-color: var(--warm); }
+@media (max-width: 600px) { .tile .v { font-size: 1.5rem; } }
+body.demo .tiles { display: none !important; }
+
 </style>
 </head>
 <body>
@@ -100,8 +112,9 @@ body.demo #li { aspect-ratio: 16 / 9; }
 
   <div class="grid">
     <div class="main">
+      <div class="tiles" id="tiles" aria-live="polite"></div>
       <div class="card scene">
-        <canvas id="li" aria-label="Output power against drive current, with the operating point marked"></canvas>
+        <canvas id="li" class="big" aria-label="Output power against drive current, with the operating point marked"></canvas>
         <div class="scene-bar">
           <div class="seg" role="group" aria-label="Power axis">
             <button id="sLin" aria-pressed="true">Linear</button>
@@ -111,8 +124,8 @@ body.demo #li { aspect-ratio: 16 / 9; }
         </div>
       </div>
       <div class="pair">
-        <div class="card scene"><canvas id="tank" aria-label="Electrons and photons as two tanks, with the flows between them"></canvas></div>
-        <div class="card scene"><canvas id="nI" aria-label="Carrier number against current: it rises, then clamps at threshold"></canvas></div>
+        <div class="card scene"><canvas id="tank" class="small" aria-label="Electrons and photons as two tanks, with the flows between them"></canvas></div>
+        <div class="card scene"><canvas id="nI" class="small" aria-label="Carrier number against current: it rises, then clamps at threshold"></canvas></div>
       </div>
     </div>
 
@@ -212,6 +225,7 @@ body.demo #li { aspect-ratio: 16 / 9; }
     curveCache.set(key, pts); return pts;
   }
   const REF = { R: 0.31, ai: 10, T: 25, T0: 60 };
+  const setTiles = arr => { const el = document.getElementById('tiles'); if (el) el.innerHTML = arr.map(([k, v, cls]) => `<div class="tile${cls ? ' ' + cls : ''}"><div class="k">${k}</div><div class="v">${String(v).replace(/^(\S+) (.+)$/, '$1<span class="u"> $2</span>')}</div></div>`).join(''); };
 
   // ---------- colors and text ----------
   const LIGHT = { bg: '#ffffff', ink: '#13202a', muted: '#566775', line: '#c9d3db', accent: '#0b6bc0', ray: '#d8402a', ok: '#1d8a3a', warm: '#c27a00', core: '#d6e8f6', clad: '#edf3f7' };
@@ -241,13 +255,13 @@ body.demo #li { aspect-ratio: 16 / 9; }
   function niceStep(range, n) { const raw = range / n, q = 10 ** Math.floor(Math.log10(raw)), m = raw / q; return (m < 1.5 ? 1 : m < 3.5 ? 2 : m < 7.5 ? 5 : 10) * q; }
   function axes(ctx, B, xr, yr, pal, fs, xl, yl, H, opts = {}) {
     const sx = x => B.x0 + (B.x1 - B.x0) * (x - xr[0]) / (xr[1] - xr[0]), sy = y => B.y1 - (B.y1 - B.y0) * (y - yr[0]) / (yr[1] - yr[0]);
-    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.78}px ${monoFont()}`;
+    ctx.strokeStyle = pal.line; ctx.lineWidth = 1; ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.9}px ${monoFont()}`;
     const xs = opts.xStep || niceStep(xr[1] - xr[0], 6), ys = opts.yStep || niceStep(yr[1] - yr[0], 4);
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     for (let x = Math.ceil(xr[0] / xs - 1e-9) * xs; x <= xr[1] + 1e-9; x += xs) { ctx.beginPath(); ctx.moveTo(sx(x), B.y0); ctx.lineTo(sx(x), B.y1); ctx.stroke(); ctx.fillText((opts.xf || (v => String(+v.toFixed(6))))(x), sx(x), B.y1 + fs * 0.3); }
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
     for (let y = Math.ceil(yr[0] / ys - 1e-9) * ys; y <= yr[1] + 1e-9; y += ys) { ctx.beginPath(); ctx.moveTo(B.x0, sy(y)); ctx.lineTo(B.x1, sy(y)); ctx.stroke(); ctx.fillText((opts.yf || (v => String(+v.toFixed(6))))(y), B.x0 - fs * 0.3, sy(y)); }
-    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.85}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillStyle = pal.ink; ctx.font = `700 ${fs * 0.92}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.fillText(xl, (B.x0 + B.x1) / 2, H - fs * 0.15);
     ctx.save(); ctx.translate(fs * 0.8, (B.y0 + B.y1) / 2); ctx.rotate(-PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
     return { sx, sy };
@@ -256,7 +270,7 @@ body.demo #li { aspect-ratio: 16 / 9; }
   // ---------- L–I curve ----------
   // opts: { fontSize, log, upto (mA, draw curve only up to here), ref (bool) }
   function drawLI(ctx, X, Y, W, H, c, opts = {}) {
-    const pal = palette(), fs = opts.fontSize || Math.max(11, Math.min(16, W / 58));
+    const pal = palette(), fs = opts.fontSize || Math.max(15, Math.min(22, W / 44));
     const B = { x0: fs * 4.6, x1: W - fs * 1.4, y0: fs * 2.2, y1: H - fs * 3.2 };
     const log = !!opts.log, PMAX = 30;                                    // mW
     ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
@@ -288,8 +302,8 @@ body.demo #li { aspect-ratio: 16 / 9; }
     ctx.stroke();
     ctx.restore();
     // labels
-    if (c.Ith < I_MAX) label(ctx, `I_th = ${fmt(c.Ith, 1)} mA`, sx(c.Ith) + fs * 0.4, B.y0 + fs * 0.4, 'left', 'top', pal.ok, `700 ${fs * 0.85}px ${monoFont()}`, pal);
-    if (c.Ith > fs * 0.5 && sx(c.Ith) - B.x0 > fs * 8) label(ctx, 'spontaneous only (LED-like)', (B.x0 + Math.min(sx(c.Ith), B.x1)) / 2, log ? sy(-5.3) : B.y1 - fs * 1.4, 'center', 'middle', pal.warm, `700 ${fs * 0.75}px ${getFont()}`, pal);
+    if (c.Ith < I_MAX) label(ctx, `I_th = ${fmt(c.Ith, 1)} mA`, sx(c.Ith) + fs * 0.4, B.y0 + fs * 0.4, 'left', 'top', pal.ok, `700 ${fs * 0.92}px ${monoFont()}`, pal);
+    if (c.Ith > fs * 0.5 && sx(c.Ith) - B.x0 > fs * 8) label(ctx, 'spontaneous only (LED-like)', (B.x0 + Math.min(sx(c.Ith), B.x1)) / 2, log ? sy(-5.3) : B.y1 - fs * 1.4, 'center', 'middle', pal.warm, `700 ${fs * 0.92}px ${getFont()}`, pal);
     // operating point
     const op = opts.op ?? c.I;
     if (op <= upto + 1e-9) {
@@ -298,19 +312,19 @@ body.demo #li { aspect-ratio: 16 / 9; }
       ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(x, y, fs * 0.42, 0, 2 * PI); ctx.fill();
       ctx.strokeStyle = pal.bg; ctx.lineWidth = 2; ctx.stroke();
       const Po = c.pout(s.P);
-      label(ctx, `${fmt(op, 1)} mA → ${fmtP(Po)}`, x + (x > (B.x0 + B.x1) * 0.6 ? -fs * 0.8 : fs * 0.8), y - fs * 0.9, x > (B.x0 + B.x1) * 0.6 ? 'right' : 'left', 'bottom', pal.accent, `700 ${fs * 0.85}px ${monoFont()}`, pal);
+      label(ctx, `${fmt(op, 1)} mA → ${fmtP(Po)}`, x + (x > (B.x0 + B.x1) * 0.6 ? -fs * 0.8 : fs * 0.8), y - fs * 0.9, x > (B.x0 + B.x1) * 0.6 ? 'right' : 'left', 'bottom', pal.accent, `700 ${fs * 0.92}px ${monoFont()}`, pal);
     }
     // slope annotation
     if (c.Ith < I_MAX * 0.8 && !log) {
       const I1 = Math.min(I_MAX - 5, c.Ith + (I_MAX - c.Ith) * 0.62), P1 = c.pout(c.solve(I1).P);
-      if (P1 * 1e3 < PMAX * 0.92 && upto >= I1) label(ctx, `slope ${fmt(c.slope > 0 && c.above ? c.slope : (c.pout(c.solve(I1 + 1).P) - P1) / 1e-3, 2)} W/A`, sx(I1) + fs * 0.6, yOf(P1) + fs * 0.6, 'left', 'top', pal.ray, `700 ${fs * 0.8}px ${monoFont()}`, pal);
+      if (P1 * 1e3 < PMAX * 0.92 && upto >= I1) label(ctx, `slope ${fmt(c.slope > 0 && c.above ? c.slope : (c.pout(c.solve(I1 + 1).P) - P1) / 1e-3, 2)} W/A`, sx(I1) + fs * 0.6, yOf(P1) + fs * 0.6, 'left', 'top', pal.ray, `700 ${fs * 0.92}px ${monoFont()}`, pal);
     }
     ctx.restore();
   }
 
   // ---------- carrier clamping: N/N_th against I ----------
   function drawNI(ctx, X, Y, W, H, c, opts = {}) {
-    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const pal = palette(), fs = opts.fontSize || Math.max(14, Math.min(20, W / 27));
     const B = { x0: fs * 4.2, x1: W - fs * 1.2, y0: fs * 2.4, y1: H - fs * 3.2 };
     ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
@@ -326,33 +340,33 @@ body.demo #li { aspect-ratio: 16 / 9; }
     const op = opts.op ?? c.I;
     if (op <= upto + 1e-9) { const s = c.solve(op); ctx.fillStyle = pal.accent; ctx.beginPath(); ctx.arc(sx(op), sy(s.N / c.Nth), fs * 0.38, 0, 2 * PI); ctx.fill(); }
     ctx.restore();
-    label(ctx, 'N_th: gain = loss', B.x1 - fs * 0.3, sy(1) - fs * 0.4, 'right', 'bottom', pal.muted, `700 ${fs * 0.78}px ${getFont()}`, pal);
+    label(ctx, 'N_th: gain = loss', B.x1 - fs * 0.3, sy(1) - fs * 0.4, 'right', 'bottom', pal.muted, `700 ${fs * 0.92}px ${getFont()}`, pal);
     ctx.restore();
   }
 
   // ---------- two tanks: electrons and photons with their flows ----------
   function drawTank(ctx, X, Y, W, H, c, t, opts = {}) {
-    const pal = palette(), fs = opts.fontSize || Math.max(10, Math.min(14, W / 34));
+    const pal = palette(), fs = opts.fontSize || Math.max(14, Math.min(20, W / 27));
     ctx.save(); ctx.translate(X, Y); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
     ctx.fillStyle = pal.bg; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = pal.ink; ctx.font = `700 ${fs}px ${getFont()}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillText('Where the electrons go', fs * 0.8, fs * 0.6);
     const I = c.I * 1e-3, G = c.GN * (c.N - c.N0);
     const rIn = I / Q, rSp = c.N / TAUE, rSt = Math.max(0, G * c.P), rOut = c.P / c.tp * (c.am / (c.am + c.ai)), rInt = c.P / c.tp * (c.ai / (c.am + c.ai));
-    const tw = W * 0.18, th = H * 0.46, ty = H * 0.32;
-    const ex = W * 0.14, px = W * 0.54;
+    const tw = W * 0.16, th = H * 0.42, ty = H * 0.34;
+    const ex = W * 0.13, px = W * 0.6;
     // tanks
     const tank = (x, lvl, col, name, val) => {
       ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(x, ty, tw, th);
       ctx.fillStyle = col; ctx.globalAlpha = 0.25; const h = th * Math.max(0, Math.min(1, lvl)); ctx.fillRect(x + 2, ty + th - h, tw - 4, h); ctx.globalAlpha = 1;
       ctx.fillStyle = col; ctx.font = `700 ${fs * 0.9}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(name, x + tw / 2, ty + th + fs * 0.4);
-      ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.75}px ${monoFont()}`; ctx.fillText(val, x + tw / 2, ty + th + fs * 1.5);
+      ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.92}px ${monoFont()}`; ctx.fillText(val, x + tw / 2, ty + th + fs * 1.5);
     };
     tank(ex, c.N / c.Nth / 1.15, pal.accent, 'Electrons N', `${fmt(c.N / c.Nth, 3)} N_th`);
     tank(px, (Math.log10(Math.max(1, c.P)) - 1) / 5, pal.ray, 'Photons P', fmtE(c.P));
     // N_th mark
     const yth = ty + th - th / 1.15; ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(ex - fs * 0.4, yth); ctx.lineTo(ex + tw + fs * 0.4, yth); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.7}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('N_th', ex - fs * 0.5, yth);
+    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.92}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('N_th', ex - fs * 0.5, yth);
     // flows: width ∝ rate (normalized to the input), dots move along
     const ref = Math.max(rIn, 1e9);
     const flow = (x0, y0, x1, y1, rate, col, name) => {
@@ -363,17 +377,17 @@ body.demo #li { aspect-ratio: 16 / 9; }
       ctx.globalAlpha = 1;
       const nd = Math.round(10 * Math.sqrt(f));
       for (let i = 0; i < nd; i++) { const u = ((t * 0.8 + i / Math.max(1, nd)) % 1); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x0 + (x1 - x0) * u * 0.9, y0 + (y1 - y0) * u * 0.9, Math.max(1.5, w * 0.35), 0, 2 * PI); ctx.fill(); }
-      if (name) label(ctx, name, (x0 + x1) / 2, (y0 + y1) / 2 - w / 2 - fs * 0.25, 'center', 'bottom', col, `700 ${fs * 0.72}px ${getFont()}`, pal);
+      if (name) label(ctx, name, (x0 + x1) / 2, (y0 + y1) / 2 - w / 2 - fs * 0.25, 'center', 'bottom', col, `700 ${fs * 0.92}px ${getFont()}`, pal);
     };
     flow(ex + tw / 2, ty - fs * 3.0, ex + tw / 2, ty - 2, rIn, pal.accent, '');
-    label(ctx, `pump I/q`, ex + tw / 2 + fs * 0.6, ty - fs * 2.2, 'left', 'middle', pal.accent, `700 ${fs * 0.72}px ${getFont()}`, pal);
-    flow(ex + tw + 2, ty + th * 0.35, px - 2, ty + th * 0.35, rSt, pal.ray, 'stimulated GP');
+    label(ctx, `pump I/q`, ex + tw / 2 + fs * 0.6, ty - fs * 2.2, 'left', 'middle', pal.accent, `700 ${fs * 0.92}px ${getFont()}`, pal);
+    flow(ex + tw + 2, ty + th * 0.55, px - 2, ty + th * 0.55, rSt, pal.ray, 'stimulated GP');
     flow(ex + tw * 0.3, ty + th + fs * 2.6, ex - fs * 1.6, H - fs * 0.6, rSp, pal.warm, '');
-    label(ctx, 'spontaneous N/τ_e', ex + tw * 0.35, H - fs * 1.1, 'left', 'middle', pal.warm, `700 ${fs * 0.72}px ${getFont()}`, pal);
+    label(ctx, 'spontaneous N/τ_e', ex + tw * 0.35, H - fs * 1.1, 'left', 'middle', pal.warm, `700 ${fs * 0.92}px ${getFont()}`, pal);
     flow(px + tw + 2, ty + th * 0.5, W - fs * 0.5, ty + th * 0.5, rOut, pal.ray, '');
-    label(ctx, 'out of the mirrors', W - fs * 0.5, ty + th * 0.5 - fs * 1.2, 'right', 'bottom', pal.ray, `700 ${fs * 0.72}px ${getFont()}`, pal);
+    label(ctx, 'light out', W - fs * 0.5, ty + th * 0.5 - fs * 1.2, 'right', 'bottom', pal.ray, `700 ${fs * 0.92}px ${getFont()}`, pal);
     flow(px + tw / 2, ty + th + fs * 2.6, px + tw / 2, H - fs * 0.3, rInt, pal.muted, '');
-    label(ctx, 'internal loss', px + tw / 2 + fs * 0.5, H - fs * 1.1, 'left', 'middle', pal.muted, `700 ${fs * 0.72}px ${getFont()}`, pal);
+    label(ctx, 'internal loss', px + tw / 2 + fs * 0.5, H - fs * 1.1, 'left', 'middle', pal.muted, `700 ${fs * 0.92}px ${getFont()}`, pal);
     ctx.restore();
   }
 
@@ -408,10 +422,10 @@ body.demo #li { aspect-ratio: 16 / 9; }
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
     const st = demoState(t), c = laser(st);
     const sw = Math.round(W * 0.64), sh = Math.round(H * 0.56), pad = W * 0.02;
-    drawLI(ctx, 0, 0, sw, sh, c, { fontSize: W / 80, upto: st.upto });
+    drawLI(ctx, 0, 0, sw, sh, c, { fontSize: W / 68, upto: st.upto });
     const bw = (sw - pad) / 2;
-    drawTank(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, t, { fontSize: W / 100 });
-    drawNI(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 100, upto: st.upto });
+    drawTank(ctx, 0, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, t, { fontSize: W / 82 });
+    drawNI(ctx, bw + pad, sh + pad * 0.3, bw, H - sh - pad * 0.6, c, { fontSize: W / 82, upto: st.upto });
     ctx.strokeStyle = pal.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, sh); ctx.lineTo(sw, sh); ctx.moveTo(sw, 0); ctx.lineTo(sw, H); ctx.stroke();
     const px = sw + pad * 1.6, pw = W - px - pad * 1.6;
     let y = H * 0.06;
@@ -464,6 +478,7 @@ body.demo #li { aspect-ratio: 16 / 9; }
     $('rNth').textContent = fmtE(c.Nth); $('rIth').textContent = `${fmt(c.Ith, 1)} mA`;
     $('rN').textContent = fmt(c.N / c.Nth, 4); $('rP').textContent = fmtE(c.P); $('rPo').textContent = fmtP(c.Po);
     $('rSl').textContent = `${fmt(c.slope, 3)} W/A`; $('rEd').textContent = `${fmt(c.etaD * 100, 1)} %`;
+    setTiles([['Drive current I', `${fmt(state.I, 1)} mA`], ['Threshold I_th', `${fmt(c.Ith, 1)} mA`, 'ok'], ['Output power', fmtP(c.Po), 'ray'], ['Slope efficiency', `${fmt(c.slope, 2)} W/A`]]);
     $('rEx').textContent = `${fmt(c.etaExt * 100, 1)} %`; $('rEt').textContent = `${fmt(c.etaTot * 100, 1)} %`;
     dirty = true;
   }
