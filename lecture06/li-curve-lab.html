@@ -353,41 +353,40 @@ body.demo .tiles { display: none !important; }
     ctx.fillText('Where the electrons go', fs * 0.8, fs * 0.6);
     const I = c.I * 1e-3, G = c.GN * (c.N - c.N0);
     const rIn = I / Q, rSp = c.N / TAUE, rSt = Math.max(0, G * c.P), rOut = c.P / c.tp * (c.am / (c.am + c.ai)), rInt = c.P / c.tp * (c.ai / (c.am + c.ai));
-    const tw = W * 0.16, th = H * 0.42, ty = H * 0.34;
-    const ex = W * 0.13, px = W * 0.6;
-    // tanks
+    // layout in font units: names and values above the tanks, flows sideways and down, their labels on free rows
+    const ex = Math.max(fs * 6, W * 0.17), tw = W * 0.13, px = W * 0.62;
+    const yName = fs * 2.5, yVal = yName + fs * 1.15, ty = yVal + fs * 1.6, tb = H - fs * 3.0, th = tb - ty, mid = ty + th * 0.45;
     const tank = (x, lvl, col, name, val) => {
       ctx.strokeStyle = pal.ink; ctx.lineWidth = 2; ctx.strokeRect(x, ty, tw, th);
       ctx.fillStyle = col; ctx.globalAlpha = 0.25; const h = th * Math.max(0, Math.min(1, lvl)); ctx.fillRect(x + 2, ty + th - h, tw - 4, h); ctx.globalAlpha = 1;
-      ctx.fillStyle = col; ctx.font = `700 ${fs * 0.9}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(name, x + tw / 2, ty + th + fs * 0.4);
-      ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.92}px ${monoFont()}`; ctx.fillText(val, x + tw / 2, ty + th + fs * 1.5);
+      ctx.fillStyle = col; ctx.font = `700 ${fs * 0.92}px ${getFont()}`; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(name, x + tw / 2, yName);
+      ctx.fillStyle = pal.ink; ctx.font = `${fs * 0.92}px ${monoFont()}`; ctx.fillText(val, x + tw / 2, yVal);
     };
     tank(ex, c.N / c.Nth / 1.15, pal.accent, 'Electrons N', `${fmt(c.N / c.Nth, 3)} N_th`);
     tank(px, (Math.log10(Math.max(1, c.P)) - 1) / 5, pal.ray, 'Photons P', fmtE(c.P));
-    // N_th mark
-    const yth = ty + th - th / 1.15; ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(ex - fs * 0.4, yth); ctx.lineTo(ex + tw + fs * 0.4, yth); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = pal.muted; ctx.font = `${fs * 0.92}px ${monoFont()}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('N_th', ex - fs * 0.5, yth);
+    // N_th mark, labelled inside the tank
+    const yth = tb - th / 1.15; ctx.strokeStyle = pal.muted; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(ex, yth); ctx.lineTo(ex + tw, yth); ctx.stroke(); ctx.setLineDash([]);
+    label(ctx, 'N_th', ex + tw - fs * 0.25, yth - fs * 0.2, 'right', 'bottom', pal.muted, `${fs * 0.8}px ${monoFont()}`, pal);
     // flows: width ∝ rate (normalized to the input), dots move along
     const ref = Math.max(rIn, 1e9);
     const flow = (x0, y0, x1, y1, rate, col, name) => {
-      const f = Math.min(1, rate / ref), w = 1 + fs * 0.7 * Math.sqrt(f);
+      const f = Math.min(1, rate / ref), w = 1 + fs * 0.6 * Math.sqrt(f);
       ctx.strokeStyle = col; ctx.globalAlpha = 0.35 + 0.5 * Math.sqrt(f); ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-      const a = Math.atan2(y1 - y0, x1 - x0), hl = fs * 0.6 + w;
+      const a = Math.atan2(y1 - y0, x1 - x0), hl = fs * 0.55 + w;
       ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - hl * Math.cos(a - 0.45), y1 - hl * Math.sin(a - 0.45)); ctx.lineTo(x1 - hl * Math.cos(a + 0.45), y1 - hl * Math.sin(a + 0.45)); ctx.fill();
       ctx.globalAlpha = 1;
-      const nd = Math.round(10 * Math.sqrt(f));
+      const nd = Math.round(8 * Math.sqrt(f));
       for (let i = 0; i < nd; i++) { const u = ((t * 0.8 + i / Math.max(1, nd)) % 1); ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x0 + (x1 - x0) * u * 0.9, y0 + (y1 - y0) * u * 0.9, Math.max(1.5, w * 0.35), 0, 2 * PI); ctx.fill(); }
-      if (name) label(ctx, name, (x0 + x1) / 2, (y0 + y1) / 2 - w / 2 - fs * 0.25, 'center', 'bottom', col, `700 ${fs * 0.92}px ${getFont()}`, pal);
+      if (name) label(ctx, name, (x0 + x1) / 2, Math.min(y0, y1) - w / 2 - fs * 0.35, 'center', 'bottom', col, `700 ${fs * 0.88}px ${getFont()}`, pal);
     };
-    flow(ex + tw / 2, ty - fs * 3.0, ex + tw / 2, ty - 2, rIn, pal.accent, '');
-    label(ctx, `pump I/q`, ex + tw / 2 + fs * 0.6, ty - fs * 2.2, 'left', 'middle', pal.accent, `700 ${fs * 0.92}px ${getFont()}`, pal);
-    flow(ex + tw + 2, ty + th * 0.55, px - 2, ty + th * 0.55, rSt, pal.ray, 'stimulated GP');
-    flow(ex + tw * 0.3, ty + th + fs * 2.6, ex - fs * 1.6, H - fs * 0.6, rSp, pal.warm, '');
-    label(ctx, 'spontaneous N/τ_e', ex + tw * 0.35, H - fs * 1.1, 'left', 'middle', pal.warm, `700 ${fs * 0.92}px ${getFont()}`, pal);
-    flow(px + tw + 2, ty + th * 0.5, W - fs * 0.5, ty + th * 0.5, rOut, pal.ray, '');
-    label(ctx, 'light out', W - fs * 0.5, ty + th * 0.5 - fs * 1.2, 'right', 'bottom', pal.ray, `700 ${fs * 0.92}px ${getFont()}`, pal);
-    flow(px + tw / 2, ty + th + fs * 2.6, px + tw / 2, H - fs * 0.3, rInt, pal.muted, '');
-    label(ctx, 'internal loss', px + tw / 2 + fs * 0.5, H - fs * 1.1, 'left', 'middle', pal.muted, `700 ${fs * 0.92}px ${getFont()}`, pal);
+    flow(fs * 0.4, mid, ex - 3, mid, rIn, pal.accent, 'pump I/q');
+    flow(ex + tw + 3, mid, px - 3, mid, rSt, pal.ray, 'stimulated GP');
+    flow(px + tw + 3, mid, W - fs * 0.4, mid, rOut, pal.ray, 'light out');
+    const yLow = H - fs * 1.3;
+    flow(ex + tw / 2, tb + 3, ex + tw / 2, H - fs * 0.3, rSp, pal.warm, '');
+    label(ctx, 'spontaneous N/τ_e', ex + tw / 2 + fs * 0.7, yLow, 'left', 'middle', pal.warm, `700 ${fs * 0.88}px ${getFont()}`, pal);
+    flow(px + tw / 2, tb + 3, px + tw / 2, H - fs * 0.3, rInt, pal.muted, '');
+    label(ctx, 'internal loss', px + tw / 2 + fs * 0.7, yLow, 'left', 'middle', pal.muted, `700 ${fs * 0.88}px ${getFont()}`, pal);
     ctx.restore();
   }
 
