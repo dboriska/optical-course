@@ -13,7 +13,7 @@ Each lab is a single HTML page that runs in any browser, on a laptop or a phone,
 | `index.html` | Home page: one square tile per lecture |
 | `lecture-02.html` … `lecture-06.html` | One page per lecture, listing its labs with a short description |
 | `*.html` in the root | The labs themselves. The home page and lecture pages link to these. |
-| `lecture02/` … `lecture06/` | A copy of each lecture's labs, plus a `movies/` folder with the animations for slides |
+| `lecture02/` … `lecture06/` | A copy of each lecture's labs, plus a `movies/` folder with the animations for slides (`lecture03/notebooks/` holds the Tidy3D Jupyter notebooks) |
 
 The labs in the root and in the lecture folders are identical copies. Both work on their own.
 
@@ -31,6 +31,8 @@ The labs in the root and in the lecture folders are identical copies. Both work 
 |---|---|
 | [V Number and Mode Chart Lab](v-number-lab.html): V number, cutoff wavelength, guided modes on the b–V chart | `v-number-mode-chart.mp4` |
 | [Spot Size Lab](spot-size-lab.html): exact fundamental mode vs Gaussian approximation, MFD, effective area | `spot-size.mp4` |
+
+**Tidy3D notebooks** (`lecture03/notebooks/`): a getting-started Jupyter tutorial on solving the modes of a step-index fiber and a rectangular waveguide with the Tidy3D mode solver, with a Python crash course and a cheat sheet. English: `Tidy3D_Modes_Getting_Started.ipynb`; Hebrew: `Tidy3D_Modes_Getting_Started_Hebrew.ipynb`. Best run in the Tidy3D online Jupyter environment; Colab or a local `pip install tidy3d` also work, and no API key is needed.
 
 ### Lecture 04 · Chromatic Dispersion
 | Lab | Movie |
